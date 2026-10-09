@@ -1,0 +1,7 @@
+# Extra dependencies only needed for local mic/speaker use (cli.py, voice_cli.py).
+# The hosted server (app/main.py) never needs these — see app/voice/tts.py and
+# app/voice/recorder.py, where they're imported lazily for exactly this reason.
+-r requirements.txt
+sounddevice
+numpy
+soundfile

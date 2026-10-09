@@ -1,0 +1,1590 @@
+[
+  {
+    "id": "app-01",
+    "name": "Samosa Chaat",
+    "category": "Starters",
+    "price": 6.5,
+    "veg": true,
+    "spice_level": "medium",
+    "description": "Crushed crispy samosas topped with chickpeas, yogurt, tamarind chutney, and mint chutney.",
+    "ingredients": [
+      "samosa pastry",
+      "potato",
+      "peas",
+      "chickpeas",
+      "yogurt",
+      "tamarind chutney",
+      "mint chutney",
+      "sev"
+    ]
+  },
+  {
+    "id": "app-02",
+    "name": "Chicken 65",
+    "category": "Starters",
+    "price": 8.0,
+    "veg": false,
+    "spice_level": "hot",
+    "description": "Deep-fried spicy chicken bites tossed in curry leaves, garlic, and red chilies.",
+    "ingredients": [
+      "chicken",
+      "curry leaves",
+      "garlic",
+      "red chili",
+      "yogurt",
+      "corn starch"
+    ]
+  },
+  {
+    "id": "app-03",
+    "name": "Paneer Tikka",
+    "category": "Starters",
+    "price": 7.5,
+    "veg": true,
+    "spice_level": "medium",
+    "description": "Chunks of cottage cheese marinated in spiced yogurt and char-grilled in the tandoor.",
+    "ingredients": [
+      "paneer",
+      "yogurt",
+      "bell pepper",
+      "onion",
+      "tandoori masala"
+    ]
+  },
+  {
+    "id": "main-01",
+    "name": "Butter Chicken",
+    "category": "Mains",
+    "price": 14.0,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Tandoor-roasted chicken simmered in a creamy tomato and butter gravy.",
+    "ingredients": [
+      "chicken",
+      "tomato",
+      "butter",
+      "cream",
+      "fenugreek",
+      "garam masala"
+    ]
+  },
+  {
+    "id": "main-02",
+    "name": "Paneer Tikka Masala",
+    "category": "Mains",
+    "price": 12.5,
+    "veg": true,
+    "spice_level": "medium",
+    "description": "Grilled paneer cubes in a spiced onion-tomato masala gravy.",
+    "ingredients": [
+      "paneer",
+      "tomato",
+      "onion",
+      "cream",
+      "garam masala"
+    ]
+  },
+  {
+    "id": "main-03",
+    "name": "Lamb Rogan Josh",
+    "category": "Mains",
+    "price": 16.0,
+    "veg": false,
+    "spice_level": "hot",
+    "description": "Slow-cooked lamb in a Kashmiri red chili and yogurt based curry.",
+    "ingredients": [
+      "lamb",
+      "yogurt",
+      "kashmiri chili",
+      "onion",
+      "ginger",
+      "garlic"
+    ]
+  },
+  {
+    "id": "main-04",
+    "name": "Dal Makhani",
+    "category": "Mains",
+    "price": 10.0,
+    "veg": true,
+    "spice_level": "mild",
+    "description": "Black lentils and kidney beans slow-simmered overnight with butter and cream.",
+    "ingredients": [
+      "black lentils",
+      "kidney beans",
+      "butter",
+      "cream",
+      "tomato"
+    ]
+  },
+  {
+    "id": "main-05",
+    "name": "Chana Masala",
+    "category": "Mains",
+    "price": 9.5,
+    "veg": true,
+    "spice_level": "medium",
+    "description": "Chickpeas simmered in a tangy onion-tomato masala with cumin and coriander.",
+    "ingredients": [
+      "chickpeas",
+      "onion",
+      "tomato",
+      "cumin",
+      "coriander"
+    ]
+  },
+  {
+    "id": "bread-01",
+    "name": "Garlic Naan",
+    "category": "Breads",
+    "price": 3.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Tandoor-baked leavened flatbread topped with garlic and butter.",
+    "ingredients": [
+      "flour",
+      "yogurt",
+      "garlic",
+      "butter"
+    ]
+  },
+  {
+    "id": "bread-02",
+    "name": "Tandoori Roti",
+    "category": "Breads",
+    "price": 2.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Whole wheat flatbread baked in the tandoor.",
+    "ingredients": [
+      "whole wheat flour"
+    ]
+  },
+  {
+    "id": "rice-01",
+    "name": "Jeera Rice",
+    "category": "Rice",
+    "price": 4.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Basmati rice tempered with cumin seeds and ghee.",
+    "ingredients": [
+      "basmati rice",
+      "cumin seeds",
+      "ghee"
+    ]
+  },
+  {
+    "id": "rice-02",
+    "name": "Chicken Biryani",
+    "category": "Rice",
+    "price": 13.5,
+    "veg": false,
+    "spice_level": "medium",
+    "description": "Layered basmati rice and spiced chicken slow-cooked with saffron.",
+    "ingredients": [
+      "chicken",
+      "basmati rice",
+      "saffron",
+      "yogurt",
+      "fried onion",
+      "biryani masala"
+    ]
+  },
+  {
+    "id": "dessert-01",
+    "name": "Gulab Jamun",
+    "category": "Desserts",
+    "price": 5.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Warm milk-solid dumplings soaked in rose and cardamom sugar syrup.",
+    "ingredients": [
+      "milk solids",
+      "sugar syrup",
+      "rose water",
+      "cardamom"
+    ]
+  },
+  {
+    "id": "drink-01",
+    "name": "Mango Lassi",
+    "category": "Drinks",
+    "price": 4.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Chilled yogurt drink blended with sweet mango pulp.",
+    "ingredients": [
+      "yogurt",
+      "mango pulp",
+      "sugar"
+    ]
+  },
+  {
+    "id": "drink-02",
+    "name": "Masala Chai",
+    "category": "Drinks",
+    "price": 3.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Black tea simmered with milk and whole spices.",
+    "ingredients": [
+      "black tea",
+      "milk",
+      "cardamom",
+      "ginger",
+      "cinnamon"
+    ]
+  },
+  {
+    "id": "south-01",
+    "name": "Masala Dosa",
+    "category": "South Indian",
+    "price": 7.0,
+    "veg": true,
+    "spice_level": "mild",
+    "description": "Crispy rice-and-lentil crepe filled with spiced potato masala.",
+    "ingredients": [
+      "rice batter",
+      "lentil batter",
+      "potato",
+      "mustard seeds",
+      "curry leaves"
+    ]
+  },
+  {
+    "id": "south-02",
+    "name": "Plain Dosa",
+    "category": "South Indian",
+    "price": 5.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Thin, crispy fermented rice-and-lentil crepe.",
+    "ingredients": [
+      "rice batter",
+      "lentil batter"
+    ]
+  },
+  {
+    "id": "south-03",
+    "name": "Rava Dosa",
+    "category": "South Indian",
+    "price": 6.5,
+    "veg": true,
+    "spice_level": "mild",
+    "description": "Crisp semolina crepe with onions and green chilies.",
+    "ingredients": [
+      "semolina",
+      "rice flour",
+      "onion",
+      "green chili",
+      "cumin"
+    ]
+  },
+  {
+    "id": "south-04",
+    "name": "Mysore Masala Dosa",
+    "category": "South Indian",
+    "price": 7.5,
+    "veg": true,
+    "spice_level": "hot",
+    "description": "Dosa spread with spicy red chutney and potato filling.",
+    "ingredients": [
+      "rice batter",
+      "red chutney",
+      "potato",
+      "garlic",
+      "red chili"
+    ]
+  },
+  {
+    "id": "south-05",
+    "name": "Onion Uttapam",
+    "category": "South Indian",
+    "price": 6.5,
+    "veg": true,
+    "spice_level": "mild",
+    "description": "Thick rice-and-lentil pancake topped with onions.",
+    "ingredients": [
+      "rice batter",
+      "lentil batter",
+      "onion",
+      "green chili"
+    ]
+  },
+  {
+    "id": "south-06",
+    "name": "Podi Idli",
+    "category": "South Indian",
+    "price": 6.0,
+    "veg": true,
+    "spice_level": "medium",
+    "description": "Steamed rice cakes tossed in spiced lentil podi and ghee.",
+    "ingredients": [
+      "rice",
+      "lentils",
+      "podi spice mix",
+      "ghee"
+    ]
+  },
+  {
+    "id": "south-07",
+    "name": "Sambar Vada",
+    "category": "South Indian",
+    "price": 6.0,
+    "veg": true,
+    "spice_level": "medium",
+    "description": "Fried lentil doughnuts soaked in tangy sambar.",
+    "ingredients": [
+      "lentils",
+      "sambar",
+      "curry leaves",
+      "mustard seeds"
+    ]
+  },
+  {
+    "id": "south-08",
+    "name": "Rasam",
+    "category": "South Indian",
+    "price": 4.5,
+    "veg": true,
+    "spice_level": "medium",
+    "description": "Tangy tamarind and tomato soup with pepper and cumin.",
+    "ingredients": [
+      "tamarind",
+      "tomato",
+      "black pepper",
+      "cumin",
+      "curry leaves"
+    ]
+  },
+  {
+    "id": "south-09",
+    "name": "Curd Rice",
+    "category": "South Indian",
+    "price": 5.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Rice mixed with yogurt, tempered with mustard seeds and curry leaves.",
+    "ingredients": [
+      "rice",
+      "yogurt",
+      "mustard seeds",
+      "curry leaves"
+    ]
+  },
+  {
+    "id": "south-10",
+    "name": "Coconut Chutney Idli",
+    "category": "South Indian",
+    "price": 5.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Soft steamed rice cakes served with fresh coconut chutney.",
+    "ingredients": [
+      "rice",
+      "lentils",
+      "coconut",
+      "green chili"
+    ]
+  },
+  {
+    "id": "south-11",
+    "name": "Ghee Roast Dosa",
+    "category": "South Indian",
+    "price": 7.5,
+    "veg": true,
+    "spice_level": "mild",
+    "description": "Dosa roasted in ghee until crisp and golden.",
+    "ingredients": [
+      "rice batter",
+      "lentil batter",
+      "ghee"
+    ]
+  },
+  {
+    "id": "south-12",
+    "name": "Pesarattu",
+    "category": "South Indian",
+    "price": 6.5,
+    "veg": true,
+    "spice_level": "mild",
+    "description": "Savory moong dal crepe, a specialty from Andhra Pradesh.",
+    "ingredients": [
+      "moong dal",
+      "ginger",
+      "green chili",
+      "cumin"
+    ]
+  },
+  {
+    "id": "south-13",
+    "name": "Set Dosa",
+    "category": "South Indian",
+    "price": 6.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Soft, spongy dosa served in a set of three.",
+    "ingredients": [
+      "rice batter",
+      "lentil batter"
+    ]
+  },
+  {
+    "id": "south-14",
+    "name": "Chettinad Chicken Dosa",
+    "category": "South Indian",
+    "price": 9.5,
+    "veg": false,
+    "spice_level": "hot",
+    "description": "Dosa filled with spicy Chettinad-style chicken.",
+    "ingredients": [
+      "chicken",
+      "rice batter",
+      "chettinad masala",
+      "curry leaves"
+    ]
+  },
+  {
+    "id": "south-15",
+    "name": "Filter Coffee",
+    "category": "South Indian",
+    "price": 3.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Strong South Indian coffee with chicory, served with frothed milk.",
+    "ingredients": [
+      "coffee",
+      "chicory",
+      "milk",
+      "sugar"
+    ]
+  },
+  {
+    "id": "dimsum-01",
+    "name": "Chicken Siu Mai",
+    "category": "Dim Sum",
+    "price": 8.0,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Steamed open-top dumplings with chicken and shiitake mushroom.",
+    "ingredients": [
+      "chicken",
+      "shiitake mushroom",
+      "wonton wrapper",
+      "soy sauce"
+    ]
+  },
+  {
+    "id": "dimsum-02",
+    "name": "Vegetable Momos",
+    "category": "Dim Sum",
+    "price": 7.0,
+    "veg": true,
+    "spice_level": "mild",
+    "description": "Steamed dumplings with cabbage, carrot, and glass noodles.",
+    "ingredients": [
+      "cabbage",
+      "carrot",
+      "glass noodles",
+      "dumpling wrapper"
+    ]
+  },
+  {
+    "id": "dimsum-03",
+    "name": "Pork Xiao Long Bao",
+    "category": "Dim Sum",
+    "price": 9.0,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Soup dumplings filled with pork and savory broth.",
+    "ingredients": [
+      "pork",
+      "gelatin broth",
+      "dumpling wrapper",
+      "ginger"
+    ]
+  },
+  {
+    "id": "dimsum-04",
+    "name": "Prawn Har Gow",
+    "category": "Dim Sum",
+    "price": 9.5,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Translucent steamed dumplings with prawn filling.",
+    "ingredients": [
+      "prawn",
+      "bamboo shoot",
+      "tapioca starch wrapper"
+    ]
+  },
+  {
+    "id": "dimsum-05",
+    "name": "Spring Rolls",
+    "category": "Dim Sum",
+    "price": 6.5,
+    "veg": true,
+    "spice_level": "mild",
+    "description": "Crispy fried rolls filled with mixed vegetables.",
+    "ingredients": [
+      "cabbage",
+      "carrot",
+      "glass noodles",
+      "spring roll wrapper"
+    ]
+  },
+  {
+    "id": "dimsum-06",
+    "name": "Chicken Spring Rolls",
+    "category": "Dim Sum",
+    "price": 7.5,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Crispy fried rolls filled with shredded chicken and vegetables.",
+    "ingredients": [
+      "chicken",
+      "cabbage",
+      "carrot",
+      "spring roll wrapper"
+    ]
+  },
+  {
+    "id": "dimsum-07",
+    "name": "Chilli Garlic Chicken Dumplings",
+    "category": "Dim Sum",
+    "price": 8.5,
+    "veg": false,
+    "spice_level": "hot",
+    "description": "Pan-fried dumplings tossed in chilli garlic sauce.",
+    "ingredients": [
+      "chicken",
+      "garlic",
+      "chili sauce",
+      "dumpling wrapper"
+    ]
+  },
+  {
+    "id": "dimsum-08",
+    "name": "Edamame Dumplings",
+    "category": "Dim Sum",
+    "price": 7.5,
+    "veg": true,
+    "spice_level": "mild",
+    "description": "Steamed dumplings with edamame and ginger.",
+    "ingredients": [
+      "edamame",
+      "ginger",
+      "dumpling wrapper"
+    ]
+  },
+  {
+    "id": "dimsum-09",
+    "name": "BBQ Pork Buns",
+    "category": "Dim Sum",
+    "price": 7.0,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Steamed buns filled with char siu barbecue pork.",
+    "ingredients": [
+      "pork",
+      "char siu sauce",
+      "bao dough"
+    ]
+  },
+  {
+    "id": "dimsum-10",
+    "name": "Sesame Prawn Toast",
+    "category": "Dim Sum",
+    "price": 8.0,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Fried toast topped with prawn paste and sesame seeds.",
+    "ingredients": [
+      "prawn",
+      "bread",
+      "sesame seeds"
+    ]
+  },
+  {
+    "id": "dimsum-11",
+    "name": "Crystal Vegetable Dumplings",
+    "category": "Dim Sum",
+    "price": 7.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Translucent steamed dumplings with mixed vegetables.",
+    "ingredients": [
+      "carrot",
+      "mushroom",
+      "bamboo shoot",
+      "tapioca starch wrapper"
+    ]
+  },
+  {
+    "id": "dimsum-12",
+    "name": "Chicken Potstickers",
+    "category": "Dim Sum",
+    "price": 8.0,
+    "veg": false,
+    "spice_level": "medium",
+    "description": "Pan-fried dumplings with chicken and cabbage.",
+    "ingredients": [
+      "chicken",
+      "cabbage",
+      "ginger",
+      "dumpling wrapper"
+    ]
+  },
+  {
+    "id": "dimsum-13",
+    "name": "Salt and Pepper Tofu",
+    "category": "Dim Sum",
+    "price": 7.0,
+    "veg": true,
+    "spice_level": "medium",
+    "description": "Crispy fried tofu tossed with salt, pepper, and chilies.",
+    "ingredients": [
+      "tofu",
+      "black pepper",
+      "chili",
+      "garlic"
+    ]
+  },
+  {
+    "id": "dimsum-14",
+    "name": "Char Siu Puffs",
+    "category": "Dim Sum",
+    "price": 7.5,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Flaky pastry puffs filled with barbecue pork.",
+    "ingredients": [
+      "pork",
+      "char siu sauce",
+      "puff pastry"
+    ]
+  },
+  {
+    "id": "dimsum-15",
+    "name": "Custard Buns",
+    "category": "Dim Sum",
+    "price": 6.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Steamed buns filled with sweet egg custard.",
+    "ingredients": [
+      "egg custard",
+      "bao dough",
+      "sugar"
+    ]
+  },
+  {
+    "id": "sushi-01",
+    "name": "California Roll",
+    "category": "Sushi",
+    "price": 9.0,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Crab, avocado, and cucumber rolled with rice and nori.",
+    "ingredients": [
+      "crab",
+      "avocado",
+      "cucumber",
+      "nori",
+      "rice"
+    ]
+  },
+  {
+    "id": "sushi-02",
+    "name": "Spicy Tuna Roll",
+    "category": "Sushi",
+    "price": 10.5,
+    "veg": false,
+    "spice_level": "medium",
+    "description": "Tuna mixed with spicy mayo, rolled with rice and nori.",
+    "ingredients": [
+      "tuna",
+      "spicy mayo",
+      "nori",
+      "rice"
+    ]
+  },
+  {
+    "id": "sushi-03",
+    "name": "Salmon Nigiri",
+    "category": "Sushi",
+    "price": 8.5,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Hand-pressed rice topped with a fresh salmon slice.",
+    "ingredients": [
+      "salmon",
+      "rice",
+      "wasabi"
+    ]
+  },
+  {
+    "id": "sushi-04",
+    "name": "Tuna Nigiri",
+    "category": "Sushi",
+    "price": 9.0,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Hand-pressed rice topped with a fresh tuna slice.",
+    "ingredients": [
+      "tuna",
+      "rice",
+      "wasabi"
+    ]
+  },
+  {
+    "id": "sushi-05",
+    "name": "Avocado Roll",
+    "category": "Sushi",
+    "price": 7.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Avocado rolled with rice and nori.",
+    "ingredients": [
+      "avocado",
+      "nori",
+      "rice"
+    ]
+  },
+  {
+    "id": "sushi-06",
+    "name": "Cucumber Roll",
+    "category": "Sushi",
+    "price": 6.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Cucumber rolled with rice and nori.",
+    "ingredients": [
+      "cucumber",
+      "nori",
+      "rice"
+    ]
+  },
+  {
+    "id": "sushi-07",
+    "name": "Dragon Roll",
+    "category": "Sushi",
+    "price": 12.0,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Eel and cucumber roll topped with avocado.",
+    "ingredients": [
+      "eel",
+      "cucumber",
+      "avocado",
+      "nori",
+      "rice"
+    ]
+  },
+  {
+    "id": "sushi-08",
+    "name": "Rainbow Roll",
+    "category": "Sushi",
+    "price": 13.5,
+    "veg": false,
+    "spice_level": "none",
+    "description": "California roll topped with assorted fresh sashimi.",
+    "ingredients": [
+      "crab",
+      "avocado",
+      "assorted fish",
+      "nori",
+      "rice"
+    ]
+  },
+  {
+    "id": "sushi-09",
+    "name": "Shrimp Tempura Roll",
+    "category": "Sushi",
+    "price": 11.0,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Crispy fried shrimp rolled with rice and nori.",
+    "ingredients": [
+      "shrimp",
+      "tempura batter",
+      "nori",
+      "rice"
+    ]
+  },
+  {
+    "id": "sushi-10",
+    "name": "Eel Nigiri",
+    "category": "Sushi",
+    "price": 9.5,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Grilled eel glazed with sweet soy sauce over rice.",
+    "ingredients": [
+      "eel",
+      "rice",
+      "eel sauce"
+    ]
+  },
+  {
+    "id": "sushi-11",
+    "name": "Vegetable Roll",
+    "category": "Sushi",
+    "price": 7.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Assorted fresh vegetables rolled with rice and nori.",
+    "ingredients": [
+      "cucumber",
+      "avocado",
+      "carrot",
+      "nori",
+      "rice"
+    ]
+  },
+  {
+    "id": "sushi-12",
+    "name": "Salmon Sashimi",
+    "category": "Sushi",
+    "price": 11.0,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Thinly sliced fresh raw salmon.",
+    "ingredients": [
+      "salmon"
+    ]
+  },
+  {
+    "id": "sushi-13",
+    "name": "Volcano Roll",
+    "category": "Sushi",
+    "price": 13.0,
+    "veg": false,
+    "spice_level": "hot",
+    "description": "Baked spicy seafood roll served warm.",
+    "ingredients": [
+      "crab",
+      "shrimp",
+      "spicy mayo",
+      "nori",
+      "rice"
+    ]
+  },
+  {
+    "id": "sushi-14",
+    "name": "Miso Soup",
+    "category": "Sushi",
+    "price": 4.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Traditional soybean paste soup with tofu and seaweed.",
+    "ingredients": [
+      "miso paste",
+      "tofu",
+      "seaweed",
+      "scallion"
+    ]
+  },
+  {
+    "id": "sushi-15",
+    "name": "Edamame",
+    "category": "Sushi",
+    "price": 4.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Steamed and salted soybean pods.",
+    "ingredients": [
+      "soybeans",
+      "sea salt"
+    ]
+  },
+  {
+    "id": "pasta-01",
+    "name": "Spaghetti Aglio e Olio",
+    "category": "Pasta",
+    "price": 11.0,
+    "veg": true,
+    "spice_level": "medium",
+    "description": "Spaghetti tossed in garlic, olive oil, and chili flakes.",
+    "ingredients": [
+      "spaghetti",
+      "garlic",
+      "olive oil",
+      "chili flakes"
+    ]
+  },
+  {
+    "id": "pasta-02",
+    "name": "Fettuccine Alfredo",
+    "category": "Pasta",
+    "price": 12.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Fettuccine in a creamy parmesan sauce.",
+    "ingredients": [
+      "fettuccine",
+      "cream",
+      "parmesan",
+      "butter"
+    ]
+  },
+  {
+    "id": "pasta-03",
+    "name": "Penne Arrabbiata",
+    "category": "Pasta",
+    "price": 11.5,
+    "veg": true,
+    "spice_level": "hot",
+    "description": "Penne in a spicy tomato and garlic sauce.",
+    "ingredients": [
+      "penne",
+      "tomato",
+      "garlic",
+      "chili"
+    ]
+  },
+  {
+    "id": "pasta-04",
+    "name": "Spaghetti Carbonara",
+    "category": "Pasta",
+    "price": 13.0,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Spaghetti with pancetta, egg, and parmesan.",
+    "ingredients": [
+      "spaghetti",
+      "pancetta",
+      "egg",
+      "parmesan"
+    ]
+  },
+  {
+    "id": "pasta-05",
+    "name": "Lasagna Bolognese",
+    "category": "Pasta",
+    "price": 14.5,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Layered pasta with slow-cooked beef ragu and bechamel.",
+    "ingredients": [
+      "pasta sheets",
+      "beef",
+      "tomato",
+      "bechamel sauce"
+    ]
+  },
+  {
+    "id": "pasta-06",
+    "name": "Mushroom Risotto",
+    "category": "Pasta",
+    "price": 13.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Creamy arborio rice with wild mushrooms and parmesan.",
+    "ingredients": [
+      "arborio rice",
+      "mushroom",
+      "parmesan",
+      "white wine"
+    ]
+  },
+  {
+    "id": "pasta-07",
+    "name": "Penne alla Vodka",
+    "category": "Pasta",
+    "price": 12.0,
+    "veg": true,
+    "spice_level": "mild",
+    "description": "Penne in a creamy tomato vodka sauce.",
+    "ingredients": [
+      "penne",
+      "tomato",
+      "cream",
+      "vodka"
+    ]
+  },
+  {
+    "id": "pasta-08",
+    "name": "Seafood Linguine",
+    "category": "Pasta",
+    "price": 15.5,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Linguine tossed with shrimp, mussels, and clams in white wine sauce.",
+    "ingredients": [
+      "linguine",
+      "shrimp",
+      "mussels",
+      "clams",
+      "white wine"
+    ]
+  },
+  {
+    "id": "pasta-09",
+    "name": "Pesto Gnocchi",
+    "category": "Pasta",
+    "price": 12.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Potato dumplings tossed in fresh basil pesto.",
+    "ingredients": [
+      "gnocchi",
+      "basil",
+      "pine nuts",
+      "parmesan"
+    ]
+  },
+  {
+    "id": "pasta-10",
+    "name": "Chicken Alfredo Pasta",
+    "category": "Pasta",
+    "price": 13.5,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Fettuccine with grilled chicken in creamy alfredo sauce.",
+    "ingredients": [
+      "fettuccine",
+      "chicken",
+      "cream",
+      "parmesan"
+    ]
+  },
+  {
+    "id": "pasta-11",
+    "name": "Baked Ziti",
+    "category": "Pasta",
+    "price": 12.0,
+    "veg": true,
+    "spice_level": "mild",
+    "description": "Baked pasta with marinara, ricotta, and mozzarella.",
+    "ingredients": [
+      "ziti",
+      "marinara",
+      "ricotta",
+      "mozzarella"
+    ]
+  },
+  {
+    "id": "pasta-12",
+    "name": "Truffle Mac and Cheese",
+    "category": "Pasta",
+    "price": 13.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Macaroni in a truffle-infused cheese sauce.",
+    "ingredients": [
+      "macaroni",
+      "cheddar",
+      "truffle oil",
+      "cream"
+    ]
+  },
+  {
+    "id": "pasta-13",
+    "name": "Spinach Ravioli",
+    "category": "Pasta",
+    "price": 13.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Pasta pockets filled with spinach and ricotta in a butter sage sauce.",
+    "ingredients": [
+      "ravioli",
+      "spinach",
+      "ricotta",
+      "butter",
+      "sage"
+    ]
+  },
+  {
+    "id": "pasta-14",
+    "name": "Spaghetti Bolognese",
+    "category": "Pasta",
+    "price": 12.5,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Spaghetti in a slow-cooked beef and tomato ragu.",
+    "ingredients": [
+      "spaghetti",
+      "beef",
+      "tomato",
+      "onion",
+      "carrot"
+    ]
+  },
+  {
+    "id": "pasta-15",
+    "name": "Caprese Salad",
+    "category": "Pasta",
+    "price": 8.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Fresh mozzarella, tomatoes, and basil drizzled with balsamic.",
+    "ingredients": [
+      "mozzarella",
+      "tomato",
+      "basil",
+      "balsamic glaze"
+    ]
+  },
+  {
+    "id": "pizza-01",
+    "name": "Margherita Pizza",
+    "category": "Pizza",
+    "price": 10.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Classic pizza with tomato sauce, mozzarella, and basil.",
+    "ingredients": [
+      "pizza dough",
+      "tomato sauce",
+      "mozzarella",
+      "basil"
+    ]
+  },
+  {
+    "id": "pizza-02",
+    "name": "Pepperoni Pizza",
+    "category": "Pizza",
+    "price": 12.5,
+    "veg": false,
+    "spice_level": "medium",
+    "description": "Pizza topped with spicy pepperoni and mozzarella.",
+    "ingredients": [
+      "pizza dough",
+      "tomato sauce",
+      "mozzarella",
+      "pepperoni"
+    ]
+  },
+  {
+    "id": "pizza-03",
+    "name": "Four Cheese Pizza",
+    "category": "Pizza",
+    "price": 13.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Pizza with mozzarella, gorgonzola, parmesan, and fontina.",
+    "ingredients": [
+      "pizza dough",
+      "mozzarella",
+      "gorgonzola",
+      "parmesan",
+      "fontina"
+    ]
+  },
+  {
+    "id": "pizza-04",
+    "name": "BBQ Chicken Pizza",
+    "category": "Pizza",
+    "price": 13.5,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Pizza topped with BBQ chicken, red onions, and cilantro.",
+    "ingredients": [
+      "pizza dough",
+      "bbq sauce",
+      "chicken",
+      "red onion",
+      "cilantro"
+    ]
+  },
+  {
+    "id": "pizza-05",
+    "name": "Veggie Supreme Pizza",
+    "category": "Pizza",
+    "price": 12.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Pizza loaded with bell peppers, olives, onions, and mushrooms.",
+    "ingredients": [
+      "pizza dough",
+      "tomato sauce",
+      "bell pepper",
+      "olives",
+      "mushroom"
+    ]
+  },
+  {
+    "id": "pizza-06",
+    "name": "Hawaiian Pizza",
+    "category": "Pizza",
+    "price": 12.5,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Pizza with ham, pineapple, and mozzarella.",
+    "ingredients": [
+      "pizza dough",
+      "tomato sauce",
+      "ham",
+      "pineapple",
+      "mozzarella"
+    ]
+  },
+  {
+    "id": "pizza-07",
+    "name": "Pesto Pizza",
+    "category": "Pizza",
+    "price": 12.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Pizza with basil pesto, cherry tomatoes, and mozzarella.",
+    "ingredients": [
+      "pizza dough",
+      "basil pesto",
+      "cherry tomato",
+      "mozzarella"
+    ]
+  },
+  {
+    "id": "pizza-08",
+    "name": "Meat Lovers Pizza",
+    "category": "Pizza",
+    "price": 15.0,
+    "veg": false,
+    "spice_level": "medium",
+    "description": "Pizza loaded with pepperoni, sausage, ham, and bacon.",
+    "ingredients": [
+      "pizza dough",
+      "tomato sauce",
+      "pepperoni",
+      "sausage",
+      "ham",
+      "bacon"
+    ]
+  },
+  {
+    "id": "pizza-09",
+    "name": "Spicy Diavola Pizza",
+    "category": "Pizza",
+    "price": 13.5,
+    "veg": false,
+    "spice_level": "hot",
+    "description": "Pizza with spicy salami and chili oil.",
+    "ingredients": [
+      "pizza dough",
+      "tomato sauce",
+      "salami",
+      "chili oil"
+    ]
+  },
+  {
+    "id": "pizza-10",
+    "name": "Mushroom Truffle Pizza",
+    "category": "Pizza",
+    "price": 14.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Pizza with wild mushrooms and truffle oil.",
+    "ingredients": [
+      "pizza dough",
+      "mozzarella",
+      "wild mushroom",
+      "truffle oil"
+    ]
+  },
+  {
+    "id": "pizza-11",
+    "name": "Paneer Tikka Pizza",
+    "category": "Pizza",
+    "price": 13.0,
+    "veg": true,
+    "spice_level": "medium",
+    "description": "Fusion pizza topped with spiced paneer tikka.",
+    "ingredients": [
+      "pizza dough",
+      "tomato sauce",
+      "paneer",
+      "tandoori masala"
+    ]
+  },
+  {
+    "id": "pizza-12",
+    "name": "Buffalo Chicken Pizza",
+    "category": "Pizza",
+    "price": 14.0,
+    "veg": false,
+    "spice_level": "hot",
+    "description": "Pizza topped with spicy buffalo chicken and blue cheese.",
+    "ingredients": [
+      "pizza dough",
+      "buffalo sauce",
+      "chicken",
+      "blue cheese"
+    ]
+  },
+  {
+    "id": "pizza-13",
+    "name": "Margherita Garlic Pizza",
+    "category": "Pizza",
+    "price": 11.5,
+    "veg": true,
+    "spice_level": "mild",
+    "description": "Margherita pizza topped with roasted garlic.",
+    "ingredients": [
+      "pizza dough",
+      "tomato sauce",
+      "mozzarella",
+      "roasted garlic"
+    ]
+  },
+  {
+    "id": "pizza-14",
+    "name": "Seafood Pizza",
+    "category": "Pizza",
+    "price": 15.5,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Pizza topped with shrimp, calamari, and mussels.",
+    "ingredients": [
+      "pizza dough",
+      "tomato sauce",
+      "shrimp",
+      "calamari",
+      "mussels"
+    ]
+  },
+  {
+    "id": "pizza-15",
+    "name": "Garlic Breadsticks",
+    "category": "Pizza",
+    "price": 6.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Baked dough sticks brushed with garlic butter, served with marinara.",
+    "ingredients": [
+      "dough",
+      "garlic",
+      "butter",
+      "marinara"
+    ]
+  },
+  {
+    "id": "sandwich-01",
+    "name": "Club Sandwich",
+    "category": "Sandwiches",
+    "price": 9.5,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Triple-decker with chicken, bacon, lettuce, and tomato.",
+    "ingredients": [
+      "chicken",
+      "bacon",
+      "lettuce",
+      "tomato",
+      "bread"
+    ]
+  },
+  {
+    "id": "sandwich-02",
+    "name": "Grilled Cheese Sandwich",
+    "category": "Sandwiches",
+    "price": 6.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Melted cheddar and mozzarella between toasted bread.",
+    "ingredients": [
+      "cheddar",
+      "mozzarella",
+      "bread",
+      "butter"
+    ]
+  },
+  {
+    "id": "sandwich-03",
+    "name": "BLT Sandwich",
+    "category": "Sandwiches",
+    "price": 7.5,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Bacon, lettuce, and tomato with mayo on toasted bread.",
+    "ingredients": [
+      "bacon",
+      "lettuce",
+      "tomato",
+      "mayo",
+      "bread"
+    ]
+  },
+  {
+    "id": "sandwich-04",
+    "name": "Veggie Panini",
+    "category": "Sandwiches",
+    "price": 7.5,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Grilled sandwich with zucchini, bell peppers, and pesto.",
+    "ingredients": [
+      "zucchini",
+      "bell pepper",
+      "pesto",
+      "ciabatta"
+    ]
+  },
+  {
+    "id": "sandwich-05",
+    "name": "Chicken Caesar Wrap",
+    "category": "Sandwiches",
+    "price": 8.5,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Grilled chicken, romaine, and caesar dressing wrapped in a tortilla.",
+    "ingredients": [
+      "chicken",
+      "romaine lettuce",
+      "caesar dressing",
+      "tortilla"
+    ]
+  },
+  {
+    "id": "sandwich-06",
+    "name": "Philly Cheesesteak",
+    "category": "Sandwiches",
+    "price": 10.0,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Sliced steak and melted cheese in a hoagie roll.",
+    "ingredients": [
+      "steak",
+      "cheese",
+      "onion",
+      "hoagie roll"
+    ]
+  },
+  {
+    "id": "sandwich-07",
+    "name": "Tuna Melt",
+    "category": "Sandwiches",
+    "price": 8.5,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Tuna salad and melted cheddar on grilled bread.",
+    "ingredients": [
+      "tuna",
+      "mayo",
+      "cheddar",
+      "bread"
+    ]
+  },
+  {
+    "id": "sandwich-08",
+    "name": "Falafel Wrap",
+    "category": "Sandwiches",
+    "price": 7.5,
+    "veg": true,
+    "spice_level": "medium",
+    "description": "Crispy falafel with hummus and salad wrapped in pita.",
+    "ingredients": [
+      "falafel",
+      "hummus",
+      "lettuce",
+      "pita"
+    ]
+  },
+  {
+    "id": "sandwich-09",
+    "name": "Turkey Avocado Sandwich",
+    "category": "Sandwiches",
+    "price": 9.0,
+    "veg": false,
+    "spice_level": "none",
+    "description": "Sliced turkey, avocado, and lettuce on multigrain bread.",
+    "ingredients": [
+      "turkey",
+      "avocado",
+      "lettuce",
+      "multigrain bread"
+    ]
+  },
+  {
+    "id": "sandwich-10",
+    "name": "Egg and Cheese Sandwich",
+    "category": "Sandwiches",
+    "price": 6.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Fried egg and cheddar on a toasted bun.",
+    "ingredients": [
+      "egg",
+      "cheddar",
+      "bun"
+    ]
+  },
+  {
+    "id": "sandwich-11",
+    "name": "Paneer Tikka Sandwich",
+    "category": "Sandwiches",
+    "price": 7.5,
+    "veg": true,
+    "spice_level": "medium",
+    "description": "Grilled sandwich with spiced paneer tikka filling.",
+    "ingredients": [
+      "paneer",
+      "tandoori masala",
+      "bell pepper",
+      "bread"
+    ]
+  },
+  {
+    "id": "sandwich-12",
+    "name": "Cuban Sandwich",
+    "category": "Sandwiches",
+    "price": 9.5,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Roast pork, ham, swiss cheese, and pickles pressed on Cuban bread.",
+    "ingredients": [
+      "roast pork",
+      "ham",
+      "swiss cheese",
+      "pickles",
+      "cuban bread"
+    ]
+  },
+  {
+    "id": "sandwich-13",
+    "name": "Bombay Sandwich",
+    "category": "Sandwiches",
+    "price": 6.5,
+    "veg": true,
+    "spice_level": "mild",
+    "description": "Indian-style grilled sandwich with potatoes, chutney, and veggies.",
+    "ingredients": [
+      "potato",
+      "mint chutney",
+      "cucumber",
+      "tomato",
+      "bread"
+    ]
+  },
+  {
+    "id": "sandwich-14",
+    "name": "Meatball Sub",
+    "category": "Sandwiches",
+    "price": 9.5,
+    "veg": false,
+    "spice_level": "mild",
+    "description": "Toasted sub roll with meatballs, marinara, and melted mozzarella.",
+    "ingredients": [
+      "meatballs",
+      "marinara",
+      "mozzarella",
+      "sub roll"
+    ]
+  },
+  {
+    "id": "sandwich-15",
+    "name": "Hummus and Veggie Sandwich",
+    "category": "Sandwiches",
+    "price": 7.0,
+    "veg": true,
+    "spice_level": "none",
+    "description": "Hummus, cucumber, and roasted peppers on whole wheat.",
+    "ingredients": [
+      "hummus",
+      "cucumber",
+      "roasted pepper",
+      "whole wheat bread"
+    ]
+  }
+]

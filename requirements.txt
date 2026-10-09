@@ -1,0 +1,14 @@
+langchain-core
+langchain-groq
+langchain-google-genai
+langchain-chroma
+langgraph
+chromadb
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+pytest
+groq
+python-multipart
+sarvamai

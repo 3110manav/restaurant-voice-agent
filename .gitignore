@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.DS_Store
+PROJECT_FLOW_EXPLAINER.md
+pm_case_study/
+.claude/

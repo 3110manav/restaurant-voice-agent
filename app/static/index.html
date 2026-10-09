@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Voice Ordering Agent</title>
+<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Voice Ordering Agent</h1>
+      <div class="persona-toggle" role="tablist">
+        <button class="persona-btn active" data-persona="online" role="tab">Online Order</button>
+        <button class="persona-btn" data-persona="waiter" role="tab">Restaurant Waiter</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="chat-panel">
+        <div id="transcript" class="transcript"></div>
+
+        <div class="controls">
+          <button id="micBtn" class="mic-btn" title="Push to talk">
+            <span id="micIcon">🎤</span>
+          </button>
+          <form id="textForm" class="text-form">
+            <input id="textInput" type="text" placeholder="Or type your message..." autocomplete="off" />
+            <button type="submit">Send</button>
+          </form>
+        </div>
+        <div id="status" class="status"></div>
+      </section>
+
+      <aside class="side-panel">
+        <div class="panel">
+          <h2>Cart</h2>
+          <ul id="cartList" class="item-list"><li class="empty">Empty</li></ul>
+          <div id="cartTotal" class="total"></div>
+        </div>
+        <div class="panel" id="serviceLogPanel" hidden>
+          <h2>Service Requests</h2>
+          <ul id="serviceLogList" class="item-list"><li class="empty">None yet</li></ul>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
