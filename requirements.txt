@@ -12,3 +12,5 @@ pytest
 groq
 python-multipart
 sarvamai
+supabase
+livekit-api

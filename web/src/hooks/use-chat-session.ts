@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   addToCart as apiAddToCart,
   removeFromCart as apiRemoveFromCart,
+  fetchCart,
   sendChatMessage,
   sendVoiceMessage,
   type CartLine,
@@ -175,6 +176,21 @@ export function useChatSession(persona: Persona) {
     [persona.key, pushError, sessionId]
   );
 
+  // Picks up cart/service_log changes made outside this hook's own calls —
+  // namely a realtime voice call, which runs through the separate LiveKit
+  // worker process and syncs its cart to the main API (see app/voice/
+  // cart_sync.py) rather than through sendText/sendVoice here.
+  const refreshCart = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      const response = await fetchCart(sessionId, persona.key);
+      setCart(response.cart);
+      setServiceLog(response.service_log);
+    } catch {
+      // best-effort poll; a transient failure just means we try again next tick
+    }
+  }, [persona.key, sessionId]);
+
   return {
     sessionId,
     messages,
@@ -186,6 +202,7 @@ export function useChatSession(persona: Persona) {
     toggleRecording,
     addItemDirect,
     removeItemDirect,
+    refreshCart,
   };
 }
 

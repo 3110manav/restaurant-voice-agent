@@ -31,6 +31,13 @@ export default function Home() {
             </Card>
           ))}
         </div>
+
+        <Link
+          href="/admin"
+          className="mx-auto text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          Staff view →
+        </Link>
       </section>
     </div>
   );

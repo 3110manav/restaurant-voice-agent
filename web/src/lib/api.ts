@@ -41,6 +41,28 @@ export interface CartMutationResponse {
   message: string;
 }
 
+export interface AdminOrder {
+  id: string;
+  session_id: string;
+  persona: string;
+  items: CartLine[];
+  total: number;
+  status: string;
+  created_at: string;
+}
+
+export interface AdminRequest {
+  id: string;
+  session_id: string;
+  persona: string;
+  type: string;
+  details: string;
+  notes: string;
+  status: string;
+  created_at: string;
+  resolved_at: string | null;
+}
+
 async function parseOrThrow<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: "Unknown error" }));
@@ -108,6 +130,56 @@ export async function removeFromCart(
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ session_id: sessionId, persona, item_id: itemId, quantity }),
+  });
+  return parseOrThrow(res);
+}
+
+export interface SessionStateResponse {
+  cart: CartLine[];
+  service_log: ServiceLogEntry[];
+}
+
+export async function fetchCart(sessionId: string, persona: string): Promise<SessionStateResponse> {
+  const params = new URLSearchParams({ session_id: sessionId, persona });
+  const res = await fetch(`/api/cart?${params.toString()}`, { cache: "no-store" });
+  return parseOrThrow(res);
+}
+
+export async function fetchAdminOrders(): Promise<{ configured: boolean; orders: AdminOrder[] }> {
+  const res = await fetch("/api/admin/orders", { cache: "no-store" });
+  return parseOrThrow(res);
+}
+
+export async function fetchAdminRequests(): Promise<{
+  configured: boolean;
+  requests: AdminRequest[];
+}> {
+  const res = await fetch("/api/admin/requests", { cache: "no-store" });
+  return parseOrThrow(res);
+}
+
+export async function resolveAdminRequest(id: string): Promise<AdminRequest> {
+  const res = await fetch(`/api/admin/requests/${encodeURIComponent(id)}/resolve`, {
+    method: "POST",
+  });
+  return parseOrThrow(res);
+}
+
+export interface LiveKitTokenResponse {
+  configured: boolean;
+  url: string | null;
+  token: string | null;
+  room: string | null;
+}
+
+export async function fetchLiveKitToken(
+  sessionId: string,
+  persona: string
+): Promise<LiveKitTokenResponse> {
+  const res = await fetch("/api/livekit/token", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ session_id: sessionId, persona }),
   });
   return parseOrThrow(res);
 }

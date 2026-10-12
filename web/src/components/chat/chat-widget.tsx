@@ -10,7 +10,7 @@ export function ChatWidget({ persona }: { persona: Persona }) {
 
   return (
     <div className="grid flex-1 grid-cols-1 gap-4 p-4 lg:grid-cols-[1fr_280px]">
-      <ChatPanel session={session} placeholder={persona.placeholder} />
+      <ChatPanel persona={persona} session={session} placeholder={persona.placeholder} />
       <OrderPanel
         cart={session.cart}
         serviceLog={session.serviceLog}

@@ -45,7 +45,7 @@ export function FloatingChatWidget({
           <X className="size-4" />
         </Button>
       </div>
-      <ChatPanel session={session} placeholder={persona.placeholder} scrollHeight="100%" />
+      <ChatPanel persona={persona} session={session} placeholder={persona.placeholder} scrollHeight="100%" />
     </div>
   );
 }

@@ -1,25 +1,31 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, Send, Square } from "lucide-react";
+import { Mic, Phone, Send, Square } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { RealtimeCall } from "@/components/voice/realtime-call";
 import type { ChatSession } from "@/hooks/use-chat-session";
+import type { Persona } from "@/lib/personas";
 import { cn } from "@/lib/utils";
 
 export function ChatPanel({
+  persona,
   session,
   placeholder,
   scrollHeight = "60vh",
 }: {
+  persona: Persona;
   session: ChatSession;
   placeholder: string;
   scrollHeight?: string;
 }) {
-  const { sessionId, messages, isSending, isRecording, sendText, toggleRecording } = session;
+  const { sessionId, messages, isSending, isRecording, sendText, toggleRecording, refreshCart } =
+    session;
   const [input, setInput] = useState("");
+  const [callActive, setCallActive] = useState(false);
   const scrollEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,6 +36,19 @@ export function ChatPanel({
     if (!input.trim()) return;
     void sendText(input);
     setInput("");
+  }
+
+  if (callActive) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card">
+        <RealtimeCall
+          persona={persona}
+          sessionId={sessionId}
+          onEnd={() => setCallActive(false)}
+          onCartSync={refreshCart}
+        />
+      </div>
+    );
   }
 
   return (
@@ -56,11 +75,23 @@ export function ChatPanel({
       <div className="flex gap-2 border-t p-3">
         <Button
           type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => setCallActive(true)}
+          disabled={!sessionId}
+          aria-label={`Start a realtime call with ${persona.agentName}`}
+          title="Realtime voice call"
+        >
+          <Phone className="size-4" />
+        </Button>
+        <Button
+          type="button"
           variant={isRecording ? "destructive" : "outline"}
           size="icon"
           onClick={toggleRecording}
           disabled={!sessionId}
           aria-label={isRecording ? "Stop recording" : "Record a voice message"}
+          title="Push-to-talk"
         >
           {isRecording ? <Square className="size-4" /> : <Mic className="size-4" />}
         </Button>
