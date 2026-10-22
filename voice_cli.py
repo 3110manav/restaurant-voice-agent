@@ -5,10 +5,10 @@ back through the speakers (Orpheus/Groq for English, Sarvam AI's Bulbul
 for Hindi — see app/voice/tts.py).
 
 Usage:
-    python voice_cli.py                  # online delivery-app persona (Zaika)
-    python voice_cli.py quick_commerce   # quick-commerce persona (Fatafat)
-    python voice_cli.py waiter           # in-restaurant waiter persona (Khidmat)
-    python voice_cli.py hotel            # hotel front-desk persona (Swagat)
+    python voice_cli.py                  # online delivery-app persona (Meera)
+    python voice_cli.py quick_commerce   # quick-commerce persona (Veer)
+    python voice_cli.py waiter           # in-restaurant waiter persona (Kabir)
+    python voice_cli.py hotel            # hotel front-desk persona (Ira)
 """
 import sys
 import tempfile
@@ -66,7 +66,7 @@ def main():
             print(f"agent> {reply}\n")
 
             try:
-                speak(reply)
+                speak(reply, persona)
             except Exception as e:
                 print(f"[speech playback error] {e!r}\n")
     except (KeyboardInterrupt, EOFError):

@@ -10,15 +10,15 @@ checkpointer (MemorySaver), keyed by thread_id.
 Four personas, all under the "Sarthi" brand, share this same engine and
 ordering toolset, differing only in their extra tools, agent identity, and
 system prompt:
-  - "online"          — Zaika, the delivery-app assistant. Ordering only.
-  - "quick_commerce"  — Fatafat, a fast/instant-delivery-style assistant for
+  - "online"          — Meera, the delivery-app assistant. Ordering only.
+  - "quick_commerce"  — Veer, a fast/instant-delivery-style assistant for
                          everyday essentials (a separate grocery catalog from
                          the food menu). Ordering only, speed-focused tone.
-  - "waiter"           — Khidmat, the in-restaurant assistant. Ordering plus
+  - "waiter"           — Kabir, the in-restaurant assistant. Ordering plus
                          service requests (water, napkins, flagging a food
                          issue, the bill, calling staff over) — anything a
                          waiter physically present at the table would handle.
-  - "hotel"            — Swagat, the hotel front-desk/in-room assistant.
+  - "hotel"            — Ira, the hotel front-desk/in-room assistant.
                          Room-service ordering plus housekeeping, reporting
                          a room issue, starting checkout, and calling staff.
 """
@@ -55,7 +55,11 @@ the chana masala") rather than a list with line breaks.
 
 Keep every reply as short as possible — one short sentence whenever it'll do. This \
 is a fast ordering conversation, not a menu reading. Nobody wants to hear a long \
-list read out loud; get to the point and let the customer ask for more if they want it."""
+list read out loud; get to the point and let the customer ask for more if they want it.
+
+All prices are in Indian rupees. When you say one out loud, say the amount and the word \
+"rupees" (or "रुपये" in Hindi) — for example "one hundred sixty rupees" — and never read out \
+the ₹ symbol."""
 
 def _ordering_behavior(example: str, category_word: str, categories: str) -> str:
     return f"""When the customer names specific items and quantities clearly — even \
@@ -86,7 +90,7 @@ _GROCERY_ORDERING_BEHAVIOR = _ordering_behavior(
 
 ONLINE_SYSTEM_PROMPT = f"""{_LANGUAGE_RULE}
 
-You are Zaika, the {BRAND_NAME} ordering assistant for a multi-cuisine restaurant's \
+You are Meera, the {BRAND_NAME} ordering assistant for a multi-cuisine restaurant's \
 delivery app ({_CUISINES}). A customer is placing an order by voice through the app. \
 {_SHARED_VOICE_STYLE}
 
@@ -99,7 +103,7 @@ of what language your tool results came back in."""
 
 QUICK_COMMERCE_SYSTEM_PROMPT = f"""{_LANGUAGE_RULE}
 
-You are Fatafat, the {BRAND_NAME} quick-commerce ordering assistant — think \
+You are Veer, the {BRAND_NAME} quick-commerce ordering assistant — think \
 instant, minutes-not-hours delivery of everyday essentials ({_GROCERY_CATEGORIES}), \
 like Instamart or Blinkit. A customer is placing a fast order by voice. \
 {_SHARED_VOICE_STYLE}
@@ -113,7 +117,7 @@ of what language your tool results came back in."""
 
 WAITER_SYSTEM_PROMPT = f"""{_LANGUAGE_RULE}
 
-You are Khidmat, the {BRAND_NAME} voice waiter assistant at a table in a \
+You are Kabir, the {BRAND_NAME} voice waiter assistant at a table in a \
 multi-cuisine restaurant ({_CUISINES}). A customer at the table is speaking to you \
 directly, the way they would to a human waiter. {_SHARED_VOICE_STYLE}
 
@@ -129,7 +133,7 @@ of what language your tool results came back in."""
 
 HOTEL_SYSTEM_PROMPT = f"""{_LANGUAGE_RULE}
 
-You are Swagat, the {BRAND_NAME} assistant at a hotel's front desk and in-room \
+You are Ira, the {BRAND_NAME} assistant at a hotel's front desk and in-room \
 assistant. A guest is speaking to you directly, by voice, the way they would to \
 hotel staff. {_SHARED_VOICE_STYLE}
 
@@ -152,10 +156,10 @@ _PERSONAS = {
 }
 
 AGENT_NAMES = {
-    "online": "Zaika",
-    "quick_commerce": "Fatafat",
-    "waiter": "Khidmat",
-    "hotel": "Swagat",
+    "online": "Meera",
+    "quick_commerce": "Veer",
+    "waiter": "Kabir",
+    "hotel": "Ira",
 }
 
 

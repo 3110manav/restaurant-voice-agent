@@ -1,8 +1,8 @@
 # Sarthi — web
 
 The Next.js frontend for [Sarthi](../README.md): a product grid + floating
-chat/voice widget for Zaika, Fatafat, and Khidmat, and a direct full-page
-chat for Swagat. See the root README for the full architecture, the four
+chat/voice widget for Meera, Veer, and Kabir, and a direct full-page
+chat for Ira. See the root README for the full architecture, the four
 personas, and how this talks to the Python backend.
 
 ## Run it

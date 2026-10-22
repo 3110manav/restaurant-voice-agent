@@ -77,7 +77,7 @@ async def entrypoint(ctx: JobContext) -> None:
     session = AgentSession(
         stt=groq.STT(model="whisper-large-v3-turbo"),
         llm=SarthiLLM(agent, session_id=session_id, persona=persona),
-        tts=SarthiTTS(),
+        tts=SarthiTTS(persona=persona),
         vad=silero.VAD.load(),
     )
 

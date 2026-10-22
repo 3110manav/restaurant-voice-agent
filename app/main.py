@@ -178,7 +178,7 @@ async def chat_voice(session_id: str, persona: str, audio: UploadFile) -> VoiceC
     reply = agent.send(transcript)
 
     try:
-        reply_audio_b64 = base64.b64encode(synthesize(reply)).decode("ascii")
+        reply_audio_b64 = base64.b64encode(synthesize(reply, persona)).decode("ascii")
     except Exception:
         reply_audio_b64 = None  # TTS unavailable/blocked — client falls back to text only
 

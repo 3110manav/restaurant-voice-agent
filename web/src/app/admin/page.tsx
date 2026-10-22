@@ -20,6 +20,7 @@ import {
   type AdminOrder,
   type AdminRequest,
 } from "@/lib/api";
+import { formatPrice } from "@/lib/utils";
 
 const POLL_INTERVAL_MS = 8000;
 
@@ -194,7 +195,7 @@ export default function AdminPage() {
                       {o.items.map((i) => `${i.quantity}x ${i.name}`).join(", ")}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      ${o.total.toFixed(2)}
+                      {formatPrice(o.total)}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">

@@ -1,10 +1,10 @@
 """Quick REPL for testing the ordering agent without the API or voice layer.
 
 Usage:
-    python cli.py                  # online persona (Zaika)
-    python cli.py quick_commerce   # quick-commerce persona (Fatafat)
-    python cli.py waiter           # waiter persona (Khidmat)
-    python cli.py hotel            # hotel persona (Swagat)
+    python cli.py                  # online persona (Meera)
+    python cli.py quick_commerce   # quick-commerce persona (Veer)
+    python cli.py waiter           # waiter persona (Kabir)
+    python cli.py hotel            # hotel persona (Ira)
 """
 import sys
 

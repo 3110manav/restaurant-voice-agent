@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 import { fetchMenu, type CartLine, type MenuItem } from "@/lib/api";
 import type { Persona } from "@/lib/personas";
 
@@ -104,7 +104,7 @@ export function ProductGrid({
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-1 items-end justify-between gap-2">
-                <span className="text-sm font-semibold">${item.price.toFixed(2)}</span>
+                <span className="text-sm font-semibold">{formatPrice(item.price)}</span>
                 {item.spice_level ? (
                   <Badge variant="outline" className="text-[10px] capitalize">
                     {item.spice_level}

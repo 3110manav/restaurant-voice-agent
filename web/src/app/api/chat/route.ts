@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8000";
 
+// Render's free tier can take ~50s to wake from sleep; the default Vercel timeout would cut that off.
+export const maxDuration = 60;
+
 interface ChatRequestBody {
   session_id: string;
   message: string;

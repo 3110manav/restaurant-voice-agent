@@ -26,12 +26,13 @@ NUM_CHANNELS = 1
 
 
 class SarthiTTS(TTS):
-    def __init__(self) -> None:
+    def __init__(self, persona: str = "online") -> None:
         super().__init__(
             capabilities=TTSCapabilities(streaming=False),
             sample_rate=SAMPLE_RATE,
             num_channels=NUM_CHANNELS,
         )
+        self._persona = persona
 
     @property
     def model(self) -> str:
@@ -53,7 +54,9 @@ class SarthiTTS(TTS):
 class SarthiChunkedStream(ChunkedStream):
     async def _run(self, output_emitter: AudioEmitter) -> None:
         loop = asyncio.get_running_loop()
-        wav_bytes = await loop.run_in_executor(None, synthesize, self._input_text)
+        wav_bytes = await loop.run_in_executor(
+            None, synthesize, self._input_text, self._tts._persona  # type: ignore[attr-defined]
+        )
 
         output_emitter.initialize(
             request_id=utils.shortuuid(),

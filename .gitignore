@@ -1,10 +1,46 @@
+# Environment — real values never get committed; .env.example files are the templates
 .env
+.env.*
+!.env.example
+
+# Python
 __pycache__/
 *.pyc
+*.egg-info/
 .venv/
 venv/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node / Next.js (web/ also has its own .gitignore)
+node_modules/
+.next/
+*.tsbuildinfo
+next-env.d.ts
+
+# Deploy tooling
+.vercel
+
+# Logs and generated audio
+*.log
+*.wav
+
+# Chroma runtime files. The vector index itself (chroma.sqlite3 + its segment
+# folders) IS committed on purpose so a fresh deploy doesn't re-embed the
+# catalogs against Gemini's free-tier rate limit — see app/rag/menu_store.py.
+chroma_db/*.sqlite3-wal
+chroma_db/*.sqlite3-shm
+chroma_db/*.sqlite3-journal
+
+# Editor / OS
 .DS_Store
+.idea/
+.vscode/
+
+# Personal / local-only
 PROJECT_FLOW_EXPLAINER.md
 pm_case_study/
 .claude/

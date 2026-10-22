@@ -10,10 +10,10 @@ and its own job:
 
 | Agent | Persona key | Role |
 |---|---|---|
-| **Zaika** | `online` | Delivery-app ordering, like Swiggy or Zomato |
-| **Fatafat** | `quick_commerce` | Instant grocery ordering, like Instamart or Blinkit — shampoo, snacks, batteries, not food |
-| **Khidmat** | `waiter` | In-restaurant table-side assistant — ordering, plus water/napkins/bill/flagging an issue/calling staff |
-| **Swagat** | `hotel` | Hotel front desk / in-room assistant — room-service ordering, housekeeping, reporting an issue, checkout |
+| **Meera** | `online` | Delivery-app ordering, like Swiggy or Zomato |
+| **Veer** | `quick_commerce` | Instant grocery ordering, like Instamart or Blinkit — shampoo, snacks, batteries, not food |
+| **Kabir** | `waiter` | In-restaurant table-side assistant — ordering, plus water/napkins/bill/flagging an issue/calling staff |
+| **Ira** | `hotel` | Hotel front desk / in-room assistant — room-service ordering, housekeeping, reporting an issue, checkout |
 
 All four speak Hindi and English (and code-switched mixes of both), by
 voice or text, and reply in whichever language the customer used.
@@ -105,6 +105,10 @@ adding a third catalog later is a one-line call, not a new class.
 - `app/voice/stt.py` / `app/voice/tts.py` — speech-to-text via Groq-hosted
   Whisper; text-to-speech auto-routed by script (Groq's Orpheus for
   English, Sarvam AI's Bulbul for Hindi).
+- `app/voice/voices.py` — which voice each persona speaks with, so the voice
+  matches the agent's gender: Meera and Ira are female (Orpheus `hannah` /
+  `diana`, Bulbul `priya` / `ritu`), Veer and Kabir are male (Orpheus `austin`
+  / `daniel`, Bulbul `rohan` / `kabir`).
 - `app/voice/recorder.py` — push-to-talk mic recording, CLI only.
 - `app/voice/livekit_worker.py` + `livekit_llm.py` + `livekit_tts.py` +
   `livekit_rooms.py` — the realtime/interruptible voice worker (see
@@ -126,13 +130,13 @@ adding a third catalog later is a one-line call, not a new class.
 - `src/app/chat/[slug]/page.tsx` — one dynamic route for all four
   personas; branches on `layout`.
 - `src/components/ordering-page.tsx` + `src/components/menu/product-grid.tsx`
-  — the `"grid"` layout (Zaika, Fatafat, Khidmat): a browsable, filterable
+  — the `"grid"` layout (Meera, Veer, Kabir): a browsable, filterable
   product grid with instant add/remove, plus a persistent cart/service-log
   panel.
 - `src/components/chat/floating-chat-widget.tsx` — the floating chat/voice
   bubble used by the `"grid"` personas.
 - `src/components/chat/chat-widget.tsx` — the `"direct-chat"` layout
-  (Swagat): chat is the whole page.
+  (Ira): chat is the whole page.
 - `src/components/chat/chat-panel.tsx` — the actual message list + text
   input + mic button, shared by both layouts above.
 - `src/hooks/use-chat-session.ts` — one hook owning session id, messages,
@@ -202,10 +206,10 @@ cd web && npm run dev
 **CLIs** (no browser needed):
 
 ```bash
-python cli.py                  # text, online persona (Zaika)
-python cli.py quick_commerce   # text, quick-commerce persona (Fatafat)
-python cli.py waiter           # text, waiter persona (Khidmat)
-python cli.py hotel            # text, hotel persona (Swagat)
+python cli.py                  # text, online persona (Meera)
+python cli.py quick_commerce   # text, quick-commerce persona (Veer)
+python cli.py waiter           # text, waiter persona (Kabir)
+python cli.py hotel            # text, hotel persona (Ira)
 
 python voice_cli.py            # voice, online persona
 python voice_cli.py waiter     # voice, waiter persona
@@ -213,10 +217,10 @@ python voice_cli.py waiter     # voice, waiter persona
 ```
 
 Try things like:
-- Zaika: "What vegetarian mains do you have?" / "Add two margherita pizzas and a garlic naan" / "That's everything, check out"
-- Fatafat: "Add a shampoo and a pack of batteries" / "Do you have anything for a headache?"
-- Khidmat: "Can you bring me a glass of water?" / "This is cold, can you reheat it?" / "Can we get the bill?"
-- Swagat: "Can I get extra towels for room 204?" / "The AC isn't working" / "I'd like to check out"
+- Meera: "What vegetarian mains do you have?" / "Add two margherita pizzas and a garlic naan" / "That's everything, check out"
+- Veer: "Add a shampoo and a pack of batteries" / "Do you have anything for a headache?"
+- Kabir: "Can you bring me a glass of water?" / "This is cold, can you reheat it?" / "Can we get the bill?"
+- Ira: "Can I get extra towels for room 204?" / "The AC isn't working" / "I'd like to check out"
 
 Everything above also works in Hindi, or mixed Hindi/English, for both
 text and voice — spoken replies too: the agent replies in whichever
@@ -334,8 +338,8 @@ to end against a real LiveKit Cloud project, not just in isolation.
   up. Themed through LiveKit's `--lk-*` CSS custom properties rather than
   its default styling.
 - The call button lives in `ChatPanel` next to the push-to-talk mic, so
-  it's available in both the floating widget (Zaika/Fatafat/Khidmat) and
-  the full-page chat (Swagat).
+  it's available in both the floating widget (Meera/Veer/Kabir) and
+  the full-page chat (Ira).
 
 **Verified live** (see git history for the session transcript): a test
 client minted a real token, the worker was dispatched and correctly
@@ -383,8 +387,7 @@ Backend (FastAPI) on [Render](https://render.com), frontend (Next.js) on
   installs) stays free of system audio dependencies.
 - Steps: push to GitHub → Render **New → Web Service** → connect the repo
   → **Environment: Docker** (finds the root `Dockerfile` automatically) →
-  add `GROQ_API_KEY`, `GOOGLE_API_KEY`, `SARVAM_API_KEY` (and the two
-  `SUPABASE_*` vars if using it) → Deploy. Free tier spins down after 15
+  add the environment variables in the table below → Deploy. Free tier spins down after 15
   minutes idle and takes about a minute to wake back up — fine for a demo
   link, not production traffic.
 
@@ -394,6 +397,23 @@ Backend (FastAPI) on [Render](https://render.com), frontend (Next.js) on
 - Add one environment variable: `BACKEND_URL` = your Render backend's URL.
 - Deploy. Mic access works out of the box — Vercel serves over HTTPS by
   default, which is all `getUserMedia` requires.
+
+**Environment variables by service:**
+
+| Variable | Vercel (frontend) | Render API (`uvicorn app.main:app`) | LiveKit worker |
+|---|:-:|:-:|:-:|
+| `BACKEND_URL` — the Render API's URL, no trailing slash | ✅ | | |
+| `GROQ_API_KEY` | | ✅ | ✅ |
+| `GOOGLE_API_KEY` (Gemini embeddings, used for every menu search) | | ✅ | ✅ |
+| `SARVAM_API_KEY` (Hindi TTS) | | ✅ | ✅ |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (the `sb_secret_…` key) | | ✅ | ✅ (checkout/requests are written from the worker too) |
+| `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | | ✅ (mints call tokens) | ✅ |
+| `SARTHI_API_BASE_URL` — the Render API's URL (cart sync, defaults to `http://localhost:8000`) | | | ✅ |
+
+The worker is a separate long-running process (`python -m app.voice.livekit_worker start`,
+deps in `requirements-livekit.txt`) and also reads the committed `chroma_db/`,
+so whatever hosts it needs the same repo checkout and the same keys. Redeploy it
+whenever `app/` changes — it runs its own copy of the agent code.
 
 **Known limitations of this setup** (fine for a demo, not for real
 traffic): sessions/carts live in memory (`app/main.py`'s `sessions` dict,
@@ -422,7 +442,7 @@ those need live API calls.
 2. ✅ **Speech-to-text** — mic input via Whisper (Groq).
 3. ✅ **Text-to-speech** — Orpheus (Groq) for English, Sarvam AI's Bulbul
    for Hindi, routed automatically by script.
-4. ✅ **Two personas → four personas** — Zaika, Fatafat, Khidmat, Swagat,
+4. ✅ **Two personas → four personas** — Meera, Veer, Kabir, Ira,
    all under the Sarthi brand, sharing one engine.
 5. ✅ **Hindi voice output**, alongside the Hindi STT/understanding that
    already worked.

@@ -8,6 +8,7 @@ signatures simple, which matters because the LLM has to fill them in.
 from langchain_core.tools import tool
 
 from app import erp
+from app.currency import format_price
 from app.rag.menu_store import MenuStore
 
 CartItem = dict  # {"id": str, "name": str, "price": float, "quantity": int}
@@ -17,7 +18,7 @@ def _item_descriptor(item: dict) -> str:
     """Build a short "(price, extra bits)" fragment for an item, adapting to
     whichever optional fields its catalog has — food items carry veg/spice
     info, grocery items carry a brand instead."""
-    bits = [f"${item['price']:.2f}"]
+    bits = [format_price(item["price"])]
     if "veg" in item:
         bits.append("veg" if item["veg"] else "non-veg")
     if item.get("spice_level"):
@@ -89,7 +90,7 @@ def build_tools(cart: list[CartItem], menu_store: MenuStore, session_id: str = "
         item = menu_store.find_by_name(name)
         if not item:
             return f"No item found matching '{name}'."
-        lines = [f"{item['name']} - ${item['price']:.2f}", item["description"]]
+        lines = [f"{item['name']} - {format_price(item['price'])}", item["description"]]
         if item.get("ingredients"):
             lines.append(f"Ingredients: {', '.join(item['ingredients'])}")
         if item.get("brand"):
@@ -130,9 +131,9 @@ def build_tools(cart: list[CartItem], menu_store: MenuStore, session_id: str = "
         """Show the current cart contents and running total."""
         if not cart:
             return "The cart is empty."
-        lines = [f"- {line['quantity']} x {line['name']} (${line['price'] * line['quantity']:.2f})" for line in cart]
+        lines = [f"- {line['quantity']} x {line['name']} ({format_price(line['price'] * line['quantity'])})" for line in cart]
         total = sum(line["price"] * line["quantity"] for line in cart)
-        return "\n".join(lines) + f"\nTotal: ${total:.2f}"
+        return "\n".join(lines) + f"\nTotal: {format_price(total)}"
 
     @tool
     def checkout() -> str:
@@ -142,6 +143,6 @@ def build_tools(cart: list[CartItem], menu_store: MenuStore, session_id: str = "
         total = sum(line["price"] * line["quantity"] for line in cart)
         summary = ", ".join(f"{line['quantity']}x {line['name']}" for line in cart)
         erp.record_order(session_id, persona, list(cart), total)
-        return f"Order placed: {summary}. Total: ${total:.2f}. Thank you!"
+        return f"Order placed: {summary}. Total: {format_price(total)}. Thank you!"
 
     return [search_menu, get_item_details, add_to_cart, remove_from_cart, view_cart, checkout]

@@ -26,6 +26,8 @@ from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
+from app.currency import format_price
+
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 MENU_PATH = DATA_DIR / "menu.json"
 GROCERY_PATH = DATA_DIR / "grocery.json"
@@ -61,7 +63,7 @@ def _item_to_document(item: dict) -> Document:
         parts.append("Vegetarian." if item["veg"] else "Non-vegetarian.")
     if item.get("spice_level"):
         parts.append(f"Spice level: {item['spice_level']}.")
-    parts.append(f"Price: ${item['price']:.2f}.")
+    parts.append(f"Price: {format_price(item['price'])}.")
     text = " ".join(parts)
     return Document(page_content=text, metadata={"id": item["id"], "name": item["name"], "price": item["price"]})
 

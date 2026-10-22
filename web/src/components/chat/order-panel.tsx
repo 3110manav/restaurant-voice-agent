@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { CartLine, ServiceLogEntry } from "@/lib/api";
+import { formatPrice } from "@/lib/utils";
 
 function formatRequestType(type: string): string {
   return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -34,14 +35,14 @@ export function OrderPanel({
                     {line.quantity} x {line.name}
                   </span>
                   <span className="text-muted-foreground">
-                    ${(line.price * line.quantity).toFixed(2)}
+                    {formatPrice(line.price * line.quantity)}
                   </span>
                 </div>
               ))}
               <Separator className="my-1" />
               <div className="flex justify-between font-medium">
                 <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span>{formatPrice(total)}</span>
               </div>
             </>
           )}

@@ -69,7 +69,7 @@ def test_checkout_with_items():
     tools["add_to_cart"].invoke({"name": "Butter Chicken", "quantity": 1})
     result = tools["checkout"].invoke({})
     assert "Order placed" in result
-    assert "14.00" in result
+    assert "₹14" in result
 
 
 # add_item_to_cart / remove_item_from_cart_by_id back the direct /cart/add

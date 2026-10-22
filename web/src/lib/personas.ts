@@ -26,7 +26,7 @@ export const PERSONAS: Persona[] = [
   {
     slug: "online",
     key: "online",
-    agentName: "Zaika",
+    agentName: "Meera",
     vertical: "Online ordering",
     tagline: "Delivery-app style ordering, like Swiggy or Zomato.",
     placeholder: "Add two paneer tikka and a garlic naan...",
@@ -37,7 +37,7 @@ export const PERSONAS: Persona[] = [
   {
     slug: "quick-commerce",
     key: "quick_commerce",
-    agentName: "Fatafat",
+    agentName: "Veer",
     vertical: "Quick commerce",
     tagline: "Everyday essentials in minutes, like Instamart or Blinkit.",
     placeholder: "Add shampoo and a pack of batteries, quick...",
@@ -48,7 +48,7 @@ export const PERSONAS: Persona[] = [
   {
     slug: "waiter",
     key: "waiter",
-    agentName: "Khidmat",
+    agentName: "Kabir",
     vertical: "Restaurant",
     tagline: "A voice waiter at your table — order, and ask for anything else.",
     placeholder: "Can you bring me a glass of water?",
@@ -59,7 +59,7 @@ export const PERSONAS: Persona[] = [
   {
     slug: "hotel",
     key: "hotel",
-    agentName: "Swagat",
+    agentName: "Ira",
     vertical: "Hotel reception",
     tagline: "Room service, housekeeping, and front-desk requests.",
     placeholder: "Can I get extra towels for room 204?",
