@@ -1,0 +1,6 @@
+-r requirements.txt
+# Realtime voice worker only (app/voice/livekit_worker.py) — kept out of
+# requirements.txt so the main API image doesn't carry onnxruntime (silero
+# VAD) and the rest of this stack's extra weight.
+livekit-agents[groq,silero]~=1.8
+httpx  # worker -> main API cart sync, see app/voice/cart_sync.py

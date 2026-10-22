@@ -1,0 +1,802 @@
+[
+  {
+    "id": "qc-01",
+    "name": "Anti-Dandruff Shampoo 180ml",
+    "category": "Personal Care",
+    "brand": "Head & Shoulders",
+    "price": 175,
+    "description": "Daily anti-dandruff shampoo with menthol for a clean, refreshed scalp."
+  },
+  {
+    "id": "qc-02",
+    "name": "Nourishing Shampoo 340ml",
+    "category": "Personal Care",
+    "brand": "Dove",
+    "price": 255,
+    "description": "Nourishing shampoo with micro-moisture serum for dry, damaged hair."
+  },
+  {
+    "id": "qc-03",
+    "name": "Herbal Shampoo 200ml",
+    "category": "Personal Care",
+    "brand": "Himalaya",
+    "price": 135,
+    "description": "Herbal shampoo with hibiscus and amla for strong, healthy hair."
+  },
+  {
+    "id": "qc-04",
+    "name": "Moisturizing Body Wash 250ml",
+    "category": "Personal Care",
+    "brand": "Dove",
+    "price": 210,
+    "description": "Creamy body wash with a quarter moisturizing cream for soft skin."
+  },
+  {
+    "id": "qc-05",
+    "name": "Refreshing Body Wash 250ml",
+    "category": "Personal Care",
+    "brand": "Nivea",
+    "price": 190,
+    "description": "Refreshing shower gel with citrus extract for an energizing wash."
+  },
+  {
+    "id": "qc-06",
+    "name": "Moisturizing Soap Bar (Pack of 4)",
+    "category": "Personal Care",
+    "brand": "Dove",
+    "price": 225,
+    "description": "Beauty bars with a quarter moisturizing cream, gentle on skin."
+  },
+  {
+    "id": "qc-07",
+    "name": "Glycerin Soap Bar (Pack of 3)",
+    "category": "Personal Care",
+    "brand": "Pears",
+    "price": 145,
+    "description": "Transparent glycerin soap that gently cleanses without drying skin."
+  },
+  {
+    "id": "qc-08",
+    "name": "Charcoal Soap Bar",
+    "category": "Personal Care",
+    "brand": "Lifebuoy",
+    "price": 95,
+    "description": "Activated charcoal soap for deep cleansing and germ protection."
+  },
+  {
+    "id": "qc-09",
+    "name": "Whitening Toothpaste 150g",
+    "category": "Personal Care",
+    "brand": "Colgate",
+    "price": 130,
+    "description": "Whitening toothpaste that removes surface stains for a brighter smile."
+  },
+  {
+    "id": "qc-10",
+    "name": "Herbal Toothpaste 150g",
+    "category": "Personal Care",
+    "brand": "Patanjali",
+    "price": 95,
+    "description": "Herbal toothpaste with neem and clove for complete oral care."
+  },
+  {
+    "id": "qc-11",
+    "name": "Sensitive Toothpaste 100g",
+    "category": "Personal Care",
+    "brand": "Sensodyne",
+    "price": 175,
+    "description": "Toothpaste for sensitive teeth that builds lasting protection."
+  },
+  {
+    "id": "qc-12",
+    "name": "Soft Bristle Toothbrush (Pack of 2)",
+    "category": "Personal Care",
+    "brand": "Oral-B",
+    "price": 145,
+    "description": "Soft bristle toothbrushes with a comfortable, ergonomic handle."
+  },
+  {
+    "id": "qc-13",
+    "name": "Roll-On Deodorant 50ml",
+    "category": "Personal Care",
+    "brand": "Nivea",
+    "price": 160,
+    "description": "24-hour roll-on deodorant with a fresh, light fragrance."
+  },
+  {
+    "id": "qc-14",
+    "name": "Body Spray Deodorant 150ml",
+    "category": "Personal Care",
+    "brand": "Axe",
+    "price": 190,
+    "description": "Long-lasting body spray with a bold, energizing fragrance."
+  },
+  {
+    "id": "qc-15",
+    "name": "Body Lotion 400ml",
+    "category": "Personal Care",
+    "brand": "Nivea",
+    "price": 240,
+    "description": "Deep moisture body lotion for 48-hour hydrated, soft skin."
+  },
+  {
+    "id": "qc-16",
+    "name": "Aloe Vera Face Wash 100ml",
+    "category": "Personal Care",
+    "brand": "Himalaya",
+    "price": 130,
+    "description": "Gentle face wash with aloe vera that cleans without over-drying."
+  },
+  {
+    "id": "qc-17",
+    "name": "Shaving Cream 70g",
+    "category": "Personal Care",
+    "brand": "Gillette",
+    "price": 160,
+    "description": "Rich lathering shaving cream for a smooth, comfortable shave."
+  },
+  {
+    "id": "qc-18",
+    "name": "Disposable Razors (Pack of 5)",
+    "category": "Personal Care",
+    "brand": "Gillette",
+    "price": 210,
+    "description": "Twin-blade disposable razors for a quick, close shave."
+  },
+  {
+    "id": "qc-19",
+    "name": "Hair Conditioner 180ml",
+    "category": "Personal Care",
+    "brand": "Dove",
+    "price": 225,
+    "description": "Daily conditioner that detangles and smooths dry, frizzy hair."
+  },
+  {
+    "id": "qc-20",
+    "name": "Talcum Powder 200g",
+    "category": "Personal Care",
+    "brand": "Johnson's",
+    "price": 135,
+    "description": "Classic baby-soft talcum powder that keeps skin fresh and dry."
+  },
+  {
+    "id": "qc-21",
+    "name": "Liquid Detergent 1L",
+    "category": "Household",
+    "brand": "Tide",
+    "price": 270,
+    "description": "Concentrated liquid detergent that lifts tough stains in cold water."
+  },
+  {
+    "id": "qc-22",
+    "name": "Detergent Powder 1kg",
+    "category": "Household",
+    "brand": "Surf Excel",
+    "price": 195,
+    "description": "Detergent powder with stain-removal technology for bright, clean clothes."
+  },
+  {
+    "id": "qc-23",
+    "name": "Fabric Softener 800ml",
+    "category": "Household",
+    "brand": "Comfort",
+    "price": 180,
+    "description": "Fabric softener that leaves clothes soft with a long-lasting fragrance."
+  },
+  {
+    "id": "qc-24",
+    "name": "Dish Wash Liquid 500ml",
+    "category": "Household",
+    "brand": "Vim",
+    "price": 105,
+    "description": "Lemon-fresh dish wash liquid that cuts through grease easily."
+  },
+  {
+    "id": "qc-25",
+    "name": "Dish Wash Bar (Pack of 3)",
+    "category": "Household",
+    "brand": "Vim",
+    "price": 90,
+    "description": "Tough dish wash bars for grease-free, sparkling utensils."
+  },
+  {
+    "id": "qc-26",
+    "name": "All-Purpose Cleaner 500ml",
+    "category": "Household",
+    "brand": "Lizol",
+    "price": 150,
+    "description": "Disinfectant floor cleaner that kills 99.9% of germs."
+  },
+  {
+    "id": "qc-27",
+    "name": "Glass Cleaner 500ml",
+    "category": "Household",
+    "brand": "Colin",
+    "price": 120,
+    "description": "Streak-free glass and surface cleaner for a sparkling shine."
+  },
+  {
+    "id": "qc-28",
+    "name": "Toilet Cleaner 500ml",
+    "category": "Household",
+    "brand": "Harpic",
+    "price": 120,
+    "description": "Powerful toilet cleaner that removes stains and kills germs."
+  },
+  {
+    "id": "qc-29",
+    "name": "Facial Tissues (Box of 100)",
+    "category": "Household",
+    "brand": "Kleenex",
+    "price": 105,
+    "description": "Soft, strong facial tissues for everyday use."
+  },
+  {
+    "id": "qc-30",
+    "name": "Paper Towels (Pack of 2)",
+    "category": "Household",
+    "brand": "Bounty",
+    "price": 180,
+    "description": "Highly absorbent paper towels for quick spills and cleanups."
+  },
+  {
+    "id": "qc-31",
+    "name": "Toilet Paper (Pack of 6)",
+    "category": "Household",
+    "brand": "Charmin",
+    "price": 210,
+    "description": "Soft, strong toilet paper rolls for everyday comfort."
+  },
+  {
+    "id": "qc-32",
+    "name": "Trash Bags (Pack of 30)",
+    "category": "Household",
+    "brand": "Glad",
+    "price": 225,
+    "description": "Medium-size drawstring trash bags with leak protection."
+  },
+  {
+    "id": "qc-33",
+    "name": "AA Batteries (Pack of 8)",
+    "category": "Household",
+    "brand": "Duracell",
+    "price": 270,
+    "description": "Long-lasting alkaline AA batteries for everyday devices."
+  },
+  {
+    "id": "qc-34",
+    "name": "AAA Batteries (Pack of 8)",
+    "category": "Household",
+    "brand": "Duracell",
+    "price": 270,
+    "description": "Long-lasting alkaline AAA batteries for everyday devices."
+  },
+  {
+    "id": "qc-35",
+    "name": "9V Battery (Pack of 2)",
+    "category": "Household",
+    "brand": "Energizer",
+    "price": 195,
+    "description": "High-performance 9V batteries for smoke alarms and electronics."
+  },
+  {
+    "id": "qc-36",
+    "name": "LED Bulb 9W (Pack of 2)",
+    "category": "Household",
+    "brand": "Philips",
+    "price": 240,
+    "description": "Energy-saving 9W LED bulbs with bright white light."
+  },
+  {
+    "id": "qc-37",
+    "name": "Matchbox (Pack of 10)",
+    "category": "Household",
+    "brand": "Ship",
+    "price": 30,
+    "description": "Safety matches for everyday kitchen and household use."
+  },
+  {
+    "id": "qc-38",
+    "name": "Mosquito Repellent Liquid Refill",
+    "category": "Household",
+    "brand": "Good Knight",
+    "price": 105,
+    "description": "Liquid vaporizer refill for all-night mosquito protection."
+  },
+  {
+    "id": "qc-39",
+    "name": "Air Freshener Spray 300ml",
+    "category": "Household",
+    "brand": "Air Wick",
+    "price": 150,
+    "description": "Long-lasting air freshener spray with a fresh linen scent."
+  },
+  {
+    "id": "qc-40",
+    "name": "Scrub Pads (Pack of 5)",
+    "category": "Household",
+    "brand": "Scotch-Brite",
+    "price": 120,
+    "description": "Durable scrub pads for tough, baked-on kitchen stains."
+  },
+  {
+    "id": "qc-41",
+    "name": "Classic Salted Chips 150g",
+    "category": "Snacks",
+    "brand": "Lay's",
+    "price": 55,
+    "description": "Crispy potato chips with a classic salted flavor."
+  },
+  {
+    "id": "qc-42",
+    "name": "Spicy Masala Chips 150g",
+    "category": "Snacks",
+    "brand": "Lay's",
+    "price": 55,
+    "description": "Crunchy potato chips coated in tangy Indian masala spices."
+  },
+  {
+    "id": "qc-43",
+    "name": "Cream & Onion Chips 150g",
+    "category": "Snacks",
+    "brand": "Lay's",
+    "price": 55,
+    "description": "Potato chips with a smooth, tangy cream and onion flavor."
+  },
+  {
+    "id": "qc-44",
+    "name": "Nachos Cheese Tortilla Chips 180g",
+    "category": "Snacks",
+    "brand": "Doritos",
+    "price": 75,
+    "description": "Crunchy tortilla chips with bold nacho cheese flavor."
+  },
+  {
+    "id": "qc-45",
+    "name": "Glucose Biscuits 200g",
+    "category": "Snacks",
+    "brand": "Parle-G",
+    "price": 35,
+    "description": "Classic glucose biscuits, a household favorite for generations."
+  },
+  {
+    "id": "qc-46",
+    "name": "Cream Sandwich Biscuits 150g",
+    "category": "Snacks",
+    "brand": "Oreo",
+    "price": 65,
+    "description": "Chocolate sandwich cookies with a sweet vanilla cream filling."
+  },
+  {
+    "id": "qc-47",
+    "name": "Digestive Biscuits 250g",
+    "category": "Snacks",
+    "brand": "McVitie's",
+    "price": 75,
+    "description": "Wholewheat digestive biscuits with a light, crumbly texture."
+  },
+  {
+    "id": "qc-48",
+    "name": "Mixed Namkeen 200g",
+    "category": "Snacks",
+    "brand": "Haldiram's",
+    "price": 90,
+    "description": "A crunchy mix of sev, nuts, and lentils with Indian spices."
+  },
+  {
+    "id": "qc-49",
+    "name": "Roasted Peanuts 200g",
+    "category": "Snacks",
+    "brand": "Haldiram's",
+    "price": 65,
+    "description": "Crunchy roasted peanuts lightly salted for snacking."
+  },
+  {
+    "id": "qc-50",
+    "name": "Milk Chocolate Bar 40g",
+    "category": "Snacks",
+    "brand": "Cadbury Dairy Milk",
+    "price": 45,
+    "description": "Smooth, creamy milk chocolate bar, a classic favorite."
+  },
+  {
+    "id": "qc-51",
+    "name": "Hazelnut Chocolate Spread 350g",
+    "category": "Snacks",
+    "brand": "Nutella",
+    "price": 380,
+    "description": "Creamy hazelnut and cocoa spread for toast and desserts."
+  },
+  {
+    "id": "qc-52",
+    "name": "Instant Noodles (Pack of 4)",
+    "category": "Snacks",
+    "brand": "Maggi",
+    "price": 75,
+    "description": "Quick-cooking masala noodles ready in just two minutes."
+  },
+  {
+    "id": "qc-53",
+    "name": "Popcorn Kernels 500g",
+    "category": "Snacks",
+    "brand": "Act II",
+    "price": 90,
+    "description": "Butter-flavored microwave popcorn kernels for movie nights."
+  },
+  {
+    "id": "qc-54",
+    "name": "Trail Mix 200g",
+    "category": "Snacks",
+    "brand": "Nature Valley",
+    "price": 220,
+    "description": "A wholesome mix of nuts, seeds, and dried fruit."
+  },
+  {
+    "id": "qc-55",
+    "name": "Granola Bars (Pack of 6)",
+    "category": "Snacks",
+    "brand": "Nature Valley",
+    "price": 150,
+    "description": "Crunchy oats-and-honey granola bars for an on-the-go snack."
+  },
+  {
+    "id": "qc-56",
+    "name": "Cola Soft Drink 1.25L",
+    "category": "Beverages",
+    "brand": "Coca-Cola",
+    "price": 85,
+    "description": "Classic cola soft drink, best served chilled."
+  },
+  {
+    "id": "qc-57",
+    "name": "Lemon-Lime Soft Drink 1.25L",
+    "category": "Beverages",
+    "brand": "Sprite",
+    "price": 85,
+    "description": "Crisp, refreshing lemon-lime flavored soft drink."
+  },
+  {
+    "id": "qc-58",
+    "name": "Orange Juice 1L",
+    "category": "Beverages",
+    "brand": "Tropicana",
+    "price": 125,
+    "description": "100% pure orange juice with no added sugar."
+  },
+  {
+    "id": "qc-59",
+    "name": "Mixed Fruit Juice 1L",
+    "category": "Beverages",
+    "brand": "Real",
+    "price": 110,
+    "description": "A refreshing blend of mixed fruit juices."
+  },
+  {
+    "id": "qc-60",
+    "name": "Packaged Drinking Water 1L (Pack of 6)",
+    "category": "Beverages",
+    "brand": "Bisleri",
+    "price": 120,
+    "description": "Purified packaged drinking water, safe and refreshing."
+  },
+  {
+    "id": "qc-61",
+    "name": "Mineral Water 1L",
+    "category": "Beverages",
+    "brand": "Himalayan",
+    "price": 20,
+    "description": "Natural mineral water sourced from the Himalayas."
+  },
+  {
+    "id": "qc-62",
+    "name": "Masala Tea 250g",
+    "category": "Beverages",
+    "brand": "Tata Tea",
+    "price": 125,
+    "description": "Strong, aromatic tea blend with a rich, full-bodied taste."
+  },
+  {
+    "id": "qc-63",
+    "name": "Green Tea Bags (Pack of 25)",
+    "category": "Beverages",
+    "brand": "Lipton",
+    "price": 110,
+    "description": "Light, refreshing green tea bags rich in antioxidants."
+  },
+  {
+    "id": "qc-64",
+    "name": "Instant Coffee 100g",
+    "category": "Beverages",
+    "brand": "Nescafe",
+    "price": 320,
+    "description": "Rich, aromatic instant coffee granules for a quick brew."
+  },
+  {
+    "id": "qc-65",
+    "name": "Filter Coffee Powder 200g",
+    "category": "Beverages",
+    "brand": "Bru",
+    "price": 155,
+    "description": "Classic South Indian filter coffee blend."
+  },
+  {
+    "id": "qc-66",
+    "name": "Energy Drink 250ml",
+    "category": "Beverages",
+    "brand": "Red Bull",
+    "price": 125,
+    "description": "Energy drink that boosts concentration and physical performance."
+  },
+  {
+    "id": "qc-67",
+    "name": "Chocolate Milk Drink 200ml",
+    "category": "Beverages",
+    "brand": "Nesquik",
+    "price": 45,
+    "description": "Ready-to-drink chocolate milk, a sweet everyday treat."
+  },
+  {
+    "id": "qc-68",
+    "name": "Coconut Water 1L",
+    "category": "Beverages",
+    "brand": "Real",
+    "price": 100,
+    "description": "Natural coconut water, light and naturally refreshing."
+  },
+  {
+    "id": "qc-69",
+    "name": "Buttermilk 500ml",
+    "category": "Beverages",
+    "brand": "Amul",
+    "price": 30,
+    "description": "Spiced, chilled buttermilk \u2014 a refreshing traditional drink."
+  },
+  {
+    "id": "qc-70",
+    "name": "Soda Water 750ml",
+    "category": "Beverages",
+    "brand": "Schweppes",
+    "price": 40,
+    "description": "Crisp, carbonated soda water for mixing or drinking chilled."
+  },
+  {
+    "id": "qc-71",
+    "name": "Baby Diapers Size M (Pack of 30)",
+    "category": "Baby Care",
+    "brand": "Pampers",
+    "price": 625,
+    "description": "Soft, absorbent diapers with up to 12 hours of dryness."
+  },
+  {
+    "id": "qc-72",
+    "name": "Baby Diapers Size L (Pack of 26)",
+    "category": "Baby Care",
+    "brand": "Huggies",
+    "price": 650,
+    "description": "Comfortable diapers with a snug, leak-proof fit."
+  },
+  {
+    "id": "qc-73",
+    "name": "Baby Wipes (Pack of 80)",
+    "category": "Baby Care",
+    "brand": "Johnson's",
+    "price": 240,
+    "description": "Gentle, alcohol-free wipes for delicate baby skin."
+  },
+  {
+    "id": "qc-74",
+    "name": "Baby Shampoo 200ml",
+    "category": "Baby Care",
+    "brand": "Johnson's",
+    "price": 215,
+    "description": "No-more-tears baby shampoo, gentle on eyes and skin."
+  },
+  {
+    "id": "qc-75",
+    "name": "Baby Lotion 200ml",
+    "category": "Baby Care",
+    "brand": "Johnson's",
+    "price": 240,
+    "description": "Mild, moisturizing lotion for soft, healthy baby skin."
+  },
+  {
+    "id": "qc-76",
+    "name": "Baby Powder 200g",
+    "category": "Baby Care",
+    "brand": "Johnson's",
+    "price": 190,
+    "description": "Classic baby-soft powder that keeps skin dry and fresh."
+  },
+  {
+    "id": "qc-77",
+    "name": "Baby Cereal 300g",
+    "category": "Baby Care",
+    "brand": "Cerelac",
+    "price": 290,
+    "description": "Fortified baby cereal with essential vitamins and iron."
+  },
+  {
+    "id": "qc-78",
+    "name": "Infant Formula 400g",
+    "category": "Baby Care",
+    "brand": "Similac",
+    "price": 910,
+    "description": "Nutritionally complete infant formula for growing babies."
+  },
+  {
+    "id": "qc-79",
+    "name": "Baby Bottle 250ml",
+    "category": "Baby Care",
+    "brand": "Philips Avent",
+    "price": 385,
+    "description": "Anti-colic baby bottle designed for a comfortable feed."
+  },
+  {
+    "id": "qc-80",
+    "name": "Diaper Rash Cream 50g",
+    "category": "Baby Care",
+    "brand": "Sudocrem",
+    "price": 310,
+    "description": "Soothing cream that treats and prevents diaper rash."
+  },
+  {
+    "id": "qc-81",
+    "name": "Hand Sanitizer 200ml",
+    "category": "Health & Wellness",
+    "brand": "Dettol",
+    "price": 120,
+    "description": "Alcohol-based hand sanitizer that kills 99.9% of germs."
+  },
+  {
+    "id": "qc-82",
+    "name": "Antiseptic Liquid 250ml",
+    "category": "Health & Wellness",
+    "brand": "Dettol",
+    "price": 135,
+    "description": "Trusted antiseptic liquid for cuts, cleaning, and bathing."
+  },
+  {
+    "id": "qc-83",
+    "name": "Adhesive Bandages (Pack of 20)",
+    "category": "Health & Wellness",
+    "brand": "Band-Aid",
+    "price": 105,
+    "description": "Flexible fabric bandages for everyday cuts and scrapes."
+  },
+  {
+    "id": "qc-84",
+    "name": "Pain Relief Spray 100ml",
+    "category": "Health & Wellness",
+    "brand": "Volini",
+    "price": 210,
+    "description": "Fast-acting spray that relieves muscle and joint pain."
+  },
+  {
+    "id": "qc-85",
+    "name": "Multivitamin Tablets (30 count)",
+    "category": "Health & Wellness",
+    "brand": "Centrum",
+    "price": 300,
+    "description": "Daily multivitamin tablets supporting overall health."
+  },
+  {
+    "id": "qc-86",
+    "name": "Cough Drops (Pack of 20)",
+    "category": "Health & Wellness",
+    "brand": "Halls",
+    "price": 90,
+    "description": "Soothing menthol cough drops for a scratchy throat."
+  },
+  {
+    "id": "qc-87",
+    "name": "Antacid Tablets (24 count)",
+    "category": "Health & Wellness",
+    "brand": "Eno",
+    "price": 105,
+    "description": "Fast-relief antacid for acidity and indigestion."
+  },
+  {
+    "id": "qc-88",
+    "name": "Face Masks (Pack of 10)",
+    "category": "Health & Wellness",
+    "brand": "3M",
+    "price": 180,
+    "description": "Disposable 3-ply face masks for everyday protection."
+  },
+  {
+    "id": "qc-89",
+    "name": "Cotton Balls (Pack of 100)",
+    "category": "Health & Wellness",
+    "brand": "Johnson's",
+    "price": 90,
+    "description": "Soft, absorbent cotton balls for everyday use."
+  },
+  {
+    "id": "qc-90",
+    "name": "Thermometer (Digital)",
+    "category": "Health & Wellness",
+    "brand": "Omron",
+    "price": 270,
+    "description": "Fast, accurate digital thermometer for home use."
+  },
+  {
+    "id": "qc-91",
+    "name": "Ballpoint Pens (Pack of 10)",
+    "category": "Stationery",
+    "brand": "Bic",
+    "price": 100,
+    "description": "Smooth-writing ballpoint pens for everyday use."
+  },
+  {
+    "id": "qc-92",
+    "name": "Gel Pens (Pack of 5)",
+    "category": "Stationery",
+    "brand": "Pilot",
+    "price": 125,
+    "description": "Smooth gel ink pens for crisp, clean writing."
+  },
+  {
+    "id": "qc-93",
+    "name": "Ruled Notebook (200 pages)",
+    "category": "Stationery",
+    "brand": "Classmate",
+    "price": 70,
+    "description": "A durable ruled notebook for school or office notes."
+  },
+  {
+    "id": "qc-94",
+    "name": "Sticky Notes (Pack of 5)",
+    "category": "Stationery",
+    "brand": "Post-it",
+    "price": 140,
+    "description": "Colorful sticky notes for reminders and organizing."
+  },
+  {
+    "id": "qc-95",
+    "name": "Transparent Tape (Pack of 3)",
+    "category": "Stationery",
+    "brand": "Scotch",
+    "price": 110,
+    "description": "Clear adhesive tape for packing and everyday fixes."
+  },
+  {
+    "id": "qc-96",
+    "name": "Stapler with Pins",
+    "category": "Stationery",
+    "brand": "Kangaro",
+    "price": 125,
+    "description": "Compact stapler with a box of staple pins included."
+  },
+  {
+    "id": "qc-97",
+    "name": "Highlighters (Pack of 4)",
+    "category": "Stationery",
+    "brand": "Stabilo",
+    "price": 155,
+    "description": "Vibrant highlighters for marking and studying."
+  },
+  {
+    "id": "qc-98",
+    "name": "Correction Pen",
+    "category": "Stationery",
+    "brand": "Tipp-Ex",
+    "price": 45,
+    "description": "Quick-drying correction pen for clean mistake-free pages."
+  },
+  {
+    "id": "qc-99",
+    "name": "A4 Printer Paper (500 sheets)",
+    "category": "Stationery",
+    "brand": "JK",
+    "price": 380,
+    "description": "Bright white A4 paper suited for everyday printing."
+  },
+  {
+    "id": "qc-100",
+    "name": "Wooden Pencils (Pack of 10)",
+    "category": "Stationery",
+    "brand": "Nataraj",
+    "price": 55,
+    "description": "Smooth-writing wooden pencils with a durable lead."
+  }
+]

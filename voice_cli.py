@@ -5,8 +5,10 @@ back through the speakers (Orpheus/Groq for English, Sarvam AI's Bulbul
 for Hindi — see app/voice/tts.py).
 
 Usage:
-    python voice_cli.py            # online delivery-app persona
-    python voice_cli.py waiter     # in-restaurant waiter persona
+    python voice_cli.py                  # online delivery-app persona (Meera)
+    python voice_cli.py quick_commerce   # quick-commerce persona (Veer)
+    python voice_cli.py waiter           # in-restaurant waiter persona (Kabir)
+    python voice_cli.py hotel            # hotel front-desk persona (Ira)
 """
 import sys
 import tempfile
@@ -16,7 +18,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from app.agent.graph import RestaurantOrderingAgent  # noqa: E402
+from app.agent.graph import _PERSONAS, RestaurantOrderingAgent  # noqa: E402
 from app.rag.menu_store import MenuStore  # noqa: E402
 from app.voice.recorder import record_until_enter  # noqa: E402
 from app.voice.stt import transcribe  # noqa: E402
@@ -24,13 +26,16 @@ from app.voice.tts import speak  # noqa: E402
 
 
 def main():
-    persona = "waiter" if len(sys.argv) > 1 and sys.argv[1] == "waiter" else "online"
+    persona = sys.argv[1] if len(sys.argv) > 1 else "online"
+    if persona not in _PERSONAS:
+        print(f"Unknown persona {persona!r}. Choose one of: {', '.join(_PERSONAS)}")
+        return
 
     print(f"Loading menu and building the {persona} agent...")
     menu_store = MenuStore()
     agent = RestaurantOrderingAgent(session_id=f"voice-cli-{persona}", menu_store=menu_store, persona=persona)
 
-    print(f"Ready ({persona} persona). Speak naturally. Ctrl+C to quit.\n")
+    print(f"Ready ({agent.agent_name}, {persona} persona). Speak naturally. Ctrl+C to quit.\n")
     tmp_dir = Path(tempfile.gettempdir())
     try:
         while True:
@@ -61,7 +66,7 @@ def main():
             print(f"agent> {reply}\n")
 
             try:
-                speak(reply)
+                speak(reply, persona)
             except Exception as e:
                 print(f"[speech playback error] {e!r}\n")
     except (KeyboardInterrupt, EOFError):

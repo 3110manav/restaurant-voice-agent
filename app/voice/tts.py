@@ -15,6 +15,8 @@ import base64
 from groq import Groq
 from sarvamai import SarvamAI
 
+from app.voice.voices import voices_for
+
 _groq_client = Groq(timeout=30.0, max_retries=1)
 _sarvam_client = SarvamAI(timeout=30.0)  # reads SARVAM_API_KEY from the environment
 
@@ -53,14 +55,16 @@ def _synthesize_hindi(text: str, voice: str = HINDI_DEFAULT_VOICE) -> bytes:
     return base64.b64decode(result.audios[0])
 
 
-def synthesize(text: str) -> bytes:
-    """Synthesize speech for text in whichever language it's written in."""
+def synthesize(text: str, persona: str = "online") -> bytes:
+    """Synthesize speech for text in whichever language it's written in,
+    using the persona's own voice (see app/voice/voices.py)."""
+    voices = voices_for(persona)
     if has_hindi_script(text):
-        return _synthesize_hindi(text)
-    return _synthesize_english(text)
+        return _synthesize_hindi(text, voices["hi"])
+    return _synthesize_english(text, voices["en"])
 
 
-def speak(text: str) -> None:
+def speak(text: str, persona: str = "online") -> None:
     """Synthesize and play immediately through local speakers (blocks until
     playback finishes). CLI-only — the hosted server never calls this."""
     import io
@@ -68,7 +72,7 @@ def speak(text: str) -> None:
     import sounddevice as sd
     import soundfile as sf
 
-    audio_bytes = synthesize(text)
+    audio_bytes = synthesize(text, persona)
     data, samplerate = sf.read(io.BytesIO(audio_bytes))
     sd.play(data, samplerate)
     sd.wait()

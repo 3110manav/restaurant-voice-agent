@@ -3,7 +3,7 @@
 Agent-loop and RAG behavior are exercised manually via cli.py, since those
 need live API keys.
 """
-from app.agent.tools import build_tools
+from app.agent.tools import add_item_to_cart, build_tools, remove_item_from_cart_by_id
 
 
 class FakeMenuStore:
@@ -69,4 +69,41 @@ def test_checkout_with_items():
     tools["add_to_cart"].invoke({"name": "Butter Chicken", "quantity": 1})
     result = tools["checkout"].invoke({})
     assert "Order placed" in result
-    assert "14.00" in result
+    assert "₹14" in result
+
+
+# add_item_to_cart / remove_item_from_cart_by_id back the direct /cart/add
+# and /cart/remove API routes used by product-grid "Add" buttons — tested
+# directly since that path never goes through the LLM tool.
+
+
+def test_add_item_to_cart_by_id_creates_line():
+    cart: list = []
+    item = {"id": "main-01", "name": "Butter Chicken", "price": 14.0}
+    add_item_to_cart(cart, item, 2)
+    assert cart == [{"id": "main-01", "name": "Butter Chicken", "price": 14.0, "quantity": 2}]
+
+
+def test_add_item_to_cart_by_id_merges_quantity():
+    cart: list = []
+    item = {"id": "main-01", "name": "Butter Chicken", "price": 14.0}
+    add_item_to_cart(cart, item, 1)
+    add_item_to_cart(cart, item, 2)
+    assert len(cart) == 1
+    assert cart[0]["quantity"] == 3
+
+
+def test_remove_item_from_cart_by_id_partial_and_full():
+    cart: list = []
+    item = {"id": "bread-01", "name": "Garlic Naan", "price": 3.5}
+    add_item_to_cart(cart, item, 3)
+    remove_item_from_cart_by_id(cart, "bread-01", 1)
+    assert cart[0]["quantity"] == 2
+    remove_item_from_cart_by_id(cart, "bread-01", 2)
+    assert cart == []
+
+
+def test_remove_item_from_cart_by_id_unknown_item():
+    cart: list = []
+    result = remove_item_from_cart_by_id(cart, "nope", 1)
+    assert "isn't in the cart" in result

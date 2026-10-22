@@ -10,4 +10,6 @@ tests/
 cli.py
 voice_cli.py
 requirements-cli.txt
+requirements-livekit.txt
 README.md
+web/
