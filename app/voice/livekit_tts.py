@@ -16,6 +16,8 @@ from __future__ import annotations
 import asyncio
 
 from livekit.agents import APIConnectOptions, utils
+from livekit.agents import tokenize
+from livekit.agents import tts as lk_tts
 from livekit.agents.tts import TTS, AudioEmitter, ChunkedStream, TTSCapabilities
 from livekit.agents.types import DEFAULT_API_CONNECT_OPTIONS
 
@@ -96,3 +98,15 @@ class SarthiChunkedStream(ChunkedStream):
         )
         output_emitter.push(wav_bytes)
         output_emitter.flush()
+
+
+def build_speech(persona: str, language: str) -> lk_tts.StreamAdapter:
+    """The call's text-to-speech: Sarthi's voices behind an adapter that speaks each sentence as soon
+    as it is ready. LiveKit's default holds any sentence under 20 characters until the next one
+    arrives, which would stop the quick "Sure." from playing while the real answer is worked out."""
+    return lk_tts.StreamAdapter(
+        tts=SarthiTTS(persona=persona, language=language),
+        sentence_tokenizer=tokenize.blingfire.SentenceTokenizer(
+            min_sentence_len=1, stream_context_len=0, retain_format=True
+        ),
+    )
