@@ -1,0 +1,299 @@
+{
+  "categories": [
+    "Starters",
+    "Mains",
+    "Breads & Rice",
+    "Desserts & Drinks"
+  ],
+  "dishes": [
+    {
+      "category": "Starters",
+      "name": "Paneer Tikka",
+      "price": 280,
+      "is_veg": true,
+      "spice_level": "medium",
+      "short_description": "Tandoor-grilled cottage cheese cubes in a spiced yogurt marinade.",
+      "long_description": "Paneer Tikka is cubes of fresh cottage cheese marinated in spiced yogurt and grilled in the tandoor with peppers and onion until lightly charred. It is soft inside with a smoky, tangy, gently spicy crust. It is served hot with mint chutney and sliced onion, and works well as a starter to share. It suits vegetarians who want something flavourful but not too heavy.",
+      "ingredients": [
+        "paneer",
+        "yogurt",
+        "bell pepper",
+        "onion",
+        "ginger",
+        "garlic",
+        "garam masala",
+        "mint chutney"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "bestseller"
+      ]
+    },
+    {
+      "category": "Starters",
+      "name": "Chicken Tikka",
+      "price": 340,
+      "is_veg": false,
+      "spice_level": "medium",
+      "short_description": "Boneless chicken marinated in yogurt and spices, grilled in the tandoor.",
+      "long_description": "Chicken Tikka is boneless chicken marinated in yogurt, ginger, garlic and spices, then grilled in the tandoor until juicy inside with a smoky, lightly charred edge. It is savoury and gently spicy, served hot with mint chutney and lemon. A popular starter to share, and a good choice for anyone who likes grilled chicken with plenty of flavour.",
+      "ingredients": [
+        "chicken",
+        "yogurt",
+        "ginger",
+        "garlic",
+        "chilli powder",
+        "garam masala",
+        "lemon"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "bestseller"
+      ]
+    },
+    {
+      "category": "Mains",
+      "name": "Dal Tadka",
+      "price": 220,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Yellow lentils tempered with garlic, cumin and ghee.",
+      "long_description": "Dal Tadka is yellow lentils cooked until soft, then finished with a sizzling tempering of ghee, garlic, cumin and dried red chilli. It is comforting, mildly spiced and lightly smoky from the tempering, with a smooth but not creamy texture. It is eaten with rice or roti, and suits anyone who wants simple, homely food.",
+      "ingredients": [
+        "yellow lentils",
+        "ghee",
+        "garlic",
+        "cumin",
+        "tomato",
+        "onion",
+        "turmeric",
+        "red chilli"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "comfort-food"
+      ]
+    },
+    {
+      "category": "Mains",
+      "name": "Paneer Butter Masala",
+      "price": 300,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Cottage cheese in a creamy, buttery tomato gravy.",
+      "long_description": "Paneer Butter Masala is soft cottage cheese simmered in a smooth, creamy tomato gravy finished with butter and a little cream. It is rich, mildly spiced and slightly sweet, with a velvety sauce that is lovely mopped up with naan. It suits guests who prefer mild, creamy dishes, and it is a favourite with children.",
+      "ingredients": [
+        "paneer",
+        "tomato",
+        "butter",
+        "cream",
+        "cashew",
+        "ginger",
+        "garlic",
+        "kasuri methi"
+      ],
+      "allergens": [
+        "dairy",
+        "nuts"
+      ],
+      "tags": [
+        "bestseller",
+        "kids-favourite"
+      ]
+    },
+    {
+      "category": "Mains",
+      "name": "Butter Chicken",
+      "price": 280,
+      "is_veg": false,
+      "spice_level": "mild",
+      "short_description": "Tandoori chicken in a creamy tomato and butter gravy.",
+      "long_description": "Butter Chicken is tender tandoori-roasted chicken simmered in a velvety tomato gravy enriched with butter and cream. It is mild, rich and mildly sweet with a gentle smokiness from the chicken. It is best with butter naan or jeera rice, and is a safe, much-loved choice for anyone who wants a creamy, not-too-spicy curry. Available in half and full portions.",
+      "ingredients": [
+        "chicken",
+        "tomato",
+        "butter",
+        "cream",
+        "cashew",
+        "ginger",
+        "garlic",
+        "fenugreek leaves"
+      ],
+      "allergens": [
+        "dairy",
+        "nuts"
+      ],
+      "tags": [
+        "bestseller",
+        "comfort-food"
+      ],
+      "variants": [
+        {
+          "name": "Half",
+          "price": 280
+        },
+        {
+          "name": "Full",
+          "price": 460
+        }
+      ]
+    },
+    {
+      "category": "Mains",
+      "name": "Veg Biryani",
+      "price": 260,
+      "is_veg": true,
+      "spice_level": "medium",
+      "short_description": "Fragrant basmati rice layered with spiced vegetables.",
+      "long_description": "Veg Biryani is long-grain basmati rice layered with spiced vegetables, fried onion, mint and saffron, and slow-cooked so every grain carries the aroma. It is fragrant, mildly spicy and savoury, served with a cooling raita. It makes a full meal on its own and suits guests who enjoy aromatic rice dishes.",
+      "ingredients": [
+        "basmati rice",
+        "mixed vegetables",
+        "fried onion",
+        "mint",
+        "yogurt",
+        "saffron",
+        "whole spices"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "comfort-food"
+      ]
+    },
+    {
+      "category": "Breads & Rice",
+      "name": "Butter Naan",
+      "price": 70,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Soft tandoor-baked flatbread brushed with butter.",
+      "long_description": "Butter Naan is a soft, pillowy flatbread baked on the wall of the tandoor until puffed and blistered, then brushed with butter. It is slightly chewy, lightly charred and buttery, and is the classic partner for rich curries. One naan is plenty for one person alongside a main.",
+      "ingredients": [
+        "refined flour",
+        "yogurt",
+        "butter",
+        "yeast"
+      ],
+      "allergens": [
+        "gluten",
+        "dairy"
+      ],
+      "tags": [
+        "bestseller"
+      ]
+    },
+    {
+      "category": "Breads & Rice",
+      "name": "Jeera Rice",
+      "price": 150,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Basmati rice tempered with cumin and ghee.",
+      "long_description": "Jeera Rice is fluffy basmati rice tempered with cumin seeds in ghee. It is mild, aromatic and lightly nutty, with separate, tender grains. It pairs well with dals and gravies, and suits anyone who wants something simple alongside a curry.",
+      "ingredients": [
+        "basmati rice",
+        "cumin",
+        "ghee"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": []
+    },
+    {
+      "category": "Desserts & Drinks",
+      "name": "Gulab Jamun",
+      "price": 120,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Warm milk dumplings soaked in rose-cardamom syrup.",
+      "long_description": "Gulab Jamun is soft, warm dumplings made from milk solids, fried until golden and soaked in a light sugar syrup scented with cardamom and rose. They are very sweet, tender and melt-in-the-mouth. Usually served two to a plate, they suit guests with a sweet tooth.",
+      "ingredients": [
+        "milk solids",
+        "flour",
+        "sugar",
+        "cardamom",
+        "rose water",
+        "ghee"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "sweet",
+        "bestseller"
+      ]
+    },
+    {
+      "category": "Desserts & Drinks",
+      "name": "Sweet Lassi",
+      "price": 110,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Thick, chilled sweetened yogurt drink.",
+      "long_description": "Sweet Lassi is a thick, chilled drink of whisked yogurt and sugar, lightly scented with cardamom. It is creamy, cooling and mildly sweet, and a good counter to spicy food. It is quite filling, so one glass is plenty.",
+      "ingredients": [
+        "yogurt",
+        "sugar",
+        "cardamom",
+        "ice"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "kids-favourite"
+      ]
+    },
+    {
+      "category": "Desserts & Drinks",
+      "name": "Masala Chai",
+      "price": 60,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Spiced milk tea brewed with ginger and cardamom.",
+      "long_description": "Masala Chai is black tea brewed with milk, ginger, cardamom and a touch of other whole spices. It is warm, aromatic and gently sweet, with a little spice that lingers. It is a comforting drink to finish a meal or enjoy any time of day.",
+      "ingredients": [
+        "tea leaves",
+        "milk",
+        "ginger",
+        "cardamom",
+        "sugar"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "comfort-food"
+      ]
+    },
+    {
+      "category": "Desserts & Drinks",
+      "name": "Fresh Lime Soda",
+      "price": 90,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Fizzy lime drink, served sweet, salted or mixed.",
+      "long_description": "Fresh Lime Soda is freshly squeezed lime with chilled soda water, served sweet, salted, or a mix of both — please tell us which you prefer. It is sharp, fizzy and very refreshing, and it cuts through rich, spicy food nicely.",
+      "ingredients": [
+        "lime",
+        "soda water",
+        "sugar",
+        "salt"
+      ],
+      "allergens": [],
+      "tags": [
+        "street-food"
+      ]
+    }
+  ]
+}

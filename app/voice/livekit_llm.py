@@ -24,7 +24,8 @@ from livekit.agents.llm.tool_context import ToolChoice
 from livekit.agents.types import DEFAULT_API_CONNECT_OPTIONS, NOT_GIVEN, NotGivenOr
 from livekit.agents.utils import shortuuid
 
-from app.agent.graph import RestaurantOrderingAgent
+from app.agent import language as lang
+from app.agent.graph import AgentBusyError, RestaurantOrderingAgent
 from app.voice import cart_sync
 
 
@@ -43,11 +44,21 @@ class SarthiLLM(LLM):
     back to the main API via cart_sync.sync_cart, see that module.
     """
 
-    def __init__(self, agent: RestaurantOrderingAgent, session_id: str, persona: str) -> None:
+    def __init__(
+        self,
+        agent: RestaurantOrderingAgent,
+        session_id: str,
+        persona: str,
+        restaurant: str | None = None,
+        table_no: str | None = None,
+    ) -> None:
         super().__init__()
         self._agent = agent
         self._session_id = session_id
         self._persona = persona
+        self._restaurant = restaurant
+        self._table_no = table_no
+        self._acks = 0  # how many acknowledgements said so far (rotates the phrases)
 
     @property
     def model(self) -> str:
@@ -81,10 +92,23 @@ class SarthiLLMStream(LLMStream):
         llm: SarthiLLM = self._llm  # type: ignore[assignment]
         agent = llm._agent
         loop = asyncio.get_running_loop()
-        reply = await loop.run_in_executor(None, agent.send, user_text)
+
+        # Say "Sure." (audio is cached) straight away, while the model works on the real answer.
+        ack = lang.pick_ack(user_text, agent.language, llm._acks)
+        if ack:
+            llm._acks += 1
+            self._event_ch.send_nowait(
+                ChatChunk(id=shortuuid(), delta=ChoiceDelta(role="assistant", content=f"{ack} "))
+            )
+        try:
+            reply = await loop.run_in_executor(None, agent.send, user_text)
+        except AgentBusyError:
+            reply = lang.line(agent.language, "busy")
 
         asyncio.create_task(
-            cart_sync.sync_cart(llm._session_id, llm._persona, agent.cart, agent.service_log)
+            cart_sync.sync_cart(
+                llm._session_id, llm._persona, agent.cart, agent.service_log, llm._restaurant, llm._table_no
+            )
         )
 
         self._event_ch.send_nowait(

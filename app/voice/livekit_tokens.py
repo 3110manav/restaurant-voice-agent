@@ -27,8 +27,10 @@ def room_name_for(persona: str, session_id: str) -> str:
     return f"sarthi__{persona}__{session_id}"
 
 
-async def ensure_dispatch(room: str) -> None:
-    """Make sure the sarthi-voice worker is dispatched into `room`.
+async def ensure_dispatch(room: str, metadata: str = "") -> None:
+    """Make sure the sarthi-voice worker is dispatched into `room`. `metadata`
+    (a JSON string) reaches the worker as ctx.job.metadata — that's how it learns
+    which restaurant and table the call is for.
 
     Best-effort: if a dispatch already exists for this room (e.g. the
     customer's page reconnects after a network blip), LiveKit's response is
@@ -37,7 +39,7 @@ async def ensure_dispatch(room: str) -> None:
     lkapi = api.LiveKitAPI()
     try:
         await lkapi.agent_dispatch.create_dispatch(
-            api.CreateAgentDispatchRequest(agent_name=AGENT_NAME, room=room)
+            api.CreateAgentDispatchRequest(agent_name=AGENT_NAME, room=room, metadata=metadata)
         )
     except Exception:
         pass

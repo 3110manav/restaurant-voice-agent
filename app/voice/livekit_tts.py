@@ -25,14 +25,44 @@ SAMPLE_RATE = 48000
 NUM_CHANNELS = 1
 
 
+# Audio for short phrases that repeat (acknowledgements, the greeting), so they play at once instead of
+# waiting on speech generation. Bounded: the oldest entry goes when it is full.
+_PHRASE_CACHE: dict[tuple[str, str, str], bytes] = {}
+_PHRASE_CACHE_MAX = 64
+_PHRASE_MAX_CHARS = 60
+
+
+def speak_audio(text: str, persona: str, language: str) -> bytes:
+    key = (persona, language, text.strip())
+    cached = _PHRASE_CACHE.get(key)
+    if cached is not None:
+        return cached
+    audio = synthesize(text, persona, language)
+    if len(key[2]) <= _PHRASE_MAX_CHARS:
+        if len(_PHRASE_CACHE) >= _PHRASE_CACHE_MAX:
+            _PHRASE_CACHE.pop(next(iter(_PHRASE_CACHE)))
+        _PHRASE_CACHE[key] = audio
+    return audio
+
+
+def warm_phrases(persona: str, language: str, phrases: list[str]) -> None:
+    """Generate (and cache) the audio for `phrases` ahead of time. Blocking; run it in a thread."""
+    for phrase in phrases:
+        try:
+            speak_audio(phrase, persona, language)
+        except Exception:  # a failed warm-up only means that phrase is generated when first needed
+            pass
+
+
 class SarthiTTS(TTS):
-    def __init__(self, persona: str = "online") -> None:
+    def __init__(self, persona: str = "online", language: str = "en") -> None:
         super().__init__(
             capabilities=TTSCapabilities(streaming=False),
             sample_rate=SAMPLE_RATE,
             num_channels=NUM_CHANNELS,
         )
         self._persona = persona
+        self._language = language
 
     @property
     def model(self) -> str:
@@ -55,7 +85,7 @@ class SarthiChunkedStream(ChunkedStream):
     async def _run(self, output_emitter: AudioEmitter) -> None:
         loop = asyncio.get_running_loop()
         wav_bytes = await loop.run_in_executor(
-            None, synthesize, self._input_text, self._tts._persona  # type: ignore[attr-defined]
+            None, speak_audio, self._input_text, self._tts._persona, self._tts._language  # type: ignore[attr-defined]
         )
 
         output_emitter.initialize(

@@ -32,6 +32,8 @@ shared store), same as the README's MemorySaver caveat.
 """
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 
 from dotenv import load_dotenv
@@ -39,14 +41,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from livekit import agents  # noqa: E402
-from livekit.agents import Agent, AgentServer, AgentSession, JobContext  # noqa: E402
+from livekit.agents import Agent, AgentServer, AgentSession, JobContext, tokenize  # noqa: E402
+from livekit.agents import tts as lk_tts  # noqa: E402
 from livekit.plugins import groq, silero  # noqa: E402
 
+from app.agent import language as lang  # noqa: E402
 from app.agent.graph import RestaurantOrderingAgent  # noqa: E402
+from app.menu.snapshot import LiveMenu, menu_cache  # noqa: E402
 from app.rag.menu_store import GROCERY_PATH, MenuStore  # noqa: E402
 from app.voice.livekit_llm import SarthiLLM  # noqa: E402
 from app.voice.livekit_rooms import parse_room_name  # noqa: E402
-from app.voice.livekit_tts import SarthiTTS  # noqa: E402
+from app.voice.livekit_tts import SarthiTTS, warm_phrases  # noqa: E402
 
 logger = logging.getLogger("sarthi.livekit_worker")
 
@@ -68,21 +73,58 @@ async def entrypoint(ctx: JobContext) -> None:
     await ctx.connect()
 
     persona, session_id = parse_room_name(ctx.room.name)
-    logger.info("starting realtime session: persona=%s session_id=%s", persona, session_id)
+    # The web app tells us which restaurant (and table) this call is for through the
+    # dispatch metadata; without it this is a legacy four-persona call.
+    meta = json.loads(ctx.job.metadata or "{}")
+    restaurant_slug, table_no = meta.get("restaurant"), meta.get("table_no")
+    language = lang.normalize(meta.get("language"))
+    logger.info(
+        "starting realtime session: persona=%s session_id=%s restaurant=%s", persona, session_id, restaurant_slug
+    )
 
-    agent = RestaurantOrderingAgent(
-        session_id=f"livekit:{session_id}", menu_store=_menu_store_for(persona), persona=persona
+    if restaurant_slug:
+        menu = menu_cache.get(restaurant_slug)
+        if menu is None:
+            logger.error("restaurant %r not found; ending call", restaurant_slug)
+            return
+        persona = "waiter"
+        agent = RestaurantOrderingAgent(
+            session_id=f"livekit:{restaurant_slug}:{session_id}",
+            menu_store=LiveMenu(restaurant_slug),
+            persona=persona,
+            restaurant=menu.restaurant,
+            table_no=table_no,
+        )
+        greeting = lang.greeting(language, agent.agent_name, menu.restaurant["name"])
+    else:
+        agent = RestaurantOrderingAgent(
+            session_id=f"livekit:{session_id}", menu_store=_menu_store_for(persona), persona=persona
+        )
+        greeting = lang.greeting(language, agent.agent_name)
+
+    agent.set_language(language)
+
+    # Speak each sentence as soon as it is ready instead of waiting for a minimum length: this is what
+    # lets the quick "Sure." play while the real answer is still being worked out (LiveKit's default
+    # holds any sentence under 20 characters until the next one arrives).
+    speech = lk_tts.StreamAdapter(
+        tts=speech,
+        sentence_tokenizer=tokenize.blingfire.SentenceTokenizer(
+            min_sentence_len=1, stream_context_len=0, retain_format=True
+        ),
     )
 
     session = AgentSession(
-        stt=groq.STT(model="whisper-large-v3-turbo"),
-        llm=SarthiLLM(agent, session_id=session_id, persona=persona),
-        tts=SarthiTTS(persona=persona),
+        stt=groq.STT(model="whisper-large-v3-turbo", language=language),
+        llm=SarthiLLM(agent, session_id=session_id, persona=persona, restaurant=restaurant_slug, table_no=table_no),
+        tts=speech,
         vad=silero.VAD.load(),
     )
 
     await session.start(Agent(instructions=agent.system_prompt), room=ctx.room)
-    session.say(f"Namaste, I'm {agent.agent_name}.", allow_interruptions=True)
+    # Pre-generate the acknowledgement phrases in the background so they play instantly.
+    asyncio.get_running_loop().run_in_executor(None, warm_phrases, persona, language, lang.all_acks(language))
+    session.say(greeting, allow_interruptions=True)
 
 
 if __name__ == "__main__":

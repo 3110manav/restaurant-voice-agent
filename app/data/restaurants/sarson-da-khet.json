@@ -1,0 +1,1084 @@
+{
+  "restaurant": {
+    "slug": "sarson-da-khet",
+    "name": "Sarson Da Khet",
+    "cuisine": "Punjabi dhaba",
+    "tagline": "Slow-cooked Punjabi comfort, served the way the highway dhabas do it.",
+    "agent_name": "Kabir",
+    "accent_color": "#d97706"
+  },
+  "categories": [
+    "Starters",
+    "Mains - Veg",
+    "Mains - Non-Veg",
+    "Breads",
+    "Rice & Biryani",
+    "Sides & Raita",
+    "Desserts",
+    "Beverages"
+  ],
+  "dishes": [
+    {
+      "category": "Starters",
+      "name": "Paneer Tikka",
+      "price": 320,
+      "is_veg": true,
+      "spice_level": "medium",
+      "short_description": "Charred tandoori paneer cubes with peppers and onion in a spiced yogurt marinade.",
+      "long_description": "Paneer Tikka is soft cubes of cottage cheese marinated in thick spiced yogurt, then roasted in the tandoor with onion and capsicum until the edges are lightly charred. It is smoky and tangy with a gentle medium heat, and the paneer stays juicy and tender inside. It arrives hot on a sizzling plate with mint chutney and sliced onions with lemon. It is a great opening dish to share at the table, and a favourite for vegetarians who want something smoky and satisfying before the main course.",
+      "ingredients": [
+        "paneer",
+        "thick yogurt",
+        "capsicum",
+        "onion",
+        "ginger-garlic paste",
+        "kashmiri chilli",
+        "garam masala",
+        "mustard oil"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "bestseller",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Starters",
+      "name": "Hara Bhara Kebab",
+      "price": 240,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Golden pan-fried spinach, pea and potato patties with fresh herbs.",
+      "long_description": "Hara Bhara Kebab is a soft green patty made from spinach, green peas and mashed potato, seasoned with green chilli, ginger and light spices, then shallow fried until the outside turns crisp and golden. The inside is tender and mildly spiced, with a fresh herby taste. It is served hot with mint chutney. The heat is gentle, so it works well for children and for anyone who prefers a lighter starter. It also suits vegetarians who want something crisp without a heavy gravy.",
+      "ingredients": [
+        "spinach",
+        "green peas",
+        "potato",
+        "green chilli",
+        "ginger",
+        "coriander",
+        "breadcrumbs",
+        "cumin"
+      ],
+      "allergens": [
+        "gluten"
+      ],
+      "tags": [
+        "kids-favourite",
+        "vegan"
+      ]
+    },
+    {
+      "category": "Starters",
+      "name": "Masala Papad",
+      "price": 90,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Crisp roasted papad topped with onion, tomato, coriander and chaat masala.",
+      "long_description": "Masala Papad is a thin lentil papad, roasted until crisp and light, then heaped with chopped onion, tomato, green chilli and fresh coriander with a squeeze of lemon and a sprinkle of chaat masala. It is crunchy, fresh and a little tangy, with just a mild spicy kick. It is meant to be eaten quickly while still crisp, and it is a nice thing to nibble on while you wait for the rest of the meal. Anyone who likes light, crunchy snacks will enjoy it.",
+      "ingredients": [
+        "urad dal papad",
+        "onion",
+        "tomato",
+        "green chilli",
+        "coriander",
+        "lemon juice",
+        "chaat masala"
+      ],
+      "allergens": [],
+      "tags": [
+        "street-food",
+        "vegan",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Starters",
+      "name": "Chicken Tikka",
+      "price": 340,
+      "is_veg": false,
+      "spice_level": "medium",
+      "short_description": "Boneless chicken marinated in spiced yogurt and roasted in the tandoor.",
+      "long_description": "Chicken Tikka is boneless chicken pieces marinated for hours in yogurt, ginger, garlic and red chilli, then roasted in a very hot tandoor until they pick up a smoky char while staying juicy. The flavour is tangy, warm and moderately spicy, with a slightly red, crusty surface. It comes with sliced onion, lemon and mint chutney. It is easy to share and goes well with a cold lassi. It suits anyone who enjoys grilled, dry-style chicken rather than something in gravy.",
+      "ingredients": [
+        "boneless chicken",
+        "thick yogurt",
+        "ginger-garlic paste",
+        "kashmiri chilli",
+        "lemon juice",
+        "garam masala",
+        "mustard oil",
+        "kasuri methi"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "bestseller",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Starters",
+      "name": "Tandoori Chicken",
+      "price": 380,
+      "is_veg": false,
+      "spice_level": "medium",
+      "short_description": "Half chicken on the bone, marinated overnight and roasted in the tandoor.",
+      "long_description": "Tandoori Chicken is half a chicken on the bone, cut into four pieces, marinated in yogurt and spices and roasted in the tandoor until the skin is red, smoky and lightly crisp. The meat inside is moist and full of ginger, garlic and chilli flavour, with a tangy finish from lemon. It is served with mint chutney and onion rings. It is best eaten hot, with your hands, along with a naan or some rice. It suits people who love a classic, smoky, bone-in grill.",
+      "ingredients": [
+        "chicken on the bone",
+        "thick yogurt",
+        "ginger-garlic paste",
+        "kashmiri chilli",
+        "lemon juice",
+        "garam masala",
+        "mustard oil",
+        "ajwain"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "chef-special",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Starters",
+      "name": "Amritsari Fish Fry",
+      "price": 360,
+      "is_veg": false,
+      "spice_level": "medium",
+      "short_description": "Boneless fish in a crisp ajwain and gram flour batter, fried golden.",
+      "long_description": "Amritsari Fish Fry is boneless white fish pieces coated in a gram flour batter flavoured with ajwain, ginger, garlic and red chilli, then deep fried until crisp outside and flaky inside. The taste is tangy and peppery with a warm medium heat, and a squeeze of lemon with a dusting of chaat masala brightens it. It is served with mint chutney and sliced onions. It is best eaten right away while hot and crunchy. It suits anyone who enjoys fried fish and bold, tangy flavours.",
+      "ingredients": [
+        "boneless fish",
+        "gram flour",
+        "ajwain",
+        "ginger-garlic paste",
+        "red chilli powder",
+        "lemon juice",
+        "chaat masala",
+        "vinegar"
+      ],
+      "allergens": [
+        "fish"
+      ],
+      "tags": [
+        "bestseller",
+        "street-food",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Starters",
+      "name": "Mutton Seekh Kebab",
+      "price": 380,
+      "is_veg": false,
+      "spice_level": "hot",
+      "short_description": "Minced mutton skewers with green chilli and herbs, grilled over charcoal heat.",
+      "long_description": "Mutton Seekh Kebab is finely minced mutton mixed with onion, green chilli, ginger, coriander and warm spices, shaped onto skewers and cooked in the tandoor. It is juicy, rich and fairly spicy, with a smoky outside and a soft, tender bite. It is served with mint chutney, onion rings and lemon. It is lovely on its own as a starter, or tucked into a warm bread. It suits people who like bold, meaty flavours and a little real heat.",
+      "ingredients": [
+        "minced mutton",
+        "onion",
+        "green chilli",
+        "ginger-garlic paste",
+        "coriander",
+        "garam masala",
+        "red chilli powder",
+        "mustard oil"
+      ],
+      "allergens": [],
+      "tags": [
+        "chef-special",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Mains - Veg",
+      "name": "Dal Makhani",
+      "price": 220,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Black lentils and kidney beans simmered overnight with butter and cream.",
+      "long_description": "Dal Makhani is whole black lentils and a few kidney beans, cooked slowly with tomato, butter and cream until thick, creamy and deeply flavoured. It is rich and smooth with a mellow, buttery taste and only a gentle spice, finished with a swirl of cream on top. It is best eaten with butter naan, lachha paratha or jeera rice. It is a comforting choice for families, for children, and for anyone who likes a creamy dish without much heat.",
+      "ingredients": [
+        "whole black lentils",
+        "kidney beans",
+        "tomato",
+        "butter",
+        "cream",
+        "ginger-garlic paste",
+        "kasuri methi",
+        "garam masala"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "bestseller",
+        "comfort-food",
+        "kids-favourite"
+      ],
+      "variants": [
+        {
+          "name": "Half",
+          "price": 220
+        },
+        {
+          "name": "Full",
+          "price": 360
+        }
+      ]
+    },
+    {
+      "category": "Mains - Veg",
+      "name": "Sarson Da Saag",
+      "price": 260,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Slow-cooked mustard greens and spinach, finished with white butter and ginger.",
+      "long_description": "Sarson Da Saag is mustard greens cooked down slowly with spinach, ginger, garlic and green chilli, then mashed to a thick, rustic texture and finished with a spoon of white butter on top. It tastes earthy and slightly bitter-sweet, with a gentle heat and a rich buttery finish. It is traditionally eaten with makki di roti, with a bit of jaggery or a glass of buttermilk alongside. It suits people who enjoy hearty, homestyle greens, and it is a seasonal favourite in winter.",
+      "ingredients": [
+        "mustard greens",
+        "spinach",
+        "ginger",
+        "garlic",
+        "green chilli",
+        "onion",
+        "maize flour",
+        "white butter"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "chef-special",
+        "comfort-food",
+        "seasonal",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Mains - Veg",
+      "name": "Shahi Paneer",
+      "price": 240,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Paneer in a silky, lightly sweet tomato, cashew and cream gravy.",
+      "long_description": "Shahi Paneer is soft cubes of paneer in a smooth, pale orange gravy made from tomato, onion, cashew paste and cream, scented with cardamom. It is rich, creamy and slightly sweet with very little heat, so it is easy on the palate. It is best scooped up with butter naan or soft rotis, and it also goes nicely with jeera rice. It suits families, children, and anyone who prefers mild, creamy dishes over fiery ones.",
+      "ingredients": [
+        "paneer",
+        "tomato",
+        "onion",
+        "cashew paste",
+        "cream",
+        "butter",
+        "cardamom",
+        "kasuri methi"
+      ],
+      "allergens": [
+        "dairy",
+        "nuts"
+      ],
+      "tags": [
+        "bestseller",
+        "kids-favourite"
+      ],
+      "variants": [
+        {
+          "name": "Half",
+          "price": 240
+        },
+        {
+          "name": "Full",
+          "price": 395
+        }
+      ]
+    },
+    {
+      "category": "Mains - Veg",
+      "name": "Kadai Paneer",
+      "price": 250,
+      "is_veg": true,
+      "spice_level": "medium",
+      "short_description": "Paneer tossed with capsicum and onion in a freshly ground coriander and chilli masala.",
+      "long_description": "Kadai Paneer is paneer cubes cooked with chunky capsicum, onion and tomato in a thick masala made with freshly crushed coriander seeds and dried red chilli. It tastes bold, tangy and fragrant, with a medium heat and a slightly crunchy bite from the peppers. It is served hot, straight from the iron kadai, and goes well with tandoori roti, naan or lachha paratha. It suits people who like paneer with more punch than the creamy gravies.",
+      "ingredients": [
+        "paneer",
+        "capsicum",
+        "onion",
+        "tomato",
+        "coriander seeds",
+        "dried red chilli",
+        "ginger-garlic paste",
+        "kasuri methi"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "chef-special"
+      ],
+      "variants": [
+        {
+          "name": "Half",
+          "price": 250
+        },
+        {
+          "name": "Full",
+          "price": 410
+        }
+      ]
+    },
+    {
+      "category": "Mains - Veg",
+      "name": "Palak Paneer",
+      "price": 280,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Paneer in a smooth spinach gravy with garlic and a touch of cream.",
+      "long_description": "Palak Paneer is soft paneer cubes in a smooth puree of spinach cooked with garlic, onion, tomato and mild spices, finished with a little cream. It is earthy, savoury and mellow, with a gentle garlic flavour and very little heat. It is best with naan, roti or plain rice. It suits anyone who likes vegetable-forward dishes that are still rich and satisfying, and it is a comfortable choice for those who do not want anything too spicy.",
+      "ingredients": [
+        "spinach",
+        "paneer",
+        "garlic",
+        "onion",
+        "tomato",
+        "green chilli",
+        "cream",
+        "cumin"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "comfort-food",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Mains - Veg",
+      "name": "Chole",
+      "price": 220,
+      "is_veg": true,
+      "spice_level": "medium",
+      "short_description": "Chickpeas simmered in a tangy, dark onion and tomato masala.",
+      "long_description": "Chole is chickpeas cooked slowly with onion, tomato, ginger and a blend of dry spices until the gravy turns dark, thick and tangy. It has a deep, earthy flavour with a medium heat and a sour note from dried mango powder and tea-steeped colour. It is served with sliced raw onion and green chilli on the side. It is delicious with kulcha, naan or steamed rice. It suits anyone who loves a hearty vegetarian dish with a bit of tang and spice.",
+      "ingredients": [
+        "chickpeas",
+        "onion",
+        "tomato",
+        "ginger",
+        "garlic",
+        "amchur",
+        "cumin",
+        "chole masala",
+        "tea leaves"
+      ],
+      "allergens": [],
+      "tags": [
+        "comfort-food",
+        "vegan",
+        "gluten-free",
+        "street-food"
+      ]
+    },
+    {
+      "category": "Mains - Veg",
+      "name": "Rajma",
+      "price": 220,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Red kidney beans slow-cooked in a thick, home-style tomato gravy.",
+      "long_description": "Rajma is red kidney beans simmered with onion, tomato, ginger and garlic until the beans are soft and the gravy is thick and comforting. It tastes warm and mellow, with mild spice and a slight tang from tomato. It is traditionally served over steamed rice, with a side of onion and a spoon of raita if you like. It is a homely, filling dish that suits families, children, and anyone looking for simple Punjabi comfort food.",
+      "ingredients": [
+        "red kidney beans",
+        "onion",
+        "tomato",
+        "ginger",
+        "garlic",
+        "cumin",
+        "coriander powder",
+        "garam masala"
+      ],
+      "allergens": [],
+      "tags": [
+        "comfort-food",
+        "vegan",
+        "gluten-free",
+        "kids-favourite"
+      ]
+    },
+    {
+      "category": "Mains - Non-Veg",
+      "name": "Butter Chicken",
+      "price": 340,
+      "is_veg": false,
+      "spice_level": "mild",
+      "short_description": "Tandoori chicken in a velvety tomato, butter and cream gravy.",
+      "long_description": "Butter Chicken is tender pieces of tandoori-roasted chicken in a smooth, silky gravy of tomato, butter, cream and cashew, with a gentle sweetness and a mild, rounded spice. It is rich and creamy with a faint smokiness from the chicken. It is best eaten with butter naan or lachha paratha, so you can mop up every bit of the sauce. It is a gentle crowd pleaser that suits families, children, and anyone who wants a creamy, not too spicy curry.",
+      "ingredients": [
+        "chicken",
+        "tomato",
+        "butter",
+        "cream",
+        "cashew paste",
+        "ginger-garlic paste",
+        "kashmiri chilli",
+        "kasuri methi"
+      ],
+      "allergens": [
+        "dairy",
+        "nuts"
+      ],
+      "tags": [
+        "bestseller",
+        "kids-favourite",
+        "comfort-food"
+      ],
+      "variants": [
+        {
+          "name": "Half",
+          "price": 340
+        },
+        {
+          "name": "Full",
+          "price": 560
+        }
+      ]
+    },
+    {
+      "category": "Mains - Non-Veg",
+      "name": "Dhaba-Style Chicken Curry",
+      "price": 320,
+      "is_veg": false,
+      "spice_level": "hot",
+      "short_description": "Bone-in chicken in a robust onion-tomato masala with a thin, spicy gravy.",
+      "long_description": "Dhaba-Style Chicken Curry is bone-in chicken cooked in a deep, rustic masala of browned onion, tomato, ginger, garlic and whole spices, with a loose gravy and a layer of oil on top. It is bold, peppery and properly spicy, with a robust homely flavour. It is best with tandoori roti, naan or plain rice. It suits people who like real heat and a bolder, less creamy curry, and who do not mind picking meat off the bone.",
+      "ingredients": [
+        "bone-in chicken",
+        "onion",
+        "tomato",
+        "ginger-garlic paste",
+        "red chilli powder",
+        "coriander powder",
+        "garam masala",
+        "mustard oil"
+      ],
+      "allergens": [],
+      "tags": [
+        "comfort-food",
+        "gluten-free"
+      ],
+      "variants": [
+        {
+          "name": "Half",
+          "price": 320
+        },
+        {
+          "name": "Full",
+          "price": 525
+        }
+      ]
+    },
+    {
+      "category": "Mains - Non-Veg",
+      "name": "Dhaba Mutton Masala",
+      "price": 440,
+      "is_veg": false,
+      "spice_level": "hot",
+      "short_description": "Bone-in mutton slow-cooked in a dark, spicy onion and whole-spice masala.",
+      "long_description": "Dhaba Mutton Masala is bone-in mutton cooked slowly with browned onion, tomato, yogurt, ginger, garlic and whole spices until the meat is tender and the gravy is thick and dark. It is rich, deeply savoury and properly spicy, with a warm aroma of cardamom and black pepper. It is best with tandoori roti, naan or jeera rice. It suits people who love mutton and strong flavours, and it is best enjoyed with no hurry.",
+      "ingredients": [
+        "bone-in mutton",
+        "onion",
+        "tomato",
+        "yogurt",
+        "ginger-garlic paste",
+        "red chilli powder",
+        "black cardamom",
+        "garam masala"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "chef-special",
+        "comfort-food"
+      ],
+      "variants": [
+        {
+          "name": "Half",
+          "price": 440
+        },
+        {
+          "name": "Full",
+          "price": 720
+        }
+      ]
+    },
+    {
+      "category": "Mains - Non-Veg",
+      "name": "Egg Curry",
+      "price": 240,
+      "is_veg": false,
+      "spice_level": "medium",
+      "short_description": "Hard-boiled eggs in a homestyle onion and tomato gravy.",
+      "long_description": "Egg Curry is hard-boiled eggs simmered in a thick, spiced onion and tomato gravy with ginger, garlic and everyday dry spices. The eggs soak up the masala, and the gravy is savoury, a little tangy and moderately spicy. It is served hot with roti, paratha or rice. It is a simple, homely dish that suits anyone who wants a quick, filling non-vegetarian main without meat on the bone.",
+      "ingredients": [
+        "boiled eggs",
+        "onion",
+        "tomato",
+        "ginger-garlic paste",
+        "turmeric",
+        "red chilli powder",
+        "coriander powder",
+        "garam masala"
+      ],
+      "allergens": [
+        "egg"
+      ],
+      "tags": [
+        "comfort-food",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Mains - Non-Veg",
+      "name": "Keema Matar",
+      "price": 380,
+      "is_veg": false,
+      "spice_level": "hot",
+      "short_description": "Spiced minced mutton cooked with green peas, rich and dry-ish.",
+      "long_description": "Keema Matar is minced mutton cooked with onion, tomato, ginger, garlic, green peas and warm spices until the mince is soft and the masala clings to it, almost dry. It is rich, savoury and quite spicy, with little pops of sweetness from the peas. It is served with a squeeze of lemon and fresh coriander, and is lovely with lachha paratha, pav or naan. It suits people who like bold, hearty flavours and a thick, scoopable dish.",
+      "ingredients": [
+        "minced mutton",
+        "green peas",
+        "onion",
+        "tomato",
+        "ginger-garlic paste",
+        "red chilli powder",
+        "garam masala",
+        "coriander"
+      ],
+      "allergens": [],
+      "tags": [
+        "comfort-food",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Breads",
+      "name": "Butter Naan",
+      "price": 60,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Soft, leavened tandoor bread brushed with melted butter.",
+      "long_description": "Butter Naan is a soft, fluffy bread made from refined flour dough, stretched, baked on the wall of the tandoor and brushed with melted butter. It has light char marks, a chewy, pillowy texture and a mild, buttery taste with no spice. It is the perfect partner for rich gravies like dal makhani, butter chicken or paneer dishes. It is a safe, comforting choice for children and for anyone who likes soft bread.",
+      "ingredients": [
+        "refined flour",
+        "yogurt",
+        "milk",
+        "yeast",
+        "butter",
+        "salt",
+        "sugar"
+      ],
+      "allergens": [
+        "gluten",
+        "dairy"
+      ],
+      "tags": [
+        "bestseller",
+        "kids-favourite"
+      ]
+    },
+    {
+      "category": "Breads",
+      "name": "Amritsari Kulcha",
+      "price": 110,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Tandoor-baked bread stuffed with spiced potato, onion and coriander.",
+      "long_description": "Amritsari Kulcha is a leavened bread stuffed with mashed potato, onion, coriander and mild spices, baked in the tandoor until golden with a crisp surface and a soft, spiced filling, then finished with butter. It tastes savoury and gently spicy, and is filling on its own. It is best eaten with chole and a little pickle, or with a cooling raita. It suits anyone who enjoys stuffed breads and hearty vegetarian meals.",
+      "ingredients": [
+        "refined flour",
+        "potato",
+        "onion",
+        "coriander",
+        "amchur",
+        "cumin",
+        "ajwain",
+        "butter"
+      ],
+      "allergens": [
+        "gluten",
+        "dairy"
+      ],
+      "tags": [
+        "chef-special",
+        "street-food"
+      ]
+    },
+    {
+      "category": "Breads",
+      "name": "Makki Di Roti",
+      "price": 70,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Rustic maize flour flatbread cooked on a griddle, served with white butter.",
+      "long_description": "Makki Di Roti is a thick flatbread made from maize flour, pressed by hand and cooked on a hot griddle until lightly browned, then topped with a spoon of white butter. It is crumbly, slightly sweet and earthy, with a soft inside and a toasty crust. It is traditionally eaten with sarson da saag, and also goes well with dal or a glass of buttermilk. It suits people who enjoy rustic breads and also those avoiding wheat.",
+      "ingredients": [
+        "maize flour",
+        "water",
+        "salt",
+        "ghee",
+        "white butter"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "seasonal",
+        "gluten-free",
+        "comfort-food"
+      ]
+    },
+    {
+      "category": "Breads",
+      "name": "Lachha Paratha",
+      "price": 70,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Flaky, layered whole wheat paratha crisped in the tandoor with butter.",
+      "long_description": "Lachha Paratha is a layered whole wheat bread, folded and coiled so that it puffs into many thin, flaky layers, then baked in the tandoor and brushed with butter. It is crisp on the outside and soft within, with a light buttery taste and no spice. It is excellent for scooping up thick gravies like butter chicken, kadai paneer or dal makhani. It suits everyone, especially people who enjoy crisp, flaky bread.",
+      "ingredients": [
+        "whole wheat flour",
+        "ghee",
+        "butter",
+        "salt",
+        "water"
+      ],
+      "allergens": [
+        "gluten",
+        "dairy"
+      ],
+      "tags": [
+        "kids-favourite"
+      ]
+    },
+    {
+      "category": "Breads",
+      "name": "Aloo Paratha",
+      "price": 90,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Whole wheat flatbread stuffed with spiced mashed potato, cooked with butter.",
+      "long_description": "Aloo Paratha is a whole wheat flatbread stuffed with mashed potato seasoned with coriander, green chilli, cumin and a little dry mango powder, cooked on a griddle with butter until golden and speckled. It is soft and hearty with a mild, savoury spice and a slight tang. It is traditionally eaten with a spoon of white butter, curd and pickle. It suits anyone who wants a filling, comforting bread, and is popular with children.",
+      "ingredients": [
+        "whole wheat flour",
+        "potato",
+        "green chilli",
+        "coriander",
+        "cumin",
+        "amchur",
+        "butter",
+        "salt"
+      ],
+      "allergens": [
+        "gluten",
+        "dairy"
+      ],
+      "tags": [
+        "comfort-food",
+        "kids-favourite"
+      ]
+    },
+    {
+      "category": "Rice & Biryani",
+      "name": "Chicken Biryani",
+      "price": 280,
+      "is_veg": false,
+      "spice_level": "medium",
+      "short_description": "Fragrant basmati layered with marinated chicken, saffron and fried onions.",
+      "long_description": "Chicken Biryani is long-grain basmati rice layered with yogurt-marinated chicken, fried onions, mint and saffron, then sealed and cooked slowly so the flavours blend together. It is aromatic and well spiced with a medium heat, with soft chicken and fluffy, separate grains of rice. It is served with boondi raita, which cools the spice. It is a filling meal in itself, and suits anyone who loves fragrant, one-pot rice dishes.",
+      "ingredients": [
+        "basmati rice",
+        "chicken",
+        "yogurt",
+        "fried onion",
+        "mint",
+        "saffron",
+        "ginger-garlic paste",
+        "whole spices",
+        "ghee"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "bestseller",
+        "comfort-food",
+        "gluten-free"
+      ],
+      "variants": [
+        {
+          "name": "Half",
+          "price": 280
+        },
+        {
+          "name": "Full",
+          "price": 460
+        }
+      ]
+    },
+    {
+      "category": "Rice & Biryani",
+      "name": "Mutton Biryani",
+      "price": 360,
+      "is_veg": false,
+      "spice_level": "medium",
+      "short_description": "Slow-cooked mutton and basmati layered with saffron, mint and whole spices.",
+      "long_description": "Mutton Biryani is basmati rice layered with yogurt-marinated mutton on the bone, fried onions, mint, saffron and whole spices, then cooked slowly under a sealed lid. The mutton turns soft and rich, and the rice carries a deep aroma with a medium level of heat. It is served with boondi raita on the side. It is a hearty, satisfying meal that suits people who love mutton and aromatic rice.",
+      "ingredients": [
+        "basmati rice",
+        "mutton",
+        "yogurt",
+        "fried onion",
+        "mint",
+        "saffron",
+        "ginger-garlic paste",
+        "whole spices",
+        "ghee"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "chef-special",
+        "comfort-food",
+        "gluten-free"
+      ],
+      "variants": [
+        {
+          "name": "Half",
+          "price": 360
+        },
+        {
+          "name": "Full",
+          "price": 590
+        }
+      ]
+    },
+    {
+      "category": "Rice & Biryani",
+      "name": "Jeera Rice",
+      "price": 160,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Fluffy basmati rice tempered with ghee and toasted cumin.",
+      "long_description": "Jeera Rice is long-grain basmati rice cooked until fluffy, then tossed with cumin seeds that have been sizzled in ghee. It has a light, nutty aroma, a soft texture and a mild, savoury taste with no heat. It pairs well with almost any gravy, especially dal makhani, rajma, chole or any of the curries. It is a simple, reliable side that suits children and anyone who prefers plain, gentle flavours.",
+      "ingredients": [
+        "basmati rice",
+        "cumin seeds",
+        "ghee",
+        "salt",
+        "bay leaf"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "kids-favourite",
+        "gluten-free",
+        "jain-friendly"
+      ]
+    },
+    {
+      "category": "Rice & Biryani",
+      "name": "Veg Pulao",
+      "price": 190,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Mildly spiced basmati cooked with carrots, peas, beans and whole spices.",
+      "long_description": "Veg Pulao is basmati rice cooked with carrots, green peas, beans and whole spices such as cloves, cardamom and cinnamon, in a little ghee. It has a soft, fragrant flavour and a mild spice, with small sweet bites from the vegetables. It is lighter than a biryani and goes nicely with dal, rajma or raita. It suits children, vegetarians, and anyone who wants a gentle, comforting rice dish.",
+      "ingredients": [
+        "basmati rice",
+        "carrot",
+        "green peas",
+        "french beans",
+        "cloves",
+        "cardamom",
+        "cinnamon",
+        "ghee"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "kids-favourite",
+        "gluten-free",
+        "comfort-food"
+      ]
+    },
+    {
+      "category": "Sides & Raita",
+      "name": "Boondi Raita",
+      "price": 80,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Cool whisked yogurt with crisp gram flour pearls and roasted cumin.",
+      "long_description": "Boondi Raita is chilled, whisked yogurt mixed with tiny fried gram flour pearls, a pinch of roasted cumin, black salt and a little chilli powder. It is cool, creamy and lightly salty, with a soft, pleasant texture from the boondi. It is the ideal partner to biryani, pulao and spicy curries because it calms the heat. It suits everyone, and children often enjoy it too.",
+      "ingredients": [
+        "yogurt",
+        "boondi",
+        "roasted cumin",
+        "black salt",
+        "red chilli powder",
+        "coriander"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "kids-favourite",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Sides & Raita",
+      "name": "Kachumber Salad",
+      "price": 90,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Fresh cucumber, onion and tomato with lemon and chaat masala.",
+      "long_description": "Kachumber Salad is a plate of chopped cucumber, onion and tomato dressed with lemon juice, salt and a pinch of chaat masala, with fresh coriander on top. It is crisp, juicy and tangy, and it adds a fresh crunch to a rich meal. It goes well with kebabs, tandoori dishes and biryani. It suits anyone who likes something light and refreshing alongside heavier food.",
+      "ingredients": [
+        "cucumber",
+        "onion",
+        "tomato",
+        "lemon juice",
+        "chaat masala",
+        "coriander",
+        "salt"
+      ],
+      "allergens": [],
+      "tags": [
+        "vegan",
+        "gluten-free",
+        "jain-friendly"
+      ]
+    },
+    {
+      "category": "Desserts",
+      "name": "Gajar Halwa",
+      "price": 160,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Slow-cooked grated carrot pudding with milk, ghee, cardamom and nuts.",
+      "long_description": "Gajar Halwa is grated carrots cooked slowly in milk and ghee with sugar and cardamom until thick, soft and glossy, then topped with chopped almonds and pistachios. It is rich, warm and sweet, with a fudgy texture and a lovely cardamom aroma. It is served hot, and some people like it with a scoop of cream or ice cream on the side. It suits anyone with a sweet tooth, especially those who enjoy traditional Indian desserts.",
+      "ingredients": [
+        "carrot",
+        "milk",
+        "ghee",
+        "sugar",
+        "cardamom",
+        "almonds",
+        "pistachios",
+        "khoya"
+      ],
+      "allergens": [
+        "dairy",
+        "nuts"
+      ],
+      "tags": [
+        "sweet",
+        "seasonal",
+        "comfort-food",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Desserts",
+      "name": "Phirni",
+      "price": 130,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Chilled ground-rice pudding set in a clay bowl, scented with cardamom and rose.",
+      "long_description": "Phirni is a chilled pudding made by cooking ground rice in milk with sugar and cardamom until it turns smooth and creamy, then setting it in small clay bowls and topping it with pistachios and a hint of rose. It is lightly sweet, cool and silky, with a delicate floral aroma. It is served cold. It is a gentle way to end a spicy meal, and it suits people who like milky, soft desserts without anything heavy.",
+      "ingredients": [
+        "milk",
+        "ground rice",
+        "sugar",
+        "cardamom",
+        "pistachios",
+        "rose water",
+        "saffron"
+      ],
+      "allergens": [
+        "dairy",
+        "nuts"
+      ],
+      "tags": [
+        "sweet",
+        "gluten-free",
+        "comfort-food"
+      ]
+    },
+    {
+      "category": "Desserts",
+      "name": "Kheer",
+      "price": 140,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Creamy rice pudding simmered slowly with milk, cardamom and almonds.",
+      "long_description": "Kheer is rice slowly simmered in full-cream milk with sugar and cardamom until it thickens into a creamy pudding, with raisins and sliced almonds stirred in. It is sweet, soft and milky with a comforting warm aroma. It can be eaten warm or chilled. It is a classic, gentle dessert that suits children, grandparents, and anyone who enjoys traditional, mildly sweet milk-based sweets.",
+      "ingredients": [
+        "milk",
+        "basmati rice",
+        "sugar",
+        "cardamom",
+        "almonds",
+        "raisins",
+        "saffron"
+      ],
+      "allergens": [
+        "dairy",
+        "nuts"
+      ],
+      "tags": [
+        "sweet",
+        "comfort-food",
+        "kids-favourite",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Beverages",
+      "name": "Sweet Lassi",
+      "price": 110,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Thick, chilled yogurt drink sweetened and topped with a dollop of malai.",
+      "long_description": "Sweet Lassi is thick yogurt churned with sugar and a little cardamom or rose, served very cold in a tall glass and topped with a dollop of malai. It is creamy, sweet and slightly tangy, and fairly filling. It is a classic partner to Punjabi food, and its coolness helps balance spicy dishes. It suits children, people who enjoy sweet drinks, and anyone wanting to cool down after a spicy meal.",
+      "ingredients": [
+        "yogurt",
+        "sugar",
+        "milk",
+        "cardamom",
+        "malai",
+        "ice"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "bestseller",
+        "sweet",
+        "kids-favourite",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Beverages",
+      "name": "Salted Lassi",
+      "price": 100,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Chilled churned yogurt with salt and roasted cumin.",
+      "long_description": "Salted Lassi is yogurt churned with cold water, salt and roasted cumin until frothy, and served very cold. It is tangy, savoury and refreshing, thinner than the sweet version but still creamy. It is a good match for rich, spicy food like parathas, kebabs and chole. It suits people who prefer savoury drinks over sweet ones. It is served in a tall glass, often with a sprig of mint, and it keeps its cool for a long time. It is a lighter pick than the sweet version if you do not want something too filling.",
+      "ingredients": [
+        "yogurt",
+        "water",
+        "salt",
+        "roasted cumin",
+        "mint",
+        "ice"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Beverages",
+      "name": "Masala Chai",
+      "price": 60,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Strong milk tea simmered with ginger, cardamom and crushed spices.",
+      "long_description": "Masala Chai is black tea leaves simmered in milk and water with ginger, cardamom and a pinch of other warm spices, and sweetened with sugar. It is hot, strong and aromatic, with a gentle spiciness from the ginger. It is served in a small glass or cup, and goes well with parathas or a plate of snacks. It suits anyone who likes a strong, warming cup of tea, especially at the end of a meal.",
+      "ingredients": [
+        "tea leaves",
+        "milk",
+        "water",
+        "ginger",
+        "cardamom",
+        "sugar",
+        "black pepper"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "comfort-food",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Beverages",
+      "name": "Jaljeera",
+      "price": 80,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Tangy, cooling cumin and mint drink with a peppery kick.",
+      "long_description": "Jaljeera is a chilled drink made with roasted cumin, mint, tamarind, black salt and dried mango powder, mixed with cold water and served with a few boondi on top. It is tangy, minty and peppery, with a sharp, refreshing taste that wakes up the palate. It is a good drink to have with fried or heavy starters. It suits people who enjoy sour, savoury flavours and something light instead of a creamy drink.",
+      "ingredients": [
+        "roasted cumin",
+        "mint",
+        "tamarind",
+        "black salt",
+        "amchur",
+        "black pepper",
+        "lemon juice",
+        "boondi"
+      ],
+      "allergens": [],
+      "tags": [
+        "street-food",
+        "vegan",
+        "gluten-free"
+      ]
+    },
+    {
+      "category": "Beverages",
+      "name": "Chaas",
+      "price": 70,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Light spiced buttermilk with roasted cumin, mint and coriander.",
+      "long_description": "Chaas is thin, chilled buttermilk made from yogurt and water, seasoned with salt, roasted cumin, fresh mint and coriander. It is light, tangy and refreshing, and much less heavy than lassi. It goes very well with rich, buttery food such as parathas, biryani and creamy gravies. It suits anyone who wants a light, cooling drink with their meal. It comes in a tall glass over ice, with a gentle spiciness from a little green chilli. It is a good pick if you want something refreshing that does not fill you up before the main course arrives.",
+      "ingredients": [
+        "yogurt",
+        "water",
+        "salt",
+        "roasted cumin",
+        "mint",
+        "coriander",
+        "green chilli"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "gluten-free"
+      ]
+    }
+  ]
+}

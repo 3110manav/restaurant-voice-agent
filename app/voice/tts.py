@@ -1,7 +1,7 @@
 """Text-to-speech: Groq's Orpheus for English, Sarvam AI's Bulbul for Hindi.
 
-`synthesize()` auto-routes by script — callers don't need to care which
-backend handled a given reply. Orpheus (English) requires a one-time terms
+`synthesize()` picks the voice from the conversation's language when the caller knows it
+(the web app's English / हिन्दी toggle), and otherwise from the script of the text. Orpheus (English) requires a one-time terms
 acceptance in the Groq console: console.groq.com/playground?model=
 canopylabs%2Forpheus-v1-english
 
@@ -15,6 +15,7 @@ import base64
 from groq import Groq
 from sarvamai import SarvamAI
 
+from app.agent.language import use_hindi_voice
 from app.voice.voices import voices_for
 
 _groq_client = Groq(timeout=30.0, max_retries=1)
@@ -26,12 +27,6 @@ ENGLISH_DEFAULT_VOICE = "hannah"
 HINDI_MODEL = "bulbul:v3"
 HINDI_DEFAULT_VOICE = "shubh"
 HINDI_LANGUAGE_CODE = "hi-IN"
-
-
-def has_hindi_script(text: str) -> bool:
-    """True if text contains Devanagari characters — used to route to the
-    Hindi TTS backend instead of the English one."""
-    return any("ऀ" <= ch <= "ॿ" for ch in text)
 
 
 def _synthesize_english(text: str, voice: str = ENGLISH_DEFAULT_VOICE) -> bytes:
@@ -55,11 +50,11 @@ def _synthesize_hindi(text: str, voice: str = HINDI_DEFAULT_VOICE) -> bytes:
     return base64.b64decode(result.audios[0])
 
 
-def synthesize(text: str, persona: str = "online") -> bytes:
-    """Synthesize speech for text in whichever language it's written in,
-    using the persona's own voice (see app/voice/voices.py)."""
+def synthesize(text: str, persona: str = "online", language: str | None = None) -> bytes:
+    """Synthesize speech in the conversation's language (or, if none is given, the language
+    the text is written in), using the persona's own voice (see app/voice/voices.py)."""
     voices = voices_for(persona)
-    if has_hindi_script(text):
+    if use_hindi_voice(text, language):
         return _synthesize_hindi(text, voices["hi"])
     return _synthesize_english(text, voices["en"])
 

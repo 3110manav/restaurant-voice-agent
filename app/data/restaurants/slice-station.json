@@ -1,0 +1,981 @@
+{
+  "restaurant": {
+    "slug": "slice-station",
+    "name": "Slice Station",
+    "cuisine": "Pizza chain",
+    "tagline": "Hot, cheesy and at your door before the match restarts.",
+    "agent_name": "Kabir",
+    "accent_color": "#dc2626"
+  },
+  "categories": [
+    "Classic Veg Pizzas",
+    "Signature Veg Pizzas",
+    "Non-Veg Pizzas",
+    "Garlic Bread & Sides",
+    "Pasta",
+    "Desserts",
+    "Beverages",
+    "Combos"
+  ],
+  "dishes": [
+    {
+      "category": "Classic Veg Pizzas",
+      "name": "Margherita",
+      "price": 179,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Tangy tomato sauce, melted mozzarella and fresh basil on a soft crust.",
+      "long_description": "This is the simple Italian-style classic: a thin layer of tangy tomato pizza sauce, a generous spread of melted mozzarella, and a few fresh basil leaves on a soft, freshly baked crust. It tastes mildly tangy, creamy and clean, with no heat at all, so it works for kids and for anyone who likes things uncomplicated. The Regular size suits one person, the Medium is good for two, and the Large can be shared by three or four. A great first pick if you are ordering for a mixed group.",
+      "ingredients": [
+        "pizza dough",
+        "tomato pizza sauce",
+        "mozzarella",
+        "fresh basil",
+        "olive oil"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "bestseller",
+        "kids-favourite",
+        "comfort-food"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 179
+        },
+        {
+          "name": "Medium",
+          "price": 349
+        },
+        {
+          "name": "Large",
+          "price": 499
+        }
+      ]
+    },
+    {
+      "category": "Classic Veg Pizzas",
+      "name": "Double Cheese Margherita",
+      "price": 229,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Twice the mozzarella over our classic tomato base. Stretchy and rich.",
+      "long_description": "This is our Margherita with a double layer of mozzarella, so every bite pulls into long, stretchy strands. The sauce is a tangy tomato base, and the cheese is baked until it is golden at the edges and soft in the middle. It tastes rich, creamy and very comforting, with no spice. The Regular is a full meal for one, the Medium suits two people, and the Large works for three or four. Perfect for cheese lovers and for children who do not want any toppings getting in the way.",
+      "ingredients": [
+        "pizza dough",
+        "tomato pizza sauce",
+        "mozzarella",
+        "processed cheese",
+        "oregano"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "bestseller",
+        "kids-favourite",
+        "comfort-food"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 229
+        },
+        {
+          "name": "Medium",
+          "price": 419
+        },
+        {
+          "name": "Large",
+          "price": 579
+        }
+      ]
+    },
+    {
+      "category": "Classic Veg Pizzas",
+      "name": "Golden Corn Delight",
+      "price": 199,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Sweet golden corn and mozzarella on a mild tomato base.",
+      "long_description": "A kid-friendly favourite, this pizza is topped with juicy sweet corn kernels over a mild tomato sauce and plenty of melted mozzarella. The corn adds little pops of natural sweetness that balance the creamy cheese, and there is no heat in it at all. It tastes soft, sweet and savoury together. The Regular size is enough for one hungry person, the Medium suits two, and the Large will feed three or four. A good choice for families with children, or for anyone who likes a gentle, easygoing pizza.",
+      "ingredients": [
+        "pizza dough",
+        "tomato pizza sauce",
+        "sweet corn",
+        "mozzarella",
+        "oregano"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "kids-favourite",
+        "comfort-food"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 199
+        },
+        {
+          "name": "Medium",
+          "price": 379
+        },
+        {
+          "name": "Large",
+          "price": 529
+        }
+      ]
+    },
+    {
+      "category": "Classic Veg Pizzas",
+      "name": "Onion Capsicum Crunch",
+      "price": 199,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Crunchy onion and green capsicum with cheese and a pinch of chilli flakes.",
+      "long_description": "This pizza keeps it classic with slices of crunchy onion and green capsicum scattered over tomato sauce and melted mozzarella, finished with a light sprinkle of chilli flakes. The vegetables stay slightly crisp, so you get a fresh bite along with the cheesy base. It tastes savoury and a little sharp, with just a hint of warmth from the flakes. The Regular suits one person, the Medium is good for two, and the Large can be shared by three or four. A solid everyday pick for simple veg pizza fans.",
+      "ingredients": [
+        "pizza dough",
+        "tomato pizza sauce",
+        "onion",
+        "green capsicum",
+        "mozzarella",
+        "chilli flakes"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "comfort-food"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 199
+        },
+        {
+          "name": "Medium",
+          "price": 379
+        },
+        {
+          "name": "Large",
+          "price": 529
+        }
+      ]
+    },
+    {
+      "category": "Signature Veg Pizzas",
+      "name": "Tandoori Paneer Tikka",
+      "price": 269,
+      "is_veg": true,
+      "spice_level": "medium",
+      "short_description": "Tandoori-marinated paneer, onion and capsicum on a smoky tikka-style base.",
+      "long_description": "Our Indian fusion special: cubes of paneer marinated in tandoori spices and grilled, with onion and capsicum, over a tikka-flavoured sauce and mozzarella. It tastes smoky, tangy and gently spicy, with the soft paneer giving it a rich, hearty bite. The heat is medium, so it is lively but not too fiery for most people. The Regular suits one person, the Medium is good for two, and the Large can be shared by three or four. Best for anyone who loves paneer tikka and wants it on a pizza.",
+      "ingredients": [
+        "pizza dough",
+        "paneer",
+        "tandoori marinade",
+        "onion",
+        "green capsicum",
+        "mozzarella",
+        "tikka sauce"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "bestseller",
+        "chef-special"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 269
+        },
+        {
+          "name": "Medium",
+          "price": 499
+        },
+        {
+          "name": "Large",
+          "price": 689
+        }
+      ]
+    },
+    {
+      "category": "Signature Veg Pizzas",
+      "name": "Garden Fresh Veg Loaded",
+      "price": 279,
+      "is_veg": true,
+      "spice_level": "mild",
+      "short_description": "Loaded with onion, capsicum, mushroom, sweet corn and olives.",
+      "long_description": "This is our fully loaded vegetarian pizza, piled with onion, green capsicum, mushrooms, sweet corn and black olives over tomato sauce and a thick layer of mozzarella. Every slice has a bit of everything, so it tastes fresh, savoury and slightly sweet, with a mild seasoning and no real heat. It is generous and filling. The Regular is a big meal for one, the Medium suits two, and the Large is good for three or four people. Ideal for groups who want one pizza that has a bit of every veg topping.",
+      "ingredients": [
+        "pizza dough",
+        "tomato pizza sauce",
+        "onion",
+        "green capsicum",
+        "mushroom",
+        "sweet corn",
+        "black olives",
+        "mozzarella"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "chef-special"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 279
+        },
+        {
+          "name": "Medium",
+          "price": 519
+        },
+        {
+          "name": "Large",
+          "price": 719
+        }
+      ]
+    },
+    {
+      "category": "Signature Veg Pizzas",
+      "name": "Chilli Jalapeno Fire",
+      "price": 249,
+      "is_veg": true,
+      "spice_level": "hot",
+      "short_description": "Jalapenos, red paprika and green chilli over a peppery tomato sauce.",
+      "long_description": "For people who like real heat, this pizza has sliced jalapenos, green chillies, red paprika and onion over a peppery tomato sauce and mozzarella, finished with chilli flakes. It tastes hot, tangy and sharp, with the cheese cooling things down just a little. Please note it is genuinely spicy, so we suggest keeping a cold drink nearby. The Regular suits one person, the Medium is good for two, and the Large can be shared by three or four. Best for spice lovers who want a pizza that wakes them up.",
+      "ingredients": [
+        "pizza dough",
+        "tomato pizza sauce",
+        "jalapeno",
+        "green chilli",
+        "red paprika",
+        "onion",
+        "mozzarella",
+        "chilli flakes"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "chef-special"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 249
+        },
+        {
+          "name": "Medium",
+          "price": 469
+        },
+        {
+          "name": "Large",
+          "price": 649
+        }
+      ]
+    },
+    {
+      "category": "Signature Veg Pizzas",
+      "name": "Creamy Mushroom Melt",
+      "price": 259,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Sauteed mushrooms and sweet corn in a creamy garlic white sauce.",
+      "long_description": "This pizza skips the red sauce and uses a creamy garlic white sauce instead, topped with sauteed mushrooms, sweet corn and plenty of mozzarella, with a pinch of oregano on top. It tastes earthy, creamy and savoury, with a little sweetness from the corn and no spice at all. The Regular is a good size for one person, the Medium suits two, and the Large can be shared by three or four. A lovely choice for mushroom fans and for anyone who prefers a mellow, rich pizza over a spicy one.",
+      "ingredients": [
+        "pizza dough",
+        "garlic white sauce",
+        "mushroom",
+        "sweet corn",
+        "mozzarella",
+        "garlic",
+        "oregano"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "comfort-food"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 259
+        },
+        {
+          "name": "Medium",
+          "price": 489
+        },
+        {
+          "name": "Large",
+          "price": 669
+        }
+      ]
+    },
+    {
+      "category": "Non-Veg Pizzas",
+      "name": "Pepperoni",
+      "price": 289,
+      "is_veg": false,
+      "spice_level": "mild",
+      "short_description": "Classic spicy pork pepperoni slices over bubbling mozzarella.",
+      "long_description": "The classic meat pizza: thin rounds of pepperoni, a cured pork sausage with a gentle peppery spice, laid over tomato sauce and plenty of melted mozzarella. As it bakes the pepperoni crisps slightly at the edges and the flavour spreads into the cheese. It tastes savoury, salty and mildly spicy. The Regular suits one person, the Medium is good for two, and the Large can be shared by three or four. A good pick for anyone who eats pork and wants an old favourite.",
+      "ingredients": [
+        "pizza dough",
+        "tomato pizza sauce",
+        "pork pepperoni",
+        "mozzarella",
+        "oregano"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "bestseller"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 289
+        },
+        {
+          "name": "Medium",
+          "price": 529
+        },
+        {
+          "name": "Large",
+          "price": 729
+        }
+      ]
+    },
+    {
+      "category": "Non-Veg Pizzas",
+      "name": "Smoky BBQ Chicken",
+      "price": 299,
+      "is_veg": false,
+      "spice_level": "mild",
+      "short_description": "Chicken chunks in sweet smoky barbecue sauce with onion and cheese.",
+      "long_description": "Tender roasted chicken pieces coated in a sweet and smoky barbecue sauce, with sliced onion and mozzarella over a barbecue-and-tomato base. It tastes smoky, sweet and tangy with only a little warmth. The onions add a slight crunch against the soft chicken and the melted cheese. The Regular size suits one person, the Medium is good for two, and the Large will comfortably feed three or four. Great for people who enjoy barbecue flavours and like a milder non-veg pizza.",
+      "ingredients": [
+        "pizza dough",
+        "barbecue sauce",
+        "roasted chicken",
+        "onion",
+        "mozzarella",
+        "tomato pizza sauce"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "bestseller"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 299
+        },
+        {
+          "name": "Medium",
+          "price": 549
+        },
+        {
+          "name": "Large",
+          "price": 749
+        }
+      ]
+    },
+    {
+      "category": "Non-Veg Pizzas",
+      "name": "Peri Peri Chicken Fiesta",
+      "price": 289,
+      "is_veg": false,
+      "spice_level": "hot",
+      "short_description": "Peri peri chicken, capsicum and red onion with a fiery kick.",
+      "long_description": "This pizza brings together peri peri marinated chicken, green capsicum and red onion over a spicy tomato sauce and mozzarella. It tastes hot, tangy and zesty, with a lingering chilli heat that the cheese softens only slightly. It is one of our spicier non-veg options, so it suits people who enjoy their food with a kick. The Regular suits one person, the Medium is good for two, and the Large can be shared by three or four. A great match with a chilled drink.",
+      "ingredients": [
+        "pizza dough",
+        "peri peri chicken",
+        "green capsicum",
+        "red onion",
+        "mozzarella",
+        "spicy tomato sauce"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "chef-special"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 289
+        },
+        {
+          "name": "Medium",
+          "price": 529
+        },
+        {
+          "name": "Large",
+          "price": 729
+        }
+      ]
+    },
+    {
+      "category": "Non-Veg Pizzas",
+      "name": "Chicken Tikka Supreme",
+      "price": 299,
+      "is_veg": false,
+      "spice_level": "medium",
+      "short_description": "Tandoori chicken tikka, onion and green chilli on a masala sauce.",
+      "long_description": "Our Indian-style chicken pizza has pieces of tandoori chicken tikka, sliced onion and green chilli over a tikka masala sauce and mozzarella. It tastes smoky, spiced and creamy, with a medium heat that builds slowly rather than hitting all at once. The chicken is soft and well marinated. The Regular is a full meal for one, the Medium suits two, and the Large is good for three or four. A great pick for anyone who loves chicken tikka and wants the flavour on a pizza.",
+      "ingredients": [
+        "pizza dough",
+        "chicken tikka",
+        "tikka masala sauce",
+        "onion",
+        "green chilli",
+        "mozzarella"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "bestseller",
+        "chef-special"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 299
+        },
+        {
+          "name": "Medium",
+          "price": 549
+        },
+        {
+          "name": "Large",
+          "price": 749
+        }
+      ]
+    },
+    {
+      "category": "Non-Veg Pizzas",
+      "name": "Chicken Sausage Sizzler",
+      "price": 279,
+      "is_veg": false,
+      "spice_level": "mild",
+      "short_description": "Chicken sausage slices, capsicum and onion with herby tomato sauce.",
+      "long_description": "This one is topped with slices of chicken sausage, green capsicum and onion over herby tomato sauce and a generous layer of mozzarella. The sausage is savoury and lightly seasoned, and it browns nicely in the oven. It tastes meaty and comforting, with a mild peppery note and no strong heat. The Regular suits one person, the Medium is good for two, and the Large can be shared by three or four. A friendly option for kids and adults who like sausage but prefer chicken to pork.",
+      "ingredients": [
+        "pizza dough",
+        "tomato pizza sauce",
+        "chicken sausage",
+        "green capsicum",
+        "onion",
+        "mozzarella",
+        "oregano"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "kids-favourite"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 279
+        },
+        {
+          "name": "Medium",
+          "price": 509
+        },
+        {
+          "name": "Large",
+          "price": 699
+        }
+      ]
+    },
+    {
+      "category": "Non-Veg Pizzas",
+      "name": "Meat Feast Overload",
+      "price": 299,
+      "is_veg": false,
+      "spice_level": "medium",
+      "short_description": "Pepperoni, chicken sausage and roast chicken, all on one pizza.",
+      "long_description": "This is our most loaded non-veg pizza, topped with pork pepperoni, chicken sausage and roasted chicken pieces over tomato sauce and a thick layer of mozzarella. It tastes rich, savoury and meaty, with medium warmth from the pepperoni and a little peppery spice. It is heavy and filling, so the Regular is a big meal for one person, the Medium suits two, and the Large is good for three or four. Made for serious meat lovers who want something hearty, and not suitable for anyone who avoids pork.",
+      "ingredients": [
+        "pizza dough",
+        "tomato pizza sauce",
+        "pork pepperoni",
+        "chicken sausage",
+        "roasted chicken",
+        "mozzarella"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "chef-special"
+      ],
+      "variants": [
+        {
+          "name": "Regular",
+          "price": 299
+        },
+        {
+          "name": "Medium",
+          "price": 549
+        },
+        {
+          "name": "Large",
+          "price": 749
+        }
+      ]
+    },
+    {
+      "category": "Garlic Bread & Sides",
+      "name": "Garlic Bread",
+      "price": 99,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Oven-baked bread with garlic butter and herbs.",
+      "long_description": "Freshly baked bread rubbed with garlic butter and sprinkled with parsley and oregano, served warm and soft inside with a lightly crisp edge. It tastes buttery, garlicky and gently herby, with no spice. It goes well with any pizza or pasta, or on its own while you wait. The four piece portion suits one or two people, and the eight piece portion is better for a small group. A good simple side for kids and adults alike.",
+      "ingredients": [
+        "bread",
+        "butter",
+        "garlic",
+        "parsley",
+        "oregano"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "comfort-food",
+        "kids-favourite"
+      ],
+      "variants": [
+        {
+          "name": "4 pcs",
+          "price": 99
+        },
+        {
+          "name": "8 pcs",
+          "price": 179
+        }
+      ]
+    },
+    {
+      "category": "Garlic Bread & Sides",
+      "name": "Cheesy Garlic Bread",
+      "price": 129,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Garlic bread topped with melted mozzarella and herbs.",
+      "long_description": "Our garlic bread with a generous layer of mozzarella melted over the top, finished with oregano. It comes out hot, with the cheese still stretchy and the base soft and buttery. It tastes rich, garlicky and creamy, and there is no heat. A portion has four pieces, which is good for sharing between two people or for one hungry person. A great pick for cheese lovers and a lovely side with pasta.",
+      "ingredients": [
+        "bread",
+        "butter",
+        "garlic",
+        "mozzarella",
+        "oregano"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "bestseller",
+        "comfort-food"
+      ]
+    },
+    {
+      "category": "Garlic Bread & Sides",
+      "name": "Peri Peri Potato Wedges",
+      "price": 119,
+      "is_veg": true,
+      "spice_level": "medium",
+      "short_description": "Crisp potato wedges tossed in tangy peri peri seasoning.",
+      "long_description": "Thick potato wedges fried until golden and crisp outside and fluffy inside, then tossed in a tangy peri peri seasoning. They taste salty, zesty and moderately spicy, so they wake up the palate without being too hot. They are a popular side with pizza and a good snack for sharing between two people. Perfect for anyone who likes crunchy, seasoned potatoes, and they go well with a cold drink.",
+      "ingredients": [
+        "potato",
+        "vegetable oil",
+        "peri peri seasoning",
+        "salt",
+        "paprika"
+      ],
+      "allergens": [],
+      "tags": [
+        "street-food",
+        "kids-favourite"
+      ]
+    },
+    {
+      "category": "Garlic Bread & Sides",
+      "name": "Crispy Chicken Wings",
+      "price": 199,
+      "is_veg": false,
+      "spice_level": "medium",
+      "short_description": "Crunchy fried chicken wings tossed in a spicy glaze.",
+      "long_description": "Chicken wings coated in a seasoned crumb, fried until crunchy, and tossed in a spicy tangy glaze. They are crisp on the outside and juicy inside, with a medium heat and a hint of garlic. Each order comes with six wings, which suits two people sharing or one big appetite. A great side for anyone who likes finger food, and they pair nicely with a chilled drink and a cheesy pizza.",
+      "ingredients": [
+        "chicken wings",
+        "flour coating",
+        "spice glaze",
+        "garlic",
+        "chilli",
+        "vegetable oil"
+      ],
+      "allergens": [
+        "gluten",
+        "soy"
+      ],
+      "tags": [
+        "street-food"
+      ],
+      "variants": [
+        {
+          "name": "6 pcs",
+          "price": 199
+        },
+        {
+          "name": "12 pcs",
+          "price": 369
+        }
+      ]
+    },
+    {
+      "category": "Pasta",
+      "name": "White Sauce Veg Penne",
+      "price": 189,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Penne in creamy white sauce with mushroom, corn and capsicum.",
+      "long_description": "Penne pasta cooked in a smooth creamy white sauce with sauteed mushrooms, sweet corn and green capsicum, finished with oregano and chilli flakes on the side if you like. It tastes rich, mild and comforting, with no heat unless you add flakes yourself. The portion is generous for one person and can be shared as a side between two. A good pick for children and for anyone who likes creamy pasta.",
+      "ingredients": [
+        "penne pasta",
+        "white sauce",
+        "mushroom",
+        "sweet corn",
+        "green capsicum",
+        "cheese",
+        "oregano"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "kids-favourite",
+        "comfort-food"
+      ]
+    },
+    {
+      "category": "Pasta",
+      "name": "Spicy Arrabbiata Penne",
+      "price": 189,
+      "is_veg": true,
+      "spice_level": "medium",
+      "short_description": "Penne in a tangy, spicy red tomato sauce with olives and herbs.",
+      "long_description": "Penne pasta tossed in a tangy red tomato sauce with garlic, chilli flakes, black olives and herbs. It tastes bright, zesty and moderately spicy, without any cream, so it feels lighter than the white sauce pasta. The portion is filling for one person and can be shared as a side between two. A good pick for anyone who likes tomato-based pasta with some heat.",
+      "ingredients": [
+        "penne pasta",
+        "tomato sauce",
+        "garlic",
+        "chilli flakes",
+        "black olives",
+        "basil",
+        "olive oil"
+      ],
+      "allergens": [
+        "gluten"
+      ],
+      "tags": [
+        "comfort-food"
+      ]
+    },
+    {
+      "category": "Pasta",
+      "name": "Baked Chicken Alfredo Pasta",
+      "price": 249,
+      "is_veg": false,
+      "spice_level": "mild",
+      "short_description": "Penne in cheesy white sauce with chicken, baked with mozzarella on top.",
+      "long_description": "Penne pasta with grilled chicken pieces in a creamy white sauce, topped with mozzarella and baked until the cheese turns golden and bubbly. It tastes creamy, savoury and rich, with a mild pepper flavour and no real spice. The portion is hearty enough for one person, or can be shared between two as a side. A great choice for people who want something comforting and filling.",
+      "ingredients": [
+        "penne pasta",
+        "chicken",
+        "white sauce",
+        "mozzarella",
+        "black pepper",
+        "garlic",
+        "oregano"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "comfort-food",
+        "chef-special"
+      ]
+    },
+    {
+      "category": "Desserts",
+      "name": "Choco Lava Cake",
+      "price": 109,
+      "is_veg": false,
+      "spice_level": "none",
+      "short_description": "Warm chocolate cake with a molten chocolate centre.",
+      "long_description": "A small, soft chocolate cake baked until warm, with a gooey molten chocolate centre that flows out when you cut it open. It tastes deeply chocolatey, rich and sweet. It is a single serving, best eaten hot, though it can be shared if you only want a taste. A lovely way to end a pizza meal, especially for chocolate lovers and children.",
+      "ingredients": [
+        "flour",
+        "dark chocolate",
+        "butter",
+        "sugar",
+        "egg",
+        "cocoa"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten",
+        "egg",
+        "soy"
+      ],
+      "tags": [
+        "sweet",
+        "bestseller",
+        "kids-favourite"
+      ]
+    },
+    {
+      "category": "Desserts",
+      "name": "Walnut Fudge Brownie",
+      "price": 129,
+      "is_veg": false,
+      "spice_level": "none",
+      "short_description": "Dense chocolate brownie with crunchy walnut pieces, served warm.",
+      "long_description": "A thick, fudgy chocolate brownie with crunchy walnut pieces, served warm so the centre is soft and rich. It tastes sweet, chocolatey and slightly nutty, with a lovely contrast between the soft brownie and the crunchy nuts. It is one portion, and it can be shared between two people. Please note it contains walnuts. A good pick for chocolate lovers who enjoy a heavier dessert.",
+      "ingredients": [
+        "flour",
+        "chocolate",
+        "walnuts",
+        "butter",
+        "sugar",
+        "egg"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten",
+        "egg",
+        "nuts"
+      ],
+      "tags": [
+        "sweet",
+        "comfort-food"
+      ]
+    },
+    {
+      "category": "Desserts",
+      "name": "Cinnamon Dough Bites",
+      "price": 99,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Soft baked dough bites tossed in cinnamon sugar with a chocolate dip.",
+      "long_description": "Small pieces of our pizza dough baked until golden, then tossed in cinnamon and sugar and served with a chocolate dipping sauce. They taste warm, sweet and lightly spiced, with a soft, pillowy texture. A portion has about eight bites, which is nice for sharing between two or three people. A fun, light dessert for kids and anyone who likes a sweet end to the meal.",
+      "ingredients": [
+        "pizza dough",
+        "cinnamon",
+        "sugar",
+        "butter",
+        "chocolate sauce"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "sweet",
+        "kids-favourite"
+      ]
+    },
+    {
+      "category": "Beverages",
+      "name": "Chilled Soft Drink",
+      "price": 49,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Ice-cold fizzy cola, in a small or large bottle.",
+      "long_description": "A chilled, fizzy cola served cold, available in a small 300 ml size or a large 750 ml size. It tastes sweet and refreshing with a little sparkle that goes well with cheesy and spicy food. The small size is good for one person, and the large bottle can be shared between two or three. A classic pairing for any pizza.",
+      "ingredients": [
+        "carbonated water",
+        "sugar",
+        "caramel colour",
+        "cola flavouring"
+      ],
+      "allergens": [],
+      "tags": [
+        "vegan"
+      ],
+      "variants": [
+        {
+          "name": "300 ml",
+          "price": 49
+        },
+        {
+          "name": "750 ml",
+          "price": 99
+        }
+      ]
+    },
+    {
+      "category": "Beverages",
+      "name": "Classic Cold Coffee",
+      "price": 119,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Creamy blended cold coffee with milk and a hint of sugar.",
+      "long_description": "Coffee blended with chilled milk, ice and a little sugar until smooth and frothy. It tastes creamy, sweet and lightly bitter, and it is cold and refreshing. One glass is a single serving, and it is easy to share a sip. It is a nice choice for coffee lovers, for anyone who wants something cooling and a little indulgent instead of a fizzy drink, and a good match with garlic bread or a sweet dessert after your pizza.",
+      "ingredients": [
+        "coffee",
+        "milk",
+        "ice",
+        "sugar"
+      ],
+      "allergens": [
+        "dairy"
+      ],
+      "tags": [
+        "sweet"
+      ]
+    },
+    {
+      "category": "Beverages",
+      "name": "Mint Lemon Cooler",
+      "price": 89,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Fresh mint and lemon cooler over ice with a touch of sweetness.",
+      "long_description": "A refreshing drink made with fresh mint leaves, lemon juice, sugar and soda over ice. It tastes tangy, minty and light, with a little sweetness and a fizzy finish. One glass is a single serving. It is a great way to cool down after a spicy pizza, a good choice for anyone who prefers a lighter drink than cola, and it works well with peri peri wings or wedges when you want something sharp and refreshing alongside.",
+      "ingredients": [
+        "mint",
+        "lemon juice",
+        "sugar",
+        "soda water",
+        "ice"
+      ],
+      "allergens": [],
+      "tags": [
+        "vegan",
+        "seasonal"
+      ]
+    },
+    {
+      "category": "Combos",
+      "name": "Solo Slice Meal",
+      "price": 349,
+      "is_veg": true,
+      "spice_level": "none",
+      "short_description": "Regular Margherita, 4-piece garlic bread and a 300 ml soft drink.",
+      "long_description": "A complete meal for one person: a Regular size Margherita pizza with tomato sauce, mozzarella and basil, a four piece garlic bread, and a 300 ml chilled soft drink. It tastes classic, cheesy and mild, with buttery garlic bread on the side to round it out. It is filling for one hungry person. A good choice for a quick lunch or dinner on your own, and a simple order for kids.",
+      "ingredients": [
+        "pizza dough",
+        "tomato pizza sauce",
+        "mozzarella",
+        "basil",
+        "bread",
+        "garlic butter",
+        "cola"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "bestseller"
+      ]
+    },
+    {
+      "category": "Combos",
+      "name": "Duo Share Combo",
+      "price": 949,
+      "is_veg": false,
+      "spice_level": "mild",
+      "short_description": "Medium Double Cheese Margherita and Medium Pepperoni, garlic bread, two drinks.",
+      "long_description": "A sharing meal for two: one Medium Double Cheese Margherita, one Medium Pepperoni pizza, a four piece garlic bread, and two 300 ml chilled soft drinks. You get a creamy, mild vegetarian pizza and a spicy pork pepperoni pizza, so there is something for different tastes. Because the pepperoni contains pork, it is not a vegetarian combo. A good option for a couple or two friends who want a full meal.",
+      "ingredients": [
+        "pizza dough",
+        "tomato pizza sauce",
+        "mozzarella",
+        "pork pepperoni",
+        "bread",
+        "garlic butter",
+        "cola"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten"
+      ],
+      "tags": [
+        "bestseller"
+      ]
+    },
+    {
+      "category": "Combos",
+      "name": "Party Box Chicken",
+      "price": 899,
+      "is_veg": false,
+      "spice_level": "mild",
+      "short_description": "Large Smoky BBQ Chicken, 8-piece garlic bread, 750 ml drink and a lava cake.",
+      "long_description": "A box for sharing with a group: one Large Smoky BBQ Chicken pizza with sweet smoky barbecue sauce and roasted chicken, an eight piece garlic bread, a 750 ml chilled soft drink, and a Choco Lava Cake to finish. It tastes smoky, cheesy and buttery, and ends sweet. The large pizza suits three or four people, with the sides adding to the table. A good pick for a family dinner or a small gathering with friends.",
+      "ingredients": [
+        "pizza dough",
+        "barbecue sauce",
+        "roasted chicken",
+        "mozzarella",
+        "bread",
+        "garlic butter",
+        "cola",
+        "chocolate cake"
+      ],
+      "allergens": [
+        "dairy",
+        "gluten",
+        "egg",
+        "soy"
+      ],
+      "tags": [
+        "chef-special"
+      ]
+    }
+  ]
+}
