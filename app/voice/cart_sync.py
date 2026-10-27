@@ -19,7 +19,14 @@ import httpx
 API_BASE_URL = os.environ.get("SARTHI_API_BASE_URL", "http://localhost:8000")
 
 
-async def sync_cart(session_id: str, persona: str, cart: list[dict], service_log: list[dict]) -> None:
+async def sync_cart(
+    session_id: str,
+    persona: str,
+    cart: list[dict],
+    service_log: list[dict],
+    restaurant: str | None = None,
+    table_no: str | None = None,
+) -> None:
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             await client.post(
@@ -27,6 +34,8 @@ async def sync_cart(session_id: str, persona: str, cart: list[dict], service_log
                 json={
                     "session_id": session_id,
                     "persona": persona,
+                    "restaurant": restaurant,
+                    "table_no": table_no,
                     "cart": cart,
                     "service_log": service_log,
                 },

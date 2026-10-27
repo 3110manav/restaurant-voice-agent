@@ -30,9 +30,10 @@ export function OrderPanel({
           ) : (
             <>
               {cart.map((line) => (
-                <div key={line.id} className="flex justify-between gap-2">
+                <div key={`${line.id}|${line.variant ?? ""}`} className="flex justify-between gap-2">
                   <span>
                     {line.quantity} x {line.name}
+                    {line.variant && <span className="text-muted-foreground"> ({line.variant})</span>}
                   </span>
                   <span className="text-muted-foreground">
                     {formatPrice(line.price * line.quantity)}

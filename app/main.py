@@ -38,6 +38,10 @@ POST /livekit/token -> {"session_id", "persona"} -> a room/token for the web
 Serves the frontend (app/static/) at "/".
 """
 import base64
+import contextlib
+import json
+import logging
+import threading
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, UploadFile
@@ -50,8 +54,12 @@ load_dotenv()
 from pathlib import Path  # noqa: E402
 
 from app import erp  # noqa: E402
-from app.agent.graph import RestaurantOrderingAgent  # noqa: E402
+from app.agent.graph import AgentBusyError, RestaurantOrderingAgent  # noqa: E402
 from app.agent.tools import add_item_to_cart, remove_item_from_cart_by_id  # noqa: E402
+from app.menu import repository  # noqa: E402
+from app.menu.credits import photo_credits  # noqa: E402
+from app.menu.snapshot import LiveMenu, menu_cache  # noqa: E402
+from app.owner_api import router as owner_router  # noqa: E402
 from app.rag.menu_store import GROCERY_PATH, MenuStore  # noqa: E402
 from app.voice import livekit_tokens  # noqa: E402
 from app.voice.stt import transcribe_bytes  # noqa: E402
@@ -59,8 +67,29 @@ from app.voice.tts import synthesize  # noqa: E402
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
-app = FastAPI(title="Voice Ordering Agent")
+logger = logging.getLogger("sarthi.api")
+
+
+def _warm_menus() -> None:
+    """Load every restaurant's menu into the cache so the first guest after a cold start does not
+    wait for it (and the database connection is already open)."""
+    try:
+        for slug in repository.list_restaurant_slugs():
+            menu_cache.get(slug)
+        logger.info("menus warmed")
+    except Exception:
+        logger.warning("menu warm-up failed; menus load on first request instead", exc_info=True)
+
+
+@contextlib.asynccontextmanager
+async def lifespan(_app: FastAPI):
+    threading.Thread(target=_warm_menus, daemon=True).start()  # never delays the server becoming ready
+    yield
+
+
+app = FastAPI(title="Voice Ordering Agent", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.include_router(owner_router)
 
 # Two catalogs: the food menu (online/waiter/hotel room-service) and a
 # separate grocery catalog for quick_commerce (shampoo, batteries, snacks,
@@ -70,14 +99,33 @@ grocery_store = MenuStore(data_path=GROCERY_PATH, collection_name="grocery_catal
 sessions: dict[str, RestaurantOrderingAgent] = {}
 
 
-def get_menu_store(persona: str) -> MenuStore:
+def get_menu_store(persona: str, restaurant: str | None = None):
+    if restaurant:
+        return LiveMenu(restaurant)
     return grocery_store if persona == "quick_commerce" else food_menu_store
+
+
+def live_restaurant(slug: str) -> dict:
+    """A live restaurant's row from the menu cache, or a 404/503 the caller can raise as-is."""
+    try:
+        menu = menu_cache.get(slug)
+    except RuntimeError as exc:  # Supabase not configured
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:  # e.g. the multi-restaurant migration hasn't been applied yet
+        logging.getLogger("sarthi.api").exception("couldn't load restaurant %r", slug)
+        raise HTTPException(status_code=503, detail="Restaurant data is unavailable right now") from exc
+    if menu is None or menu.restaurant.get("status") != "live":
+        raise HTTPException(status_code=404, detail=f"No restaurant '{slug}'")
+    return menu.restaurant
 
 
 class ChatRequest(BaseModel):
     session_id: str
     message: str
     persona: str = "online"
+    restaurant: str | None = None  # a restaurant slug: talk to that restaurant's waiter
+    table_no: str | None = None
+    language: str = "en"  # the web app's English / हिन्दी toggle: "en" or "hi"
 
 
 class ChatResponse(BaseModel):
@@ -103,6 +151,8 @@ class CartMutationRequest(BaseModel):
     persona: str = "online"
     item_id: str
     quantity: int = 1
+    restaurant: str | None = None
+    variant: str | None = None  # size/portion, for dishes that have them
 
 
 class CartResponse(BaseModel):
@@ -118,6 +168,8 @@ class SessionStateResponse(BaseModel):
 class CartSyncRequest(BaseModel):
     session_id: str
     persona: str = "online"
+    restaurant: str | None = None
+    table_no: str | None = None
     cart: list[dict]
     service_log: list[dict] = []
 
@@ -135,6 +187,9 @@ class AdminRequestsResponse(BaseModel):
 class LiveKitTokenRequest(BaseModel):
     session_id: str
     persona: str = "online"
+    restaurant: str | None = None
+    table_no: str | None = None
+    language: str = "en"
 
 
 class LiveKitTokenResponse(BaseModel):
@@ -144,13 +199,51 @@ class LiveKitTokenResponse(BaseModel):
     room: str | None = None
 
 
-def get_or_create_session(session_id: str, persona: str) -> RestaurantOrderingAgent:
+def get_or_create_session(
+    session_id: str,
+    persona: str,
+    restaurant: str | None = None,
+    table_no: str | None = None,
+    language: str | None = None,
+) -> RestaurantOrderingAgent:
+    agent = _session(session_id, persona, restaurant, table_no)
+    if language is not None:
+        agent.set_language(language)  # the guest can flip the toggle at any message
+    return agent
+
+
+def _session(
+    session_id: str, persona: str, restaurant: str | None = None, table_no: str | None = None
+) -> RestaurantOrderingAgent:
+    if restaurant:
+        # Restaurant mode: always the waiter persona, one cart per (restaurant, guest session).
+        persona = "waiter"
+        key = f"{restaurant}:{session_id}:{persona}"
+        if key not in sessions:
+            row = live_restaurant(restaurant)
+            sessions[key] = RestaurantOrderingAgent(
+                session_id=key,
+                menu_store=LiveMenu(restaurant),
+                persona=persona,
+                restaurant=row,
+                table_no=table_no,
+            )
+        return sessions[key]
     key = f"{session_id}:{persona}"
     if key not in sessions:
         sessions[key] = RestaurantOrderingAgent(
             session_id=key, menu_store=get_menu_store(persona), persona=persona
         )
     return sessions[key]
+
+
+def send_or_busy(agent: RestaurantOrderingAgent, text: str) -> str:
+    try:
+        return agent.send(text)
+    except AgentBusyError as exc:
+        raise HTTPException(
+            status_code=429, detail="I'm handling a lot of requests right now — please try again in a few seconds."
+        ) from exc
 
 
 @app.get("/")
@@ -160,25 +253,33 @@ def index():
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest) -> ChatResponse:
-    agent = get_or_create_session(req.session_id, req.persona)
-    reply = agent.send(req.message)
+    agent = get_or_create_session(req.session_id, req.persona, req.restaurant, req.table_no, req.language)
+    reply = send_or_busy(agent, req.message)
     return ChatResponse(reply=reply, cart=agent.cart, service_log=agent.service_log)
 
 
 @app.post("/chat/voice", response_model=VoiceChatResponse)
-async def chat_voice(session_id: str, persona: str, audio: UploadFile) -> VoiceChatResponse:
-    agent = get_or_create_session(session_id, persona)
+async def chat_voice(
+    session_id: str,
+    persona: str,
+    audio: UploadFile,
+    restaurant: str | None = None,
+    table_no: str | None = None,
+    language: str = "en",
+) -> VoiceChatResponse:
+    agent = get_or_create_session(session_id, persona, restaurant, table_no, language)
+    persona = agent.persona
 
     audio_bytes = await audio.read()
-    transcript = transcribe_bytes(audio_bytes, filename=audio.filename or "audio.webm")
+    transcript = transcribe_bytes(audio_bytes, filename=audio.filename or "audio.webm", language=agent.language)
 
     if not transcript:
         return VoiceChatResponse(transcript="", reply="", cart=agent.cart, service_log=agent.service_log)
 
-    reply = agent.send(transcript)
+    reply = send_or_busy(agent, transcript)
 
     try:
-        reply_audio_b64 = base64.b64encode(synthesize(reply, persona)).decode("ascii")
+        reply_audio_b64 = base64.b64encode(synthesize(reply, persona, agent.language)).decode("ascii")
     except Exception:
         reply_audio_b64 = None  # TTS unavailable/blocked — client falls back to text only
 
@@ -192,36 +293,53 @@ async def chat_voice(session_id: str, persona: str, audio: UploadFile) -> VoiceC
 
 
 @app.get("/menu", response_model=MenuResponse)
-def get_menu(persona: str = "online") -> MenuResponse:
-    return MenuResponse(items=get_menu_store(persona).menu)
+def get_menu(persona: str = "online", restaurant: str | None = None) -> MenuResponse:
+    if restaurant:
+        live_restaurant(restaurant)
+    return MenuResponse(items=get_menu_store(persona, restaurant).menu)
+
+
+@app.get("/restaurants/{slug}")
+def restaurant_info(slug: str) -> dict:
+    """Public details for a restaurant's ordering page (never exposes owner data)."""
+    r = live_restaurant(slug)
+    return {k: r.get(k) for k in ("slug", "name", "cuisine", "tagline", "agent_name", "currency", "accent_color", "logo_url")}
+
+
+@app.get("/restaurants/{slug}/photo-credits")
+def restaurant_photo_credits(slug: str) -> dict:
+    """The credit lines for the dish photos now showing (openly licensed photos must be credited)."""
+    live_restaurant(slug)
+    menu = menu_cache.get(slug)
+    return {"credits": photo_credits(slug, menu.menu if menu else [])}
 
 
 @app.post("/cart/add", response_model=CartResponse)
 def cart_add(req: CartMutationRequest) -> CartResponse:
-    agent = get_or_create_session(req.session_id, req.persona)
-    item = get_menu_store(req.persona).get(req.item_id)
+    agent = get_or_create_session(req.session_id, req.persona, req.restaurant)
+    item = get_menu_store(req.persona, req.restaurant).get(req.item_id)
     if not item:
         raise HTTPException(status_code=404, detail=f"No menu item with id '{req.item_id}'")
-    message = add_item_to_cart(agent.cart, item, req.quantity)
+    message = add_item_to_cart(agent.cart, item, req.quantity, req.variant)
     return CartResponse(cart=agent.cart, message=message)
 
 
 @app.post("/cart/remove", response_model=CartResponse)
 def cart_remove(req: CartMutationRequest) -> CartResponse:
-    agent = get_or_create_session(req.session_id, req.persona)
-    message = remove_item_from_cart_by_id(agent.cart, req.item_id, req.quantity)
+    agent = get_or_create_session(req.session_id, req.persona, req.restaurant)
+    message = remove_item_from_cart_by_id(agent.cart, req.item_id, req.quantity, req.variant)
     return CartResponse(cart=agent.cart, message=message)
 
 
 @app.get("/cart", response_model=SessionStateResponse)
-def get_cart(session_id: str, persona: str = "online") -> SessionStateResponse:
-    agent = get_or_create_session(session_id, persona)
+def get_cart(session_id: str, persona: str = "online", restaurant: str | None = None) -> SessionStateResponse:
+    agent = get_or_create_session(session_id, persona, restaurant)
     return SessionStateResponse(cart=agent.cart, service_log=agent.service_log)
 
 
 @app.post("/cart/sync", response_model=SessionStateResponse)
 def cart_sync(req: CartSyncRequest) -> SessionStateResponse:
-    agent = get_or_create_session(req.session_id, req.persona)
+    agent = get_or_create_session(req.session_id, req.persona, req.restaurant, req.table_no)
     agent.cart[:] = req.cart
     agent.service_log[:] = req.service_log
     return SessionStateResponse(cart=agent.cart, service_log=agent.service_log)
@@ -250,8 +368,14 @@ async def livekit_token(req: LiveKitTokenRequest) -> LiveKitTokenResponse:
     if not livekit_tokens.is_configured():
         return LiveKitTokenResponse(configured=False)
 
-    room = livekit_tokens.room_name_for(req.persona, req.session_id)
-    await livekit_tokens.ensure_dispatch(room)
+    persona = "waiter" if req.restaurant else req.persona
+    meta = {"language": req.language}
+    if req.restaurant:
+        live_restaurant(req.restaurant)  # 404 for unknown/hidden restaurants before we spend a LiveKit call
+        meta.update(restaurant=req.restaurant, table_no=req.table_no)
+    metadata = json.dumps(meta)
+    room = livekit_tokens.room_name_for(persona, req.session_id)
+    await livekit_tokens.ensure_dispatch(room, metadata)
     identity = f"customer-{req.session_id[:8]}"
     token = livekit_tokens.mint_token(identity, room)
     return LiveKitTokenResponse(configured=True, url=livekit_tokens.LIVEKIT_URL, token=token, room=room)

@@ -83,6 +83,14 @@ adding a third catalog later is a one-line call, not a new class.
 ### Key files
 
 **Backend (`app/`)**
+- `app/menu/` — multi-restaurant menus: `repository.py` (all Supabase reads/writes),
+  `snapshot.py` (in-memory menus, name matching ladder, version-checked cache, `LiveMenu`),
+  `embedding.py` (Gemini embeddings, rate-limit budget, query cache), `service.py` (validated
+  writes that re-embed only what changed).
+- `app/owner_api.py` — the owner portal's API (`/owner/*`), login-verified and per-restaurant authorised.
+- `app/seed_restaurants.py` — seeds the three demo restaurants (`--check` validates offline);
+  data in `app/data/restaurants/`.
+- `app/db.py` — the one shared Supabase client.
 - `app/agent/graph.py` — the LangGraph tool-calling loop and all four
   system prompts, parameterized by `persona`. One `RestaurantOrderingAgent`
   class; the persona only changes the prompt, the catalog, and which extra
@@ -251,8 +259,16 @@ POST /livekit/token -> {"session_id", "persona"} -> {"configured", "url",
                      "token", "room"} for the web app's realtime call button
                      (see "Realtime voice (LiveKit)"). configured=false with
                      no token when LiveKit isn't set up.
+GET  /restaurants/{slug}  -> a restaurant's public details (name, waiter, accent colour)
 GET  /health
 ```
+
+Every persona endpoint above also accepts `restaurant` (a slug) and `table_no`, which scope the
+conversation to that restaurant's menu and waiter; `/cart/add` and `/cart/remove` take a `variant`
+(size) for dishes that have them. The owner API lives under `/owner/*` (Bearer token required):
+`GET/POST /owner/restaurants`, `PATCH /owner/restaurants/{id}`, `GET /owner/restaurants/{id}/menu`,
+`POST/PATCH/DELETE /owner/restaurants/{id}/dishes[/{dish_id}]`, `POST .../embeddings/sync`,
+`GET .../orders`, `GET .../requests`, `POST .../requests/{request_id}/resolve`.
 
 `/cart/add` and `/cart/remove` deliberately bypass the LLM — tapping "Add"
 on a product card is a deterministic action with nothing to interpret, so
@@ -264,6 +280,151 @@ customer asks by voice or text instead of clicking.
 curl -X POST localhost:8000/chat -H 'content-type: application/json' \
   -d '{"session_id": "demo", "persona": "waiter", "message": "bring me some napkins"}'
 ```
+
+## Restaurants (multi-restaurant mode)
+
+Beyond the four demo personas, Sarthi serves **real restaurants**: each has its own
+menu, its own waiter (Kabir by default, renameable), its own owner login, and its
+own link — `/r/<slug>?table=5`, the URL a table's QR code opens. Three demos are
+seeded: **The Saffron Table** (fine-dine, 105 dishes), **Sarson Da Khet** (a Punjabi
+dhaba with Half/Full portions) and **Slice Station** (a pizza chain; every pizza in
+Regular/Medium/Large). Owners can also create a new restaurant live, from a sample menu.
+
+**Setup (once):**
+1. Supabase → SQL Editor → run `supabase/migrations/001_multi_restaurant.sql`
+   (tenancy, menus, sizes, vector search, row-level security). Run `supabase/schema.sql` first on a fresh project.
+2. Supabase → Authentication → Providers → Email: turn off "Confirm email" for demos
+   (otherwise new owners must click an emailed link before logging in).
+3. Put the project URL and the **publishable** key in `web/.env.local` as
+   `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (and on Vercel).
+4. Seed the demos, and make yourself their owner (sign up at `/owner` first):
+
+```bash
+python -m app.seed_restaurants --check                    # validate the data files, no database
+python -m app.seed_restaurants --owner you@example.com    # idempotent; a clean re-run embeds nothing
+```
+
+**How it works:**
+- **Menus live in Postgres**, not JSON files: `restaurants`, `restaurant_members`,
+  `menu_categories`, `dishes`, `dish_variants` (sizes), `dish_embeddings`. Every row
+  carries a `restaurant_id`; orders and table requests are tagged with it and the table number.
+- **Two layers of dish knowledge.** `short_description` is the menu card. `long_description`
+  — the "story": taste, texture, how it's eaten — is only fetched by the agent's
+  `explain_dish` tool when a guest asks "what is this?". The agent is told to answer from it
+  alone and say "I'll check with the kitchen" otherwise, so it never invents a dish.
+- **Edits are cheap.** Saving a dish re-embeds *only that dish*, and only if its semantic text
+  changed. Price, availability, images and POS ids are deliberately excluded from the embedded
+  text, so a price change costs zero embedding calls. A bulk import is one embedding pass.
+  (`app/menu/embedding.py`, `app/menu/service.py`; proven in `tests/test_menu_service.py`.)
+- **Search is a ladder, cheapest first** (`app/menu/snapshot.py`): exact name → name inside the
+  sentence → unique substring → fuzzy match (Whisper hears "butter chiken") → only then semantic
+  vector search. Ambiguous names return candidates so the waiter asks "Margherita Classic or
+  Double Cheese?" instead of guessing. Each restaurant's menu is cached in memory and re-checked
+  against a `menu_version` counter, so an owner's edit reaches guests within seconds.
+- **Query embeddings are cached** (shared across restaurants), and every embedding call draws on
+  one rate-limit budget (Gemini free tier: 100/min) so uploads, edits and searches can't collide.
+- **Owner portal** (`/owner`): Supabase Auth login → create restaurants → edit menu (dish form
+  with sizes and story, availability toggle) → live orders and table requests → settings, brand
+  colour and table QR codes. The browser holds only the publishable key; every portal call goes
+  through `/owner/*` on the backend, which verifies the login token with Supabase and checks the
+  user belongs to that restaurant (`app/owner_api.py`).
+- **Voice**: the restaurant and table reach the LiveKit worker as dispatch metadata, so a call
+  greets guests by restaurant and orders land in the right place.
+
+**Not built yet:** Excel and menu-photo import, AI-drafted dish stories, and POS integration
+(Petpooja, Restroworks) — see the roadmap.
+
+### Dish photos
+
+A dish with an `image_url` shows its photo on the menu card. A dish without one shows a food tile: a
+fitting emoji (picked from the dish name, e.g. 🍕 for pizza, 🍛 for curry) on a gradient in the
+restaurant's colour, so a menu is never a wall of blank boxes. Owners' own photos will replace tiles
+as they are added.
+
+For stock photos, `python -m app.menu_images` finds one per dish, crops it to 800x600, hosts it in the
+public Supabase Storage bucket `dish-images` (created automatically) and links it from the dish. Photos
+never change a dish's embedding. Re-running skips dishes that already have one.
+
+```bash
+python -m app.menu_images --dry-run                  # preview the matches
+python -m app.menu_images --only slice-station      # one restaurant
+python -m app.menu_images --provider pexels         # free key in PEXELS_API_KEY (pexels.com/api); best photos
+```
+
+The default source without a key is Openverse (openly licensed photos, credited under "Photo credits" on the
+restaurant page, recorded in `app/data/images/credits.json`). A photo is only used when its description
+names every word of the dish and the dish type its menu section implies (Pizzas -> "pizza"). That keeps
+wrong photos out, but stock libraries have nothing for invented names ("Chilli Jalapeno Fire"): on the
+demo menus it matched about 13% of the pizza chain, so it suits classic dishes, not branded ones. For
+full coverage use owners' own photos, or generate images from each dish's description.
+
+## How Kabir behaves: guardrails and cross-selling
+
+The behaviour below is plain code around the model (`app/agent/guardrails.py`,
+`app/agent/salesflow.py`), so it costs no extra LLM call on the normal path.
+
+**Input guard.** Before the model sees a message it is cleaned (control characters,
+600-character cap) and checked for prompt-injection phrases ("ignore all previous
+instructions", "reveal your prompt", "you are now..."). A blocked message gets a short
+fixed reply and never reaches the model or the conversation history.
+
+**Output guard.** The reply is checked against what actually happened this turn:
+- it can't say an order was placed, an item added or removed, the cart holds something,
+  or the bill/water is coming unless the matching tool ran and succeeded;
+- every rupee amount it says (digits or spoken words) must come from a tool result or the cart;
+- it must not recite the menu's sections or cuisines when the guest didn't ask what is on offer;
+- no markup, tool syntax or leaked instructions; at most ~420 characters.
+
+A failing reply is regenerated once with a short correction (the bad draft never enters
+the history); if that also fails the guest gets a safe, true fallback line. Limits: claim
+patterns are English plus a few Hindi phrases, and an invented dish *name* can't be caught by pattern.
+Tools add their own limits: at most 20 of one item per line.
+
+**Language.** English / हिन्दी is an explicit toggle in the chat panel (and before a call starts), not
+a guess. The choice is sent with every message and call and drives everything at once: the agent gets a
+`LANGUAGE:` line at the end of every model call (never stored in the history), Whisper is told which
+language to expect, a reply in the wrong script is regenerated (English must contain no Devanagari; Hindi
+must be mostly Devanagari, with prices as digits plus रुपये), and the voice follows the setting (Orpheus
+for English, Sarvam for Hindi) instead of the script. A call's language is fixed when it starts. See
+`app/agent/language.py`.
+
+**Conversation.** Kabir does not open with the cuisines or sections. A vague "I'm hungry"
+gets one easy question (veg or non-veg, spicy or mild); a hint gets two suggestions.
+
+**Cross-selling** is decided in code, once per table session: the guest's first real order
+gets a drink (cooling ones first for spicy food) and a side (bread, raita, garlic bread);
+checkout is held once to offer a dessert, and the order is placed on the next call. Veg
+tables are only offered veg items, and unavailable dishes are never suggested. Sections are
+classified by name (Beverages/Drinks, Desserts/Sweets, Breads/Sides/Rice), so a new
+restaurant needs no setup. The suggestion reaches the model as a hint on the tool result.
+
+**No unprompted prices.** Kabir doesn't mention a price or total until the guest asks (how much, the price,
+the cost) or asks for the bill, and then he says the total. This is enforced three ways: in the prompt; by
+hiding prices from the model's tool results on turns where none were asked for; and by the output guard,
+which rejects any reply that speaks a rupee amount nobody asked for (regenerate once, then drop the
+sentences that quoted money). Confirmations and suggestions never include prices, and placing the order
+doesn't announce the total either. Only `request_bill` reads it out.
+
+**Fast path.** When every action in a turn was simple and succeeded (add, remove, place the order, bring an
+item, flag a problem, call staff, the bill), the tools record what happened as events and
+`app/agent/replies.py` writes the reply in code, in English or Hindi, instead of a second model call
+(about 0.7s and a lot of tokens saved, and no chance of restating it wrongly). It only applies when the
+actions covered everything the guest asked for; a size question, an ambiguous name, an unavailable dish
+or a question still goes to the model.
+
+**Instant acknowledgement (calls).** The moment the guest stops talking Kabir says a short "Sure." or
+"Let me check." (fixed phrases, audio cached and pre-generated, never for small talk) while the real
+answer is worked out. The call's speech adapter splits sentences with no minimum length
+(`app/voice/livekit_worker.py`), so each sentence of a longer reply also starts playing as soon as it
+is ready.
+
+**Staying warm.** The backend loads every restaurant's menu at startup, the web app pings `/api/health`
+as soon as the landing page opens, and a menu that is slow to load says why. The free Render tier still
+sleeps after about 15 minutes idle, so for demos add a free monitor (UptimeRobot or cron-job.org) that
+requests `https://<your-backend>/health` every 5 minutes.
+
+**One call per order.** `add_to_cart` takes every item the guest named in a single call and
+returns the cart and total, so a three-item order takes two LLM calls, not four.
 
 ## Supabase (optional)
 
@@ -403,6 +564,7 @@ Backend (FastAPI) on [Render](https://render.com), frontend (Next.js) on
 | Variable | Vercel (frontend) | Render API (`uvicorn app.main:app`) | LiveKit worker |
 |---|:-:|:-:|:-:|
 | `BACKEND_URL` — the Render API's URL, no trailing slash | ✅ | | |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (public by design — the *publishable* key, never the secret one) | ✅ | | |
 | `GROQ_API_KEY` | | ✅ | ✅ |
 | `GOOGLE_API_KEY` (Gemini embeddings, used for every menu search) | | ✅ | ✅ |
 | `SARVAM_API_KEY` (Hindi TTS) | | ✅ | ✅ |
@@ -431,10 +593,10 @@ Auth, or at least a password gate) before deploying it somewhere public.
 pytest
 ```
 
-Only the cart/service/hotel tools are unit tested (no API key needed) —
-14 tests, pure logic, no network calls. The agent loop, RAG retrieval, and
-voice pipeline are exercised manually via the CLIs and web app, since
-those need live API calls.
+The unit tests need no API key or network: the cart/service/hotel tools, menu search and
+editing, the owner API, the guardrails and cross-sell rules, and the guarded agent loop
+(driven by a scripted stand-in for the LLM). Live model behaviour, RAG retrieval and the
+voice pipeline are exercised manually via the CLIs and web app.
 
 ## Roadmap
 
@@ -466,7 +628,16 @@ those need live API calls.
 11. **A shared cart/session store** (Supabase or similar) so a realtime
     voice session and a text/push-to-talk session for the same customer
     see the same cart, instead of each process keeping its own.
-12. **Admin auth, misheard-order recovery, a demo video.**
+12. ✅ **Multi-restaurant foundation (Phase 1)** — menus and embeddings in Supabase, owner login
+    and menu editor, per-restaurant waiter and customer page, sizes, dish stories, cheap per-dish
+    re-embedding. Three seeded demo restaurants. *Needs the migration applied and a live check —
+    see "Restaurants".*
+13. **Phase 2 — menu onboarding:** Excel template upload, menu photo/PDF extraction with a review
+    step, AI-drafted dish stories for the owner to approve.
+14. **Phase 3 — waiter upgrades:** richer "explain this dish" behaviour, per-restaurant branding.
+15. **Phase 4 — POS integration:** an adapter layer (fetch menu, push order, status callbacks)
+    with a mock POS, then Petpooja and Restroworks once partner credentials are available.
+16. **Misheard-order recovery, a demo video.**
 
 ## Swapping components
 

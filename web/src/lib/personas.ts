@@ -72,3 +72,24 @@ export const PERSONAS: Persona[] = [
 export function getPersonaBySlug(slug: string): Persona | undefined {
   return PERSONAS.find((p) => p.slug === slug);
 }
+
+/** A restaurant's waiter as a Persona, so the existing chat/ordering UI works unchanged. */
+export function personaForRestaurant(info: {
+  slug: string;
+  name: string;
+  cuisine: string | null;
+  tagline: string | null;
+  agent_name: string;
+}): Persona {
+  return {
+    slug: info.slug,
+    key: "waiter",
+    agentName: info.agent_name,
+    vertical: info.cuisine ?? "Restaurant",
+    tagline: info.tagline ?? `Welcome to ${info.name} — order here, or just ask ${info.agent_name}.`,
+    placeholder: "What's good here? Add two paneer tikka...",
+    hasServiceLog: true,
+    serviceLogLabel: "Table requests",
+    layout: "grid",
+  };
+}

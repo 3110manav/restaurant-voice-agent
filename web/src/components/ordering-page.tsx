@@ -13,16 +13,26 @@ import type { Persona } from "@/lib/personas";
  * for. Both act on the same cart, held here so the grid's quantity steppers
  * and the chat's own replies always agree.
  */
-export function OrderingPage({ persona }: { persona: Persona }) {
-  const session = useChatSession(persona);
+export function OrderingPage({
+  persona,
+  restaurant,
+  tableNo,
+}: {
+  persona: Persona;
+  /** A restaurant slug: everything (menu, cart, chat, calls) is then scoped to that restaurant. */
+  restaurant?: string;
+  tableNo?: string | null;
+}) {
+  const session = useChatSession(persona, { restaurant, tableNo });
 
   return (
     <div className="flex flex-1 flex-col lg:flex-row">
       <ProductGrid
         persona={persona}
+        restaurant={restaurant}
         cart={session.cart}
-        onAdd={(itemId) => session.addItemDirect(itemId)}
-        onRemove={(itemId) => session.removeItemDirect(itemId)}
+        onAdd={(itemId, variant) => session.addItemDirect(itemId, 1, variant)}
+        onRemove={(itemId, variant) => session.removeItemDirect(itemId, 1, variant)}
       />
       <div className="border-t p-4 lg:w-[280px] lg:border-t-0 lg:border-l">
         <OrderPanel

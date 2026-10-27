@@ -1,0 +1,983 @@
+{
+  "Samosa Chaat": {
+    "long_description": "This is a street-style favourite where crispy samosas are crushed and topped with chickpeas, cool yogurt, sweet tangy tamarind chutney, fresh mint chutney and crunchy sev. Every bite is a mix of crunch, softness, creaminess and tang, with a gentle medium heat. It is served cold and warm at the same time, and you eat it with a spoon, straight away, before the samosa softens. It makes a lively starter to share and suits guests who enjoy bold, tangy, snacky flavours.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": [
+      "street-food",
+      "bestseller"
+    ]
+  },
+  "Chicken 65": {
+    "long_description": "Chicken 65 is bite-sized chicken, deep fried until crisp and tossed with curry leaves, garlic and red chilies. It is properly hot, with a savoury garlicky kick and a fragrant curry leaf aroma, and the outside stays crunchy while the inside is juicy. The yogurt marinade adds a little tang. It is eaten hot as a starter or with drinks, and it suits guests who like spicy fried food. If you prefer less heat, pair it with a cooling lassi.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "gluten-free",
+      "street-food"
+    ]
+  },
+  "Paneer Tikka": {
+    "long_description": "Paneer Tikka is chunks of soft cottage cheese marinated in spiced yogurt and char-grilled in the tandoor with bell pepper and onion. It has a smoky, lightly charred edge, a creamy mild inside, and a medium, warm spice from the tandoori masala. It arrives hot and is usually eaten with mint chutney and a squeeze of lemon. It is a lovely vegetarian starter for sharing, and a safe pick for guests who want flavour without too much heat.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "bestseller",
+      "gluten-free"
+    ]
+  },
+  "Butter Chicken": {
+    "long_description": "Butter Chicken is tandoor-roasted chicken simmered in a silky tomato and butter gravy finished with cream and a touch of fenugreek. It is rich, smooth and gently sweet-tangy, with warm garam masala and only mild heat. The chicken is tender and smoky from the tandoor. Most guests eat it with garlic naan or jeera rice to mop up the gravy. It is a comforting, crowd-pleasing main that works well for families, children and anyone who prefers milder, creamy curries.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "bestseller",
+      "gluten-free",
+      "comfort-food"
+    ]
+  },
+  "Paneer Tikka Masala": {
+    "long_description": "This is grilled paneer cubes in a spiced onion and tomato masala gravy with cream and garam masala. The gravy is rich and rounded with a medium heat and a slightly smoky note from the grilled paneer, which stays soft and mildly milky. It is served hot and goes beautifully with naan or tandoori roti, or alongside steamed rice. It is a satisfying vegetarian main for guests who like creamy, well-spiced curries without it being too fiery.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "gluten-free"
+    ]
+  },
+  "Lamb Rogan Josh": {
+    "long_description": "Lamb Rogan Josh is lamb cooked slowly in a deep red curry of Kashmiri chili, yogurt, onion, ginger and garlic until the meat is tender and falls apart. The gravy is aromatic and robust with a real, hot kick, balanced by the gentle tang of yogurt. It is served hot and is best with basmati rice, jeera rice or naan. It is a hearty main for guests who enjoy rich, spicy, meaty curries, and you can ask for a cooling lassi on the side.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "chef-special",
+      "gluten-free"
+    ]
+  },
+  "Dal Makhani": {
+    "long_description": "Dal Makhani is black lentils and kidney beans simmered slowly overnight with butter, cream and tomato until thick, velvety and deeply savoury. It is mild, rich and creamy with an earthy flavour and very little heat. It is served hot, and guests love it with butter naan, tandoori roti or jeera rice. It is a comforting vegetarian main that suits almost everyone, including children and those who like gentle flavours, and it also pairs well with grilled starters.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "bestseller",
+      "gluten-free",
+      "comfort-food"
+    ]
+  },
+  "Chana Masala": {
+    "long_description": "Chana Masala is chickpeas simmered in a tangy onion and tomato masala with cumin and coriander. It is hearty and earthy with a bright sour edge and a medium level of spice, and the chickpeas are soft but still hold their shape. It is served hot and is usually eaten with naan, roti or rice. It is a good plant-based main for guests who like robust, tangy flavours, and it is a nice lighter contrast to the creamier curries on the menu.",
+    "allergens": [],
+    "tags": [
+      "vegan",
+      "gluten-free"
+    ]
+  },
+  "Garlic Naan": {
+    "long_description": "Garlic Naan is a soft, leavened flatbread baked in the tandoor and topped with chopped garlic and butter. It is pillowy inside with a few blistered, slightly crisp spots outside, fragrant and savoury but not spicy. It comes warm to the table and is meant to be torn by hand and used to scoop up curries and dals. It goes especially well with butter chicken, dal makhani and paneer dishes, and it is popular with children and adults alike.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": [
+      "kids-favourite"
+    ]
+  },
+  "Tandoori Roti": {
+    "long_description": "Tandoori Roti is a whole wheat flatbread baked in the tandoor, so it has a slightly smoky flavour and a lightly crisp, chewy texture. It is plain, simple and not spicy, which makes it a good partner for rich or spicy gravies. It is served warm and torn by hand to scoop up dals, vegetables and curries. It is a good choice for guests who want something lighter than naan, with a nutty whole wheat taste.",
+    "allergens": [
+      "gluten"
+    ],
+    "tags": [
+      "vegan"
+    ]
+  },
+  "Jeera Rice": {
+    "long_description": "Jeera Rice is fluffy basmati rice tempered with toasted cumin seeds and ghee. It is fragrant, light and mildly nutty, with a gentle warm cumin aroma and no heat at all. Each grain stays separate, and it is served hot. It is the ideal partner for curries and dals such as butter chicken, dal makhani or rogan josh, and its simple flavour soaks up gravy well. It suits everyone, including guests who prefer mild food.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "gluten-free"
+    ]
+  },
+  "Chicken Biryani": {
+    "long_description": "Chicken Biryani is layered basmati rice and spiced chicken slow-cooked together with saffron, yogurt and fried onion. It is fragrant and aromatic, with warm spices, a medium heat, a little sweetness from the onions and tender chicken in every layer. It is served hot and is usually eaten with a cooling raita or a side curry. It is a filling main for guests who love flavourful, aromatic rice dishes, and one plate is plenty for one person.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "bestseller",
+      "gluten-free"
+    ]
+  },
+  "Gulab Jamun": {
+    "long_description": "Gulab Jamun is soft, warm dumplings made from milk solids, soaked in a sugar syrup scented with rose water and cardamom. It is very sweet, rich and syrupy, with a melt-in-the-mouth, spongy texture and a floral, perfumed aroma. It is served warm and eaten with a spoon, and the syrup is part of the pleasure. It suits anyone with a sweet tooth, children included, and makes a classic ending to an Indian meal.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "sweet",
+      "jain-friendly",
+      "kids-favourite"
+    ]
+  },
+  "Mango Lassi": {
+    "long_description": "Mango Lassi is a chilled, thick yogurt drink blended with sweet mango pulp. It is smooth, creamy and sweet with a gentle tang from the yogurt, and no spice at all. It is served cold in a tall glass and sipped slowly. It is refreshing on its own and works well alongside spicy dishes, since the cool yogurt calms the heat. It is a favourite with children and with anyone who enjoys fruity, creamy drinks.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "bestseller",
+      "sweet",
+      "seasonal",
+      "kids-favourite"
+    ]
+  },
+  "Masala Chai": {
+    "long_description": "Masala Chai is black tea simmered with milk and whole spices such as cardamom, ginger and cinnamon. It is hot, milky and comforting, with a warming spice aroma, a little ginger bite and a smooth finish. Sweetness can usually be adjusted, so ask if you want it lighter. It is lovely at the end of a meal or with fried starters, and suits guests who enjoy a strong, fragrant cup of tea.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "comfort-food"
+    ]
+  },
+  "Masala Dosa": {
+    "long_description": "Masala Dosa is a large, thin and crispy crepe made from fermented rice and lentil batter, folded around a mild spiced potato filling flavoured with mustard seeds and curry leaves. It is golden and crunchy outside, soft and savoury inside, with only mild heat. It is traditionally eaten with your hands, tearing off pieces and dipping them in coconut chutney and sambar. It is a satisfying vegetarian dish for breakfast or any meal, and most guests enjoy it.",
+    "allergens": [],
+    "tags": [
+      "bestseller",
+      "vegan",
+      "gluten-free"
+    ]
+  },
+  "Plain Dosa": {
+    "long_description": "Plain Dosa is a thin, crispy crepe made from fermented rice and lentil batter, cooked on a hot griddle until golden. It is light with a slightly tangy, fermented flavour and a crisp, lacy texture, and it is not spicy. It is served hot and is eaten by tearing off pieces and dipping them in chutney and sambar. It is a simple, gentle choice for children, first-timers and anyone who likes a lighter South Indian dish.",
+    "allergens": [],
+    "tags": [
+      "vegan",
+      "gluten-free",
+      "jain-friendly"
+    ]
+  },
+  "Rava Dosa": {
+    "long_description": "Rava Dosa is a lacy, very crisp crepe made from semolina and rice flour, with onions, green chilies and cumin cooked into it. It is crunchier and more open in texture than a regular dosa, with a savoury, peppery flavour and mild heat. It is served hot and is best eaten quickly with coconut chutney and sambar. It is a good choice for guests who enjoy crisp textures and a little green chili warmth.",
+    "allergens": [
+      "gluten"
+    ],
+    "tags": [
+      "vegan"
+    ]
+  },
+  "Mysore Masala Dosa": {
+    "long_description": "Mysore Masala Dosa is a crisp dosa spread inside with a fiery red chutney of garlic and red chili, then filled with soft spiced potato. It is noticeably hot and garlicky, balanced by the mellow potato and the crunch of the golden crepe. It is served hot with coconut chutney and sambar, which help cool the heat. It is a great pick for guests who enjoy bold, spicy South Indian flavours and want more kick than a regular masala dosa.",
+    "allergens": [],
+    "tags": [
+      "chef-special",
+      "vegan",
+      "gluten-free"
+    ]
+  },
+  "Onion Uttapam": {
+    "long_description": "Onion Uttapam is a thick, soft pancake made from fermented rice and lentil batter, topped with chopped onion and green chili cooked right into the surface. It is fluffy in the middle with a lightly crisp, golden base, mild in heat and pleasantly tangy and savoury. It is served hot and is eaten with coconut chutney and sambar. It is a hearty, comforting choice for guests who prefer a softer texture to a crispy dosa.",
+    "allergens": [],
+    "tags": [
+      "vegan",
+      "gluten-free",
+      "comfort-food"
+    ]
+  },
+  "Podi Idli": {
+    "long_description": "Podi Idli is soft steamed rice and lentil cakes tossed in a spiced lentil podi powder and ghee. The idlis are fluffy and light, while the podi gives a nutty, savoury and medium-hot coating, and the ghee adds richness. It is served warm and often eaten with a spoon or by hand, with chutney on the side. It is a good pick for guests who like their South Indian food a little spicy and a little rich.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "street-food",
+      "gluten-free"
+    ]
+  },
+  "Sambar Vada": {
+    "long_description": "Sambar Vada is crisp fried lentil doughnuts soaked in hot, tangy sambar made with lentils, curry leaves and mustard seeds. The vada is crunchy on the outside and soaks up the sambar to become soft and juicy inside, with a sour, savoury flavour and medium heat. It is served hot and eaten with a spoon. It is a satisfying vegetarian snack for guests who enjoy tangy, spiced, brothy dishes.",
+    "allergens": [],
+    "tags": [
+      "vegan",
+      "gluten-free",
+      "comfort-food"
+    ]
+  },
+  "Rasam": {
+    "long_description": "Rasam is a thin, tangy South Indian soup made from tamarind and tomato, seasoned with black pepper, cumin and curry leaves. It is sour, peppery and warming, with a medium heat and a very fragrant aroma. It is served hot, either sipped from a bowl as a starter or poured over rice. It is light and appetising, and suits guests who like sharp, spicy, broth-style flavours or want something comforting.",
+    "allergens": [],
+    "tags": [
+      "vegan",
+      "gluten-free",
+      "comfort-food"
+    ]
+  },
+  "Curd Rice": {
+    "long_description": "Curd Rice is soft rice mixed with creamy yogurt and tempered with mustard seeds and curry leaves. It is cool, mild, tangy and soothing, with a creamy texture and a gentle crackle of mustard in the background. It is served chilled or at room temperature, and is often eaten at the end of a meal or alongside spicy dishes to calm the heat. It is a good choice for children and anyone who prefers gentle flavours.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "gluten-free",
+      "comfort-food",
+      "jain-friendly"
+    ]
+  },
+  "Coconut Chutney Idli": {
+    "long_description": "This is soft, fluffy steamed rice and lentil cakes served with fresh coconut chutney that has a hint of green chili. The idlis are light and mild, and the chutney is cool, creamy and fresh with just a touch of heat. It is served warm and eaten by hand, dipping each piece into the chutney. It is a gentle, easy choice for children, first-time guests, and anyone looking for something light.",
+    "allergens": [],
+    "tags": [
+      "vegan",
+      "gluten-free",
+      "jain-friendly",
+      "kids-favourite"
+    ]
+  },
+  "Ghee Roast Dosa": {
+    "long_description": "Ghee Roast Dosa is a dosa roasted in plenty of ghee until it turns deep golden, thin and very crisp. It has a rich, buttery aroma, a nutty flavour and a satisfying shattering crunch, with only mild heat. It is served hot, usually rolled into a long cone, with coconut chutney and sambar. It is a lovely indulgent choice for guests who enjoy crisp textures and the taste of ghee.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "gluten-free"
+    ]
+  },
+  "Pesarattu": {
+    "long_description": "Pesarattu is a savoury crepe made from moong dal, flavoured with ginger, green chili and cumin. It is slightly thicker than a plain dosa, with a green tint, an earthy taste and a mild warmth from the ginger and chili. It is served hot and eaten with chutney. It is a good vegetarian choice for guests who like hearty, lentil-based flavours and want something a bit different from a regular dosa.",
+    "allergens": [],
+    "tags": [
+      "vegan",
+      "gluten-free"
+    ]
+  },
+  "Set Dosa": {
+    "long_description": "Set Dosa is a set of three small, soft and spongy dosas made from fermented rice and lentil batter. They are fluffy and slightly tangy, not crisp like a regular dosa, and have no heat. They are served warm and are eaten by hand, soaked in sambar and dipped in chutney. This is a gentle, comforting choice for children and for anyone who prefers soft textures to crunchy ones.",
+    "allergens": [],
+    "tags": [
+      "vegan",
+      "gluten-free",
+      "jain-friendly",
+      "kids-favourite"
+    ]
+  },
+  "Chettinad Chicken Dosa": {
+    "long_description": "Chettinad Chicken Dosa is a crisp dosa filled with chicken cooked in a Chettinad-style masala with curry leaves. The filling is hot, peppery and deeply aromatic, wrapped in the golden crunch of the crepe. It is served hot, often with coconut chutney that helps temper the spice. It is a bold, fusion-style main for guests who enjoy spicy South Indian chicken and want something different from the usual dosa.",
+    "allergens": [],
+    "tags": [
+      "chef-special",
+      "gluten-free"
+    ]
+  },
+  "Filter Coffee": {
+    "long_description": "Filter Coffee is strong South Indian coffee brewed with chicory and served with frothed milk. It is hot, bold and slightly bitter, with a roasted aroma and a smooth, creamy finish, and sugar is included. It is traditionally poured back and forth to cool and froth it. It is a lovely finish to a meal or a good partner for dosa and idli, and suits guests who like a strong cup of coffee.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "comfort-food"
+    ]
+  },
+  "Chicken Siu Mai": {
+    "long_description": "Chicken Siu Mai are steamed, open-top dumplings filled with minced chicken and shiitake mushroom in a thin wonton wrapper. They are juicy, savoury and slightly earthy from the mushroom, with a soft, tender bite and a mild flavour. They arrive steaming hot in a bamboo basket and are usually dipped in soy sauce or chili oil. They make a great light starter to share, and suit guests who enjoy classic, gentle dim sum.",
+    "allergens": [
+      "gluten",
+      "soy"
+    ],
+    "tags": []
+  },
+  "Vegetable Momos": {
+    "long_description": "Vegetable Momos are steamed dumplings filled with cabbage, carrot and glass noodles. They are soft and juicy with a mild, savoury flavour and a little sweetness from the vegetables. They come hot from the steamer and are typically dipped in a spicy chili sauce, which brings the heat. They are a good vegetarian snack for sharing and are popular with children and anyone after a light bite.",
+    "allergens": [
+      "gluten"
+    ],
+    "tags": [
+      "street-food",
+      "kids-favourite"
+    ]
+  },
+  "Pork Xiao Long Bao": {
+    "long_description": "Pork Xiao Long Bao are delicate soup dumplings filled with seasoned pork and a savoury, gelatin-set broth that melts into hot soup as they steam, with a little ginger for freshness. The wrapper is thin and soft, and the inside is rich and juicy. Take care, because the soup is very hot. Bite a small hole, sip the broth, then eat the rest. They are mild and ideal for guests who love refined dim sum.",
+    "allergens": [
+      "gluten"
+    ],
+    "tags": [
+      "chef-special"
+    ]
+  },
+  "Prawn Har Gow": {
+    "long_description": "Prawn Har Gow are translucent steamed dumplings with a plump prawn and bamboo shoot filling inside a thin, slightly chewy tapioca starch wrapper. They taste sweet, fresh and delicate, with a snappy prawn texture and a gentle crunch from the bamboo shoot. They arrive steaming hot and are mild, usually dipped in a little soy or chili sauce. They are a classic starter for seafood lovers and guests who like light flavours.",
+    "allergens": [
+      "shellfish"
+    ],
+    "tags": []
+  },
+  "Spring Rolls": {
+    "long_description": "These are crispy, golden fried rolls filled with cabbage, carrot and glass noodles. The wrapper is thin and crunchy while the filling is soft, savoury and mild, with no real heat. They come very hot and are dipped in a sweet chili or tangy sauce. They are an easy starter to share and a popular choice for children and anyone who likes crunchy vegetarian snacks.",
+    "allergens": [
+      "gluten"
+    ],
+    "tags": [
+      "vegan",
+      "kids-favourite"
+    ]
+  },
+  "Chicken Spring Rolls": {
+    "long_description": "Chicken Spring Rolls are crispy fried rolls filled with shredded chicken, cabbage and carrot. The wrapper is thin and golden, crunchy outside with a juicy, savoury and mild filling inside. They are served hot and are best dipped in a sweet chili or tangy sauce. They make a familiar, easy starter for sharing, and suit guests who like crunchy snacks without spice.",
+    "allergens": [
+      "gluten"
+    ],
+    "tags": [
+      "kids-favourite"
+    ]
+  },
+  "Chilli Garlic Chicken Dumplings": {
+    "long_description": "These are pan-fried chicken dumplings tossed in a glossy chilli garlic sauce. They have a crisp, golden base, a soft, juicy filling and a hot, garlicky and slightly sticky coating, so the heat comes through strongly. They arrive hot and are eaten with chopsticks or a fork. They suit guests who love spicy Indo-Chinese style flavours, and a cold drink goes well alongside.",
+    "allergens": [
+      "gluten",
+      "soy"
+    ],
+    "tags": []
+  },
+  "Edamame Dumplings": {
+    "long_description": "Edamame Dumplings are steamed dumplings filled with soft edamame and fresh ginger. They taste fresh, lightly sweet and green, with a smooth, slightly creamy filling and a hint of ginger. They are mild and arrive hot, usually with a soy-based dipping sauce. They are a nice vegetarian starter for guests who want something light and delicate. A little chili oil on the side is nice if you want some heat.",
+    "allergens": [
+      "gluten",
+      "soy"
+    ],
+    "tags": [
+      "vegan"
+    ]
+  },
+  "BBQ Pork Buns": {
+    "long_description": "BBQ Pork Buns are soft, fluffy steamed buns filled with char siu barbecue pork in a sweet and savoury glaze. The bun is pillowy and slightly sweet, while the filling is sticky, tender and smoky-sweet with no heat. They are served hot and eaten by hand. They are great for sharing and for anyone who likes soft bread with a rich, meaty centre.",
+    "allergens": [
+      "gluten",
+      "soy"
+    ],
+    "tags": []
+  },
+  "Sesame Prawn Toast": {
+    "long_description": "Sesame Prawn Toast is a fried bread triangle topped with a savoury prawn paste and a generous coating of sesame seeds. It is crisp and golden outside, with a springy prawn layer and a nutty sesame flavour, and it is mild with no spice. It arrives hot and is often dipped in a sweet chili sauce. It is a crunchy starter for seafood lovers and for sharing with drinks.",
+    "allergens": [
+      "shellfish",
+      "gluten",
+      "sesame"
+    ],
+    "tags": []
+  },
+  "Crystal Vegetable Dumplings": {
+    "long_description": "Crystal Vegetable Dumplings are translucent, steamed dumplings filled with carrot, mushroom and bamboo shoot. The wrapper is thin and slightly chewy, and you can see the colourful filling through it. They taste light, fresh and gently savoury with a little crunch from the bamboo shoot, and they have no heat. They come hot and are dipped in soy or chili sauce. They are a delicate choice for vegetarians.",
+    "allergens": [],
+    "tags": [
+      "vegan"
+    ]
+  },
+  "Chicken Potstickers": {
+    "long_description": "Chicken Potstickers are dumplings filled with chicken, cabbage and ginger, pan-fried until the base is golden and crisp, then finished with steam so the top stays soft. The contrast of crisp and tender is the highlight, with a juicy, savoury filling and a medium, warm ginger kick. They are served hot with a dipping sauce. They are a good starter for sharing and for anyone who likes gently spiced comfort food.",
+    "allergens": [
+      "gluten"
+    ],
+    "tags": [
+      "comfort-food"
+    ]
+  },
+  "Salt and Pepper Tofu": {
+    "long_description": "Salt and Pepper Tofu is crispy fried tofu tossed with salt, black pepper, chilies and garlic. The outside is crunchy and the inside is soft and creamy, and the flavour is savoury, peppery and garlicky with a medium level of heat. It is served hot and is easy to share as a starter or side. It suits vegetarians and anyone who likes crunchy, seasoned bites with a bit of spice.",
+    "allergens": [
+      "soy"
+    ],
+    "tags": [
+      "vegan"
+    ]
+  },
+  "Char Siu Puffs": {
+    "long_description": "Char Siu Puffs are flaky, buttery pastry parcels filled with sweet and savoury barbecue pork. The pastry is crisp and layered and shatters as you bite, while the filling is sticky, smoky-sweet and tender, with no heat. They are served warm and eaten by hand. They are a rich, indulgent starter for guests who love pastry and barbecue flavours. They pair nicely with a hot cup of tea.",
+    "allergens": [
+      "gluten",
+      "dairy",
+      "soy"
+    ],
+    "tags": []
+  },
+  "Custard Buns": {
+    "long_description": "Custard Buns are soft, fluffy steamed buns filled with sweet, silky egg custard that is warm and slightly runny. The bun is pillowy and lightly sweet, and the custard is smooth, creamy and comforting, with no spice. They are served hot and eaten by hand, and the filling can be warm, so take care with the first bite. They are a gentle dessert or sweet snack, popular with children.",
+    "allergens": [
+      "egg",
+      "gluten",
+      "dairy"
+    ],
+    "tags": [
+      "sweet",
+      "kids-favourite"
+    ]
+  },
+  "California Roll": {
+    "long_description": "California Roll is crab, avocado and cucumber rolled with sushi rice and nori. It is mild, fresh and creamy from the avocado, with a crisp cucumber crunch and a light sweetness from the crab. It is served cold or at room temperature with soy sauce, pickled ginger and wasabi. It is a friendly choice for sushi beginners and anyone who prefers cooked fillings over raw fish.",
+    "allergens": [
+      "shellfish"
+    ],
+    "tags": [
+      "kids-favourite"
+    ]
+  },
+  "Spicy Tuna Roll": {
+    "long_description": "Spicy Tuna Roll is tuna mixed with creamy spicy mayo and rolled with rice and nori. It is rich and soft with a medium kick of heat, a savoury fish flavour and a smooth, creamy texture. It is served chilled and is best dipped lightly in soy sauce, with ginger between bites. It is a popular choice for guests who enjoy a bit of spice with their sushi.",
+    "allergens": [
+      "fish",
+      "egg"
+    ],
+    "tags": []
+  },
+  "Salmon Nigiri": {
+    "long_description": "Salmon Nigiri is a hand-pressed bed of sushi rice topped with a slice of fresh raw salmon and a touch of wasabi. It tastes clean, buttery and slightly sweet, with a soft, silky texture that melts in the mouth. It is served cold and eaten in one bite, dipped fish-side down in soy sauce. It is a great pick for guests who like the pure flavour of fresh fish.",
+    "allergens": [
+      "fish"
+    ],
+    "tags": [
+      "gluten-free"
+    ]
+  },
+  "Tuna Nigiri": {
+    "long_description": "Tuna Nigiri is a hand-pressed bed of sushi rice topped with a slice of fresh raw tuna and a hint of wasabi. It has a clean, meaty flavour and a firm but tender texture, lighter and less buttery than salmon. It is served cold and eaten in one bite with a light dip in soy sauce. It suits guests who enjoy the simple taste of fresh raw fish.",
+    "allergens": [
+      "fish"
+    ],
+    "tags": [
+      "gluten-free"
+    ]
+  },
+  "Avocado Roll": {
+    "long_description": "Avocado Roll is creamy avocado rolled with sushi rice and nori. It is mild, smooth and buttery, with a soft texture and a lightly sweet, vinegared rice. It is served cold with soy sauce, pickled ginger and wasabi. It is a simple vegetarian roll that suits children, sushi beginners and anyone wanting something gentle. It also pairs well with miso soup or a spicier roll.",
+    "allergens": [],
+    "tags": [
+      "vegan",
+      "gluten-free",
+      "jain-friendly"
+    ]
+  },
+  "Cucumber Roll": {
+    "long_description": "Cucumber Roll is crisp cucumber rolled with sushi rice and nori. It is light, cool and refreshing, with a clean crunch and lightly sweet vinegared rice, and no heat. It is served cold with soy sauce, ginger and wasabi. It is a good palate cleanser between richer rolls, and a simple choice for vegetarians and guests who like fresh, subtle flavours.",
+    "allergens": [],
+    "tags": [
+      "vegan",
+      "gluten-free",
+      "jain-friendly"
+    ]
+  },
+  "Dragon Roll": {
+    "long_description": "Dragon Roll is a roll of grilled eel and cucumber topped with slices of creamy avocado. It is rich and sweet-savoury from the glazed eel, balanced by cool cucumber crunch and soft avocado, with no heat. It is served cold, often with a drizzle of sweet sauce, and eaten with soy and ginger. It is a handsome, indulgent roll for guests who like cooked fish and full flavours.",
+    "allergens": [
+      "fish",
+      "soy"
+    ],
+    "tags": [
+      "chef-special"
+    ]
+  },
+  "Rainbow Roll": {
+    "long_description": "Rainbow Roll is a California roll of crab, avocado and cucumber, draped with slices of assorted fresh raw fish. It is soft, fresh and lightly sweet, with creamy avocado and a mix of buttery and clean fish flavours on top. It is served cold with soy, ginger and wasabi, and has no heat. It is a colourful roll to share, and a good way for beginners to try raw fish.",
+    "allergens": [
+      "fish",
+      "shellfish"
+    ],
+    "tags": []
+  },
+  "Shrimp Tempura Roll": {
+    "long_description": "Shrimp Tempura Roll has crispy fried shrimp rolled with sushi rice and nori. It has a contrast of warm, crunchy tempura and soft, cool rice, with sweet, juicy shrimp inside and a mild flavour. It is typically dipped in soy sauce. It is a great choice for guests who prefer cooked, crunchy sushi to raw fish, and children often like it too.",
+    "allergens": [
+      "shellfish",
+      "gluten",
+      "egg"
+    ],
+    "tags": [
+      "kids-favourite"
+    ]
+  },
+  "Eel Nigiri": {
+    "long_description": "Eel Nigiri is grilled eel glazed with sweet soy eel sauce, laid over hand-pressed sushi rice. It is warm, rich and soft, with a sweet and savoury glaze and a smoky flavour, and it has no spice. It is eaten in one bite, and usually needs no extra soy sauce because the glaze is already seasoned. It is a good choice for guests who prefer cooked fish and bold, sweet-savoury tastes.",
+    "allergens": [
+      "fish",
+      "soy",
+      "gluten"
+    ],
+    "tags": []
+  },
+  "Vegetable Roll": {
+    "long_description": "Vegetable Roll is a mix of cucumber, avocado and carrot rolled with sushi rice and nori. It is fresh, crisp and creamy at once, with a light sweetness from the rice and no heat. It is served cold with soy sauce, ginger and wasabi. It is a colourful vegetarian choice that suits anyone who likes light, fresh flavours. It pairs well with miso soup and edamame.",
+    "allergens": [],
+    "tags": [
+      "vegan",
+      "gluten-free"
+    ]
+  },
+  "Salmon Sashimi": {
+    "long_description": "Salmon Sashimi is thin slices of fresh raw salmon served without rice. It tastes clean, buttery and slightly sweet, with a silky, melting texture. It is served cold and eaten with soy sauce, wasabi and pickled ginger. It is a light, protein-rich choice for guests who love the pure taste of raw fish, and a good starter before heavier dishes.",
+    "allergens": [
+      "fish"
+    ],
+    "tags": [
+      "gluten-free"
+    ]
+  },
+  "Volcano Roll": {
+    "long_description": "Volcano Roll is a baked seafood roll topped with a spicy mix of crab and shrimp in creamy spicy mayo and served warm. It is rich, creamy and hot, with a golden, slightly browned top over soft rice and nori. The heat is noticeable but balanced by the creaminess. It is a fun choice for guests who like their sushi cooked, warm and spicy.",
+    "allergens": [
+      "shellfish",
+      "egg"
+    ],
+    "tags": [
+      "chef-special"
+    ]
+  },
+  "Miso Soup": {
+    "long_description": "Miso Soup is a traditional Japanese soup made from fermented soybean paste with soft tofu, seaweed and scallion. It is hot, savoury and gently salty, with a deep umami flavour and a light, brothy texture. It is served in a bowl and sipped, often at the start of a sushi meal. It is a comforting, warming starter for guests who enjoy light and savoury flavours.",
+    "allergens": [
+      "soy"
+    ],
+    "tags": [
+      "comfort-food"
+    ]
+  },
+  "Edamame": {
+    "long_description": "Edamame is steamed soybean pods sprinkled with sea salt. They are fresh, lightly sweet and savoury, with a firm, tender bite. They are served warm and eaten by hand: squeeze the beans out of the pod and discard the shell. It is a simple, light snack to share before the main meal, and works well with sushi or drinks. Ask for extra salt if you like it more savoury.",
+    "allergens": [
+      "soy"
+    ],
+    "tags": [
+      "vegan",
+      "gluten-free",
+      "jain-friendly"
+    ]
+  },
+  "Spaghetti Aglio e Olio": {
+    "long_description": "Spaghetti Aglio e Olio is spaghetti tossed in olive oil with sliced garlic and chili flakes. It is simple and punchy, with a fragrant garlic aroma, a light, glossy oil coating and a medium heat from the chili. It is served hot and twirled with a fork. It is a good choice for guests who like uncomplicated, garlicky flavours and a bit of spice, without a heavy cream sauce.",
+    "allergens": [
+      "gluten"
+    ],
+    "tags": [
+      "vegan"
+    ]
+  },
+  "Fettuccine Alfredo": {
+    "long_description": "Fettuccine Alfredo is ribbons of fettuccine in a rich, creamy sauce of butter, cream and parmesan. It is smooth, cheesy and mellow, with no spice and a velvety coating on every strand. It is served hot and twirled with a fork. It is a comforting, indulgent pasta that children and guests who prefer mild, creamy flavours tend to love. A garlic breadstick on the side makes a lovely pairing.",
+    "allergens": [
+      "gluten",
+      "dairy",
+      "egg"
+    ],
+    "tags": [
+      "kids-favourite",
+      "comfort-food"
+    ]
+  },
+  "Penne Arrabbiata": {
+    "long_description": "Penne Arrabbiata is penne in a spicy tomato sauce with garlic and chili. The sauce is bright, tangy and garlicky with a real hot kick, and the tubes of penne catch it well. It is served hot and has no cream, so it feels lighter. It is a good pick for guests who enjoy a fiery, tomato-forward vegetarian pasta. A garlic breadstick on the side is a nice way to mop up the sauce.",
+    "allergens": [
+      "gluten"
+    ],
+    "tags": [
+      "vegan"
+    ]
+  },
+  "Spaghetti Carbonara": {
+    "long_description": "Spaghetti Carbonara is spaghetti coated in a silky sauce of egg and parmesan with crisp, salty pancetta. It is rich, savoury and peppery, with a creamy feel that comes from the egg and cheese, and no heat. It is served hot, and is best eaten straight away while the sauce is smooth. It is a good pick for guests who love a rich, meaty and cheesy pasta.",
+    "allergens": [
+      "gluten",
+      "dairy",
+      "egg"
+    ],
+    "tags": []
+  },
+  "Lasagna Bolognese": {
+    "long_description": "Lasagna Bolognese is layers of pasta sheets with slow-cooked beef and tomato ragu and creamy bechamel sauce, baked until bubbling. It is rich, hearty and savoury, with soft layers, a lightly browned top and only a mild warmth. It is served hot, cut as a thick square, and eaten with a knife and fork. It is a comforting, filling main that suits guests who love classic baked pasta.",
+    "allergens": [
+      "gluten",
+      "dairy",
+      "egg"
+    ],
+    "tags": [
+      "comfort-food"
+    ]
+  },
+  "Mushroom Risotto": {
+    "long_description": "Mushroom Risotto is creamy arborio rice cooked with wild mushrooms, white wine and parmesan. It is soft, rich and earthy, with a loose, creamy texture, savoury depth from the mushrooms and no heat. It is served hot and is best eaten straight away. It is a comforting vegetarian main for guests who enjoy mild, creamy and woody flavours. A crisp salad on the side balances the richness well.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "gluten-free",
+      "comfort-food"
+    ]
+  },
+  "Penne alla Vodka": {
+    "long_description": "Penne alla Vodka is penne in a creamy tomato sauce made with a splash of vodka. The sauce is smooth, rich and slightly tangy, with a light, gentle warmth and a rounded, silky finish. It is served hot and clings nicely to the penne. It is a good vegetarian choice for guests who like creamy tomato pasta that is not too spicy.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": []
+  },
+  "Seafood Linguine": {
+    "long_description": "Seafood Linguine is linguine tossed with shrimp, mussels and clams in a light white wine sauce. It is briny, savoury and fresh, with a little acidity from the wine and a very mild warmth. The seafood is tender and the sauce is thin enough to coat the pasta without being heavy. It is served hot and suits seafood lovers who prefer a lighter sauce.",
+    "allergens": [
+      "gluten",
+      "shellfish"
+    ],
+    "tags": [
+      "chef-special"
+    ]
+  },
+  "Pesto Gnocchi": {
+    "long_description": "Pesto Gnocchi is soft potato dumplings tossed in fresh basil pesto with pine nuts and parmesan. It is fragrant, herby and nutty, with pillowy gnocchi and a rich, green, savoury sauce and no heat. It is served hot. It is a lovely vegetarian dish for guests who enjoy fresh herbs and a soft, comforting texture. A light salad on the side works nicely with it.",
+    "allergens": [
+      "gluten",
+      "dairy",
+      "nuts"
+    ],
+    "tags": []
+  },
+  "Chicken Alfredo Pasta": {
+    "long_description": "Chicken Alfredo Pasta is fettuccine with grilled chicken in a creamy parmesan alfredo sauce. It is rich, smooth and mild, with tender, lightly charred chicken adding a savoury depth, and no heat. It is served hot and twirled with a fork. It is a filling main that suits children and anyone who likes creamy, hearty pasta. It is a generous portion, so come hungry.",
+    "allergens": [
+      "gluten",
+      "dairy",
+      "egg"
+    ],
+    "tags": [
+      "kids-favourite",
+      "comfort-food"
+    ]
+  },
+  "Baked Ziti": {
+    "long_description": "Baked Ziti is tubes of pasta baked with marinara, ricotta and mozzarella until the top is golden and bubbling. It is hearty, cheesy and tangy, with a creamy ricotta layer and a mild warmth. It is served very hot and is a comforting, filling dish. It is a good vegetarian option for guests who love baked, cheesy pasta. A fresh salad or garlic breadsticks go well alongside.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": [
+      "comfort-food"
+    ]
+  },
+  "Truffle Mac and Cheese": {
+    "long_description": "Truffle Mac and Cheese is macaroni in a creamy cheddar sauce infused with truffle oil. It is rich, cheesy and smooth, with an earthy, aromatic truffle fragrance and no heat. It is served hot and creamy. It is a comforting, indulgent dish that children and adults enjoy, though the truffle can be a bit strong if you are not used to it.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": [
+      "comfort-food",
+      "kids-favourite"
+    ]
+  },
+  "Spinach Ravioli": {
+    "long_description": "Spinach Ravioli is soft pasta pockets filled with spinach and ricotta, served in a butter and sage sauce. It is delicate, creamy and mild, with a fragrant, slightly earthy sage flavour and a rich buttery finish, and no heat. It is served hot. It is a gentle vegetarian main for guests who like soft, filled pasta with a simple sauce.",
+    "allergens": [
+      "gluten",
+      "dairy",
+      "egg"
+    ],
+    "tags": []
+  },
+  "Spaghetti Bolognese": {
+    "long_description": "Spaghetti Bolognese is spaghetti topped with a slow-cooked beef and tomato ragu made with onion and carrot. It is hearty, savoury and slightly sweet, with a rich, meaty sauce and a mild warmth. It is served hot and twirled with a fork. It is a classic comforting dish that children and adults both tend to enjoy. A little extra parmesan on top is always welcome.",
+    "allergens": [
+      "gluten"
+    ],
+    "tags": [
+      "kids-favourite",
+      "comfort-food"
+    ]
+  },
+  "Caprese Salad": {
+    "long_description": "Caprese Salad is slices of fresh mozzarella and tomato layered with basil leaves and drizzled with balsamic glaze. It is cool, creamy and juicy, with sweet tomato, milky cheese, fresh herbs and a sweet-tart finish from the glaze. It is served chilled and eaten with a fork. It is a light vegetarian starter or side, good before pasta or pizza.",
+    "allergens": [
+      "dairy"
+    ],
+    "tags": [
+      "gluten-free"
+    ]
+  },
+  "Margherita Pizza": {
+    "long_description": "Margherita Pizza is a classic pizza with tomato sauce, melted mozzarella and fresh basil. It is simple and balanced, with a bubbly, chewy crust, tangy tomato, stretchy cheese and a fresh herb aroma, and no heat. It is served hot and sliced. It is a safe, much-loved choice for children and anyone who prefers simple flavours. It is a great base to share alongside a more adventurous pizza.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": [
+      "bestseller",
+      "kids-favourite"
+    ]
+  },
+  "Pepperoni Pizza": {
+    "long_description": "Pepperoni Pizza is topped with spicy pepperoni, tomato sauce and melted mozzarella. The pepperoni is savoury, slightly smoky and gives a medium heat, with crisp edges and a little paprika oil on the cheese. It is served hot and sliced. It is a popular crowd-pleaser for guests who like meat and a bit of spice on their pizza. A cold drink pairs well with the spice.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": []
+  },
+  "Four Cheese Pizza": {
+    "long_description": "Four Cheese Pizza is topped with mozzarella, gorgonzola, parmesan and fontina. It is rich, creamy and savoury, with a stretchy mozzarella base, a sharp tang from the gorgonzola and a nutty finish from the parmesan, and no heat. It is served hot and sliced. It is a good vegetarian choice for cheese lovers, though the blue cheese gives a distinctive taste.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": []
+  },
+  "BBQ Chicken Pizza": {
+    "long_description": "BBQ Chicken Pizza is topped with chicken in a smoky, sweet barbecue sauce, red onions and fresh cilantro. It is sweet, tangy and smoky, with sharp onion, fresh herbs and a chewy crust, and only a mild warmth. It is served hot and sliced. It is a good choice for guests who like sweet and smoky flavours on pizza. It is a nice pick for guests who prefer sweeter flavours.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": []
+  },
+  "Veggie Supreme Pizza": {
+    "long_description": "Veggie Supreme Pizza is loaded with bell peppers, olives, onions and mushrooms. It is savoury, slightly tangy and fresh, with a mix of crunchy and soft toppings, a briny note from the olives, and no heat. It is served hot and sliced. It is a good vegetarian option for sharing, and suits guests who like plenty of vegetables. It goes well with a side of garlic breadsticks.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": []
+  },
+  "Hawaiian Pizza": {
+    "long_description": "Hawaiian Pizza is topped with ham, sweet pineapple and mozzarella. It balances sweet and salty, with juicy pineapple, savoury ham, stretchy cheese and a chewy crust, and no heat. It is served hot and sliced. It is a fun, familiar choice for guests who like a sweet-and-savoury combination, and children often enjoy it. It is a good one to share across the table, though guests with strong views on pineapple may want to skip it.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": [
+      "kids-favourite"
+    ]
+  },
+  "Pesto Pizza": {
+    "long_description": "Pesto Pizza is topped with fragrant basil pesto, sweet cherry tomatoes and mozzarella. It is herby, nutty and fresh, with juicy, tangy tomatoes, soft melted cheese and a crisp crust, and no heat. It is served hot and sliced. It is a good vegetarian choice for guests who enjoy fresh herbal flavours. It is lighter than a meat pizza and goes nicely with a crisp salad or a cold drink.",
+    "allergens": [
+      "gluten",
+      "dairy",
+      "nuts"
+    ],
+    "tags": []
+  },
+  "Meat Lovers Pizza": {
+    "long_description": "Meat Lovers Pizza is loaded with pepperoni, sausage, ham and bacon over tomato sauce and mozzarella. It is rich, salty and smoky, with a medium heat from the pepperoni and sausage and a hearty, filling bite. It is served hot and sliced. It is a good choice for hungry guests who love meat, and it is best shared. It is rich, so a fresh salad on the side helps balance it.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": []
+  },
+  "Spicy Diavola Pizza": {
+    "long_description": "Spicy Diavola Pizza is topped with spicy salami and chili oil over tomato sauce. It is hot, savoury and slightly smoky, with crisp salami edges and a bright red chili oil heat that builds as you eat. It is served hot and sliced. It is for guests who enjoy real heat on their pizza, and a cold drink helps. A cool drink or a plain margherita to share can balance the heat.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": []
+  },
+  "Mushroom Truffle Pizza": {
+    "long_description": "Mushroom Truffle Pizza is topped with wild mushrooms, mozzarella and a drizzle of truffle oil. It is earthy, rich and aromatic, with a deep savoury mushroom flavour and a strong truffle fragrance, and no heat. It is served hot and sliced. It is an elegant vegetarian pizza for guests who enjoy earthy, luxurious flavours. A glass of something crisp pairs very well with it.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": [
+      "chef-special"
+    ]
+  },
+  "Paneer Tikka Pizza": {
+    "long_description": "Paneer Tikka Pizza is a fusion pizza topped with spiced paneer tikka over tomato sauce. It has soft cubes of smoky, tandoori-spiced paneer on a chewy crust, with a medium heat and a tangy tomato base. It is served hot and sliced. It is a good vegetarian choice for guests who like Indian flavours in a familiar pizza. A cool drink such as a lassi or soda pairs well.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": []
+  },
+  "Buffalo Chicken Pizza": {
+    "long_description": "Buffalo Chicken Pizza is topped with spicy buffalo chicken and blue cheese. It is hot, tangy and rich, with the vinegary heat of the buffalo sauce cooled by the creamy, sharp blue cheese, over a chewy crust. It is served hot and sliced. It is for guests who enjoy bold, spicy flavours, though the blue cheese is quite strong. A cold drink pairs well with the heat.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": []
+  },
+  "Margherita Garlic Pizza": {
+    "long_description": "Margherita Garlic Pizza is a classic margherita with tomato sauce and mozzarella, topped with sweet, soft roasted garlic. It is mild and cheesy with a mellow garlic aroma and a slight sweetness from the roasting. It is served hot and sliced. It is a good vegetarian choice for guests who love garlic but want a gentle pizza. It is a nice twist on the classic and is easy to share.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": []
+  },
+  "Seafood Pizza": {
+    "long_description": "Seafood Pizza is topped with shrimp, calamari and mussels over tomato sauce. It is savoury and briny, with tender seafood, tangy tomato, melted cheese and a mild warmth. It is served hot and sliced. It is a good choice for seafood lovers who want something different from a meat pizza. A crisp salad and a cold drink pair well with it, and it is ideal for sharing.",
+    "allergens": [
+      "gluten",
+      "dairy",
+      "shellfish"
+    ],
+    "tags": []
+  },
+  "Garlic Breadsticks": {
+    "long_description": "Garlic Breadsticks are baked dough sticks brushed with garlic butter and served with warm marinara for dipping. They are soft inside with a lightly crisp, golden outside, savoury and buttery with a punchy garlic aroma. The marinara is tangy and mild. They make a good vegetarian starter to share, and children usually love them. They are perfect while you wait for the main course.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": [
+      "kids-favourite"
+    ]
+  },
+  "Club Sandwich": {
+    "long_description": "Club Sandwich is a triple-decker of toasted bread layered with chicken, crispy bacon, lettuce and tomato. It is savoury, fresh and crunchy, with a smoky saltiness from the bacon and juicy tomato, and no heat. It is served cut into triangles and eaten by hand. It is a filling, classic choice for guests who want a hearty sandwich. It is usually eaten with fries or a side salad.",
+    "allergens": [
+      "gluten"
+    ],
+    "tags": []
+  },
+  "Grilled Cheese Sandwich": {
+    "long_description": "Grilled Cheese Sandwich is cheddar and mozzarella melted between buttered, toasted bread. It is crisp and golden outside, gooey, stretchy and salty inside, with no heat. It is served hot and eaten by hand. It is simple comfort food that children and anyone who loves melted cheese will enjoy. It goes nicely with a bowl of soup or a side of fries, and it is a good one for fussy eaters.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": [
+      "kids-favourite",
+      "comfort-food"
+    ]
+  },
+  "BLT Sandwich": {
+    "long_description": "BLT Sandwich is crispy bacon, lettuce and juicy tomato with mayo on toasted bread. It is smoky, salty and fresh, with crunch from the lettuce and bacon and a creamy tang from the mayo, and no heat. It is served cold fillings in warm toast and eaten by hand. It is a classic for guests who like a simple, satisfying sandwich.",
+    "allergens": [
+      "gluten",
+      "egg"
+    ],
+    "tags": []
+  },
+  "Veggie Panini": {
+    "long_description": "Veggie Panini is a pressed, grilled sandwich of zucchini and bell peppers with basil pesto on ciabatta. It is crisp outside, soft and juicy inside, with sweet roasted vegetables, a herby, nutty pesto and no heat. It is served hot and eaten by hand. It is a good vegetarian lunch for guests who like fresh, grilled flavours. It goes well with a side salad or a bowl of soup.",
+    "allergens": [
+      "gluten",
+      "dairy",
+      "nuts"
+    ],
+    "tags": []
+  },
+  "Chicken Caesar Wrap": {
+    "long_description": "Chicken Caesar Wrap is grilled chicken and crisp romaine lettuce with caesar dressing, wrapped in a soft tortilla. It is creamy, tangy and savoury, with fresh crunch and tender chicken, and no heat. It is served cold fillings in a soft wrap and eaten by hand. It is a lighter, easy-to-eat choice for guests who like fresh salad flavours. It pairs well with fries or a cold drink.",
+    "allergens": [
+      "gluten",
+      "dairy",
+      "egg",
+      "fish"
+    ],
+    "tags": []
+  },
+  "Philly Cheesesteak": {
+    "long_description": "Philly Cheesesteak is thinly sliced steak and onion with melted cheese in a soft hoagie roll. It is hot, rich, savoury and juicy, with sweet softened onions and gooey cheese, and only a mild warmth. It is eaten by hand and can be messy. It is a hearty sandwich for guests who like rich, meaty flavours. It is very filling, and a side of fries goes well with it.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": [
+      "comfort-food"
+    ]
+  },
+  "Tuna Melt": {
+    "long_description": "Tuna Melt is creamy tuna salad topped with melted cheddar on grilled bread. It is warm, gooey and savoury, with a crisp, buttery toast and a mildly tangy mayo flavour, and no heat. It is served hot and eaten by hand. It is a comforting choice for guests who love tuna and melted cheese. A side salad or fries goes nicely with it.",
+    "allergens": [
+      "fish",
+      "egg",
+      "dairy",
+      "gluten"
+    ],
+    "tags": [
+      "comfort-food"
+    ]
+  },
+  "Falafel Wrap": {
+    "long_description": "Falafel Wrap is crispy falafel with creamy hummus, lettuce and salad wrapped in warm pita. The falafel is crunchy outside and soft, herby and earthy inside, with a medium spice, a nutty hummus and fresh crunch from the salad. It is eaten by hand. It is a good vegetarian choice for guests who like Middle Eastern flavours. A cool, tangy drink pairs well with it.",
+    "allergens": [
+      "gluten",
+      "sesame"
+    ],
+    "tags": [
+      "vegan"
+    ]
+  },
+  "Turkey Avocado Sandwich": {
+    "long_description": "Turkey Avocado Sandwich is sliced turkey, creamy avocado and fresh lettuce on multigrain bread. It is light, soft and mild, with a savoury, lean flavour and a smooth buttery avocado, and no heat. It is eaten by hand. It is a good choice for guests who want a lighter, fresh sandwich. It is a good lighter lunch, often paired with a side salad.",
+    "allergens": [
+      "gluten"
+    ],
+    "tags": []
+  },
+  "Egg and Cheese Sandwich": {
+    "long_description": "Egg and Cheese Sandwich is a fried egg and melted cheddar in a toasted bun. It is soft, warm and savoury, with a runny or set egg, gooey cheese and a lightly crisp bun, and no heat. It is eaten by hand. It is a simple comfort sandwich that children and breakfast lovers will enjoy. It goes well with a hot cup of coffee or chai.",
+    "allergens": [
+      "egg",
+      "dairy",
+      "gluten"
+    ],
+    "tags": [
+      "kids-favourite",
+      "comfort-food"
+    ]
+  },
+  "Paneer Tikka Sandwich": {
+    "long_description": "Paneer Tikka Sandwich is a grilled sandwich filled with spiced paneer tikka and bell pepper. It is crisp outside, with soft, smoky, tandoori-spiced paneer inside and a medium heat. It is served hot and eaten by hand, and goes well with mint chutney. It is a good vegetarian choice for guests who like Indian flavours in a sandwich. A cool lassi on the side is a lovely match.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": []
+  },
+  "Cuban Sandwich": {
+    "long_description": "Cuban Sandwich is roast pork, ham, swiss cheese and pickles pressed on Cuban bread until crisp and melted. It is salty, tangy and rich, with gooey cheese, sharp pickles, a crunchy exterior and only a mild warmth. It is served hot and eaten by hand. It is a hearty pick for guests who like meaty, tangy sandwiches. It is very filling, so come hungry, and it pairs well with a cold drink.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": []
+  },
+  "Bombay Sandwich": {
+    "long_description": "Bombay Sandwich is an Indian-style grilled sandwich with potato, mint chutney, cucumber and tomato. It is crisp and buttery outside, with a soft potato and fresh crunchy vegetables inside, and a tangy, herby mint chutney with only a mild heat. It is served hot and eaten by hand. It is a lively vegetarian snack for guests who like street-food flavours.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": [
+      "street-food"
+    ]
+  },
+  "Meatball Sub": {
+    "long_description": "Meatball Sub is a toasted sub roll filled with meatballs in marinara sauce and melted mozzarella. It is hot, saucy and cheesy, with tender, savoury meatballs and a tangy tomato sauce, and a mild warmth. It is eaten by hand, and can be messy. It is a hearty, comforting choice for guests who love Italian-American flavours. It is quite filling, so a side salad or a cold drink goes well.",
+    "allergens": [
+      "gluten",
+      "dairy"
+    ],
+    "tags": [
+      "comfort-food"
+    ]
+  },
+  "Hummus and Veggie Sandwich": {
+    "long_description": "Hummus and Veggie Sandwich is creamy hummus, cucumber and roasted peppers on whole wheat bread. It is light, fresh and gently savoury, with a smooth, nutty hummus, crisp cucumber and sweet roasted peppers, and no heat. It is eaten by hand. It is a good vegetarian choice for guests who want a light, fresh sandwich. It goes well with a cold drink and a side of fruit or salad.",
+    "allergens": [
+      "gluten",
+      "sesame"
+    ],
+    "tags": [
+      "vegan"
+    ]
+  }
+}
