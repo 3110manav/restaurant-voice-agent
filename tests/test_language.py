@@ -193,3 +193,15 @@ def test_short_phrases_are_generated_once_and_then_played_from_memory(monkeypatc
     assert calls.count(long_text) == 2  # replies are not cached, only short phrases
     lt.warm_phrases("waiter", "en", ["Okay.", "Got it."])
     assert calls[-2:] == ["Okay.", "Got it."]
+
+
+def test_the_calls_speech_adapter_builds_and_speaks_short_sentences_immediately(monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "test")
+    monkeypatch.setenv("SARVAM_API_KEY", "test")
+    from livekit.agents import tts as lk_tts
+
+    from app.voice import livekit_tts as lt
+
+    speech = lt.build_speech("waiter", "hi")
+    assert isinstance(speech, lk_tts.StreamAdapter)
+    assert isinstance(speech._wrapped_tts, lt.SarthiTTS) and speech._wrapped_tts._language == "hi"

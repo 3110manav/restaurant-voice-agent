@@ -41,8 +41,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from livekit import agents  # noqa: E402
-from livekit.agents import Agent, AgentServer, AgentSession, JobContext, tokenize  # noqa: E402
-from livekit.agents import tts as lk_tts  # noqa: E402
+from livekit.agents import Agent, AgentServer, AgentSession, JobContext  # noqa: E402
 from livekit.plugins import groq, silero  # noqa: E402
 
 from app.agent import language as lang  # noqa: E402
@@ -51,7 +50,7 @@ from app.menu.snapshot import LiveMenu, menu_cache  # noqa: E402
 from app.rag.menu_store import GROCERY_PATH, MenuStore  # noqa: E402
 from app.voice.livekit_llm import SarthiLLM  # noqa: E402
 from app.voice.livekit_rooms import parse_room_name  # noqa: E402
-from app.voice.livekit_tts import SarthiTTS, warm_phrases  # noqa: E402
+from app.voice.livekit_tts import build_speech, warm_phrases  # noqa: E402
 
 logger = logging.getLogger("sarthi.livekit_worker")
 
@@ -104,20 +103,10 @@ async def entrypoint(ctx: JobContext) -> None:
 
     agent.set_language(language)
 
-    # Speak each sentence as soon as it is ready instead of waiting for a minimum length: this is what
-    # lets the quick "Sure." play while the real answer is still being worked out (LiveKit's default
-    # holds any sentence under 20 characters until the next one arrives).
-    speech = lk_tts.StreamAdapter(
-        tts=speech,
-        sentence_tokenizer=tokenize.blingfire.SentenceTokenizer(
-            min_sentence_len=1, stream_context_len=0, retain_format=True
-        ),
-    )
-
     session = AgentSession(
         stt=groq.STT(model="whisper-large-v3-turbo", language=language),
         llm=SarthiLLM(agent, session_id=session_id, persona=persona, restaurant=restaurant_slug, table_no=table_no),
-        tts=speech,
+        tts=build_speech(persona, language),
         vad=silero.VAD.load(),
     )
 
