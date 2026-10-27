@@ -9,6 +9,8 @@ import {
   sendChatMessage,
   sendVoiceMessage,
   type CartLine,
+  type Language,
+  type RestaurantContext,
   type ServiceLogEntry,
 } from "@/lib/api";
 import type { Persona } from "@/lib/personas";
@@ -18,8 +20,8 @@ export interface ChatMessage {
   text: string;
 }
 
-function getOrCreateSessionId(personaSlug: string): string {
-  const storageKey = `sarthi:session:${personaSlug}`;
+function getOrCreateSessionId(scope: string): string {
+  const storageKey = `sarthi:session:${scope}`;
   let sessionId = window.sessionStorage.getItem(storageKey);
   if (!sessionId) {
     sessionId = crypto.randomUUID();
@@ -36,14 +38,21 @@ function playAudioBase64(base64Wav: string) {
   });
 }
 
-export function useChatSession(persona: Persona) {
+/**
+ * `ctx` puts the conversation inside one restaurant (and table): every call is
+ * then scoped to that restaurant's menu, and the guest gets a separate session
+ * and cart per restaurant. Without it this is one of the four legacy personas.
+ */
+export function useChatSession(persona: Persona, ctx: RestaurantContext = {}) {
+  const { restaurant, tableNo } = ctx;
+  const scope = restaurant ?? persona.slug;
   // crypto.randomUUID() / sessionStorage are only read after mount, so this
   // never runs during prerendering (Cache Components flags it as unstable
   // otherwise — see https://nextjs.org/docs/messages/blocking-prerender-crypto-client).
   const [sessionId, setSessionId] = useState<string | null>(null);
   useEffect(() => {
-    setSessionId(getOrCreateSessionId(persona.slug));
-  }, [persona.slug]);
+    setSessionId(getOrCreateSessionId(scope));
+  }, [scope]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "agent", text: `Namaste, I'm ${persona.agentName}. ${persona.tagline}` },
@@ -52,6 +61,24 @@ export function useChatSession(persona: Persona) {
   const [serviceLog, setServiceLog] = useState<ServiceLogEntry[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  // The English / हिन्दी toggle. It travels with every message and call, so the agent, the speech
+  // recognition and the voice all follow it, instead of guessing from what was just said.
+  const [language, setLanguageState] = useState<Language>("en");
+
+  const setLanguage = useCallback(
+    (next: Language) => {
+      if (next === language) return;
+      setLanguageState(next);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "agent",
+          text: next === "hi" ? "ठीक है, अब हिंदी में बात करते हैं।" : "Sure, let's continue in English.",
+        },
+      ]);
+    },
+    [language]
+  );
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -71,7 +98,7 @@ export function useChatSession(persona: Persona) {
       setMessages((prev) => [...prev, { role: "user", text: trimmed }]);
       setIsSending(true);
       try {
-        const response = await sendChatMessage(sessionId, persona.key, trimmed);
+        const response = await sendChatMessage(sessionId, persona.key, trimmed, { restaurant, tableNo, language });
         setMessages((prev) => [...prev, { role: "agent", text: response.reply }]);
         setCart(response.cart);
         setServiceLog(response.service_log);
@@ -81,7 +108,7 @@ export function useChatSession(persona: Persona) {
         setIsSending(false);
       }
     },
-    [isSending, persona.key, pushError, sessionId]
+    [isSending, language, persona.key, pushError, restaurant, sessionId, tableNo]
   );
 
   const sendVoice = useCallback(
@@ -89,7 +116,7 @@ export function useChatSession(persona: Persona) {
       if (isSending || !sessionId) return;
       setIsSending(true);
       try {
-        const response = await sendVoiceMessage(sessionId, persona.key, audio);
+        const response = await sendVoiceMessage(sessionId, persona.key, audio, { restaurant, tableNo, language });
         if (!response.transcript) {
           setMessages((prev) => [
             ...prev,
@@ -113,7 +140,7 @@ export function useChatSession(persona: Persona) {
         setIsSending(false);
       }
     },
-    [isSending, persona.key, pushError, sessionId]
+    [isSending, language, persona.key, pushError, restaurant, sessionId, tableNo]
   );
 
   const startRecording = useCallback(async () => {
@@ -151,29 +178,35 @@ export function useChatSession(persona: Persona) {
   // Direct, non-agentic cart mutation for UI actions (tapping "Add" on a
   // product card) — see app/main.py's /cart/add for why this bypasses chat.
   const addItemDirect = useCallback(
-    async (itemId: string, quantity = 1) => {
+    async (itemId: string, quantity = 1, variant?: string) => {
       if (!sessionId) return;
       try {
-        const response = await apiAddToCart(sessionId, persona.key, itemId, quantity);
+        const response = await apiAddToCart(sessionId, persona.key, itemId, quantity, {
+          restaurant,
+          variant,
+        });
         setCart(response.cart);
       } catch (err) {
         pushError(err);
       }
     },
-    [persona.key, pushError, sessionId]
+    [persona.key, pushError, restaurant, sessionId]
   );
 
   const removeItemDirect = useCallback(
-    async (itemId: string, quantity = 1) => {
+    async (itemId: string, quantity = 1, variant?: string) => {
       if (!sessionId) return;
       try {
-        const response = await apiRemoveFromCart(sessionId, persona.key, itemId, quantity);
+        const response = await apiRemoveFromCart(sessionId, persona.key, itemId, quantity, {
+          restaurant,
+          variant,
+        });
         setCart(response.cart);
       } catch (err) {
         pushError(err);
       }
     },
-    [persona.key, pushError, sessionId]
+    [persona.key, pushError, restaurant, sessionId]
   );
 
   // Picks up cart/service_log changes made outside this hook's own calls —
@@ -183,16 +216,20 @@ export function useChatSession(persona: Persona) {
   const refreshCart = useCallback(async () => {
     if (!sessionId) return;
     try {
-      const response = await fetchCart(sessionId, persona.key);
+      const response = await fetchCart(sessionId, persona.key, restaurant);
       setCart(response.cart);
       setServiceLog(response.service_log);
     } catch {
       // best-effort poll; a transient failure just means we try again next tick
     }
-  }, [persona.key, sessionId]);
+  }, [persona.key, restaurant, sessionId]);
 
   return {
     sessionId,
+    restaurant,
+    tableNo,
+    language,
+    setLanguage,
     messages,
     cart,
     serviceLog,

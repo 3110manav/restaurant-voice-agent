@@ -5,9 +5,10 @@ import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
 import { MediaDeviceFailure } from "livekit-client";
 import { Phone } from "lucide-react";
 
+import { LanguageToggle } from "@/components/language-toggle";
 import { Button } from "@/components/ui/button";
 import { RealtimeCallPanel } from "@/components/voice/realtime-call-panel";
-import { fetchLiveKitToken } from "@/lib/api";
+import { fetchLiveKitToken, type Language } from "@/lib/api";
 import type { Persona } from "@/lib/personas";
 
 import "@livekit/components-styles";
@@ -22,11 +23,21 @@ import "@livekit/components-styles";
 export function RealtimeCall({
   persona,
   sessionId,
+  restaurant,
+  tableNo,
+  language,
+  onLanguageChange,
   onEnd,
   onCartSync,
 }: {
   persona: Persona;
   sessionId: string | null;
+  /** Which restaurant (and table) the call is for; absent for the legacy personas. */
+  restaurant?: string;
+  tableNo?: string | null;
+  /** The call's language is fixed when it starts; to change it, end the call and pick again. */
+  language: Language;
+  onLanguageChange: (next: Language) => void;
   onEnd: () => void;
   /** Called periodically while connected, and once more on disconnect, so
    * the cart ordered by voice (via the separate LiveKit worker process —
@@ -50,7 +61,7 @@ export function RealtimeCall({
     setIsConnecting(true);
     setError(null);
     try {
-      const res = await fetchLiveKitToken(sessionId, persona.key);
+      const res = await fetchLiveKitToken(sessionId, persona.key, { restaurant, tableNo, language });
       if (!res.configured || !res.url || !res.token) {
         setError("Realtime voice isn't available right now.");
         return;
@@ -66,6 +77,7 @@ export function RealtimeCall({
   if (!connection) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
+        <LanguageToggle value={language} onChange={onLanguageChange} disabled={isConnecting} />
         <Button onClick={startCall} disabled={isConnecting || !sessionId} className="gap-2">
           <Phone className="size-4" />
           {isConnecting ? "Connecting…" : `Call ${persona.agentName}`}

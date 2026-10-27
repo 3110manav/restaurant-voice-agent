@@ -25,6 +25,10 @@ export async function POST(request: Request) {
   }
 
   const backendParams = new URLSearchParams({ session_id: sessionId, persona });
+  for (const key of ["restaurant", "table_no", "language"]) {
+    const value = searchParams.get(key);
+    if (value) backendParams.set(key, value);
+  }
   try {
     const backendResponse = await fetch(`${BACKEND_URL}/chat/voice?${backendParams.toString()}`, {
       method: "POST",

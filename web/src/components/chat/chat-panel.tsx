@@ -6,6 +6,7 @@ import { Mic, Phone, Send, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { LanguageToggle } from "@/components/language-toggle";
 import { RealtimeCall } from "@/components/voice/realtime-call";
 import type { ChatSession } from "@/hooks/use-chat-session";
 import type { Persona } from "@/lib/personas";
@@ -22,8 +23,19 @@ export function ChatPanel({
   placeholder: string;
   scrollHeight?: string;
 }) {
-  const { sessionId, messages, isSending, isRecording, sendText, toggleRecording, refreshCart } =
-    session;
+  const {
+    sessionId,
+    restaurant,
+    tableNo,
+    language,
+    setLanguage,
+    messages,
+    isSending,
+    isRecording,
+    sendText,
+    toggleRecording,
+    refreshCart,
+  } = session;
   const [input, setInput] = useState("");
   const [callActive, setCallActive] = useState(false);
   const scrollEndRef = useRef<HTMLDivElement>(null);
@@ -44,6 +56,10 @@ export function ChatPanel({
         <RealtimeCall
           persona={persona}
           sessionId={sessionId}
+          restaurant={restaurant}
+          tableNo={tableNo}
+          language={language}
+          onLanguageChange={setLanguage}
           onEnd={() => setCallActive(false)}
           onCartSync={refreshCart}
         />
@@ -53,6 +69,10 @@ export function ChatPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card">
+      <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
+        <span className="text-xs text-muted-foreground">Talking to {persona.agentName}</span>
+        <LanguageToggle value={language} onChange={setLanguage} />
+      </div>
       <ScrollArea className="min-h-0 flex-1 p-4" style={{ height: scrollHeight }}>
         <div className="flex flex-col gap-3">
           {messages.map((m, i) => (

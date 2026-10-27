@@ -8,11 +8,14 @@ export const maxDuration = 60;
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const persona = searchParams.get("persona") ?? "online";
+  const restaurant = searchParams.get("restaurant");
+  const query = new URLSearchParams({ persona });
+  if (restaurant) query.set("restaurant", restaurant);
 
   try {
-    const backendResponse = await fetch(
-      `${BACKEND_URL}/menu?persona=${encodeURIComponent(persona)}`
-    );
+    const backendResponse = await fetch(`${BACKEND_URL}/menu?${query.toString()}`, {
+      cache: "no-store",
+    });
     const data = await backendResponse.json();
     return NextResponse.json(data, { status: backendResponse.status });
   } catch {
