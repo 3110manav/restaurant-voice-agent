@@ -44,3 +44,7 @@ chroma_db/*.sqlite3-journal
 PROJECT_FLOW_EXPLAINER.md
 pm_case_study/
 .claude/
+
+# LiveKit Cloud worker: the staged build folder and the real secrets
+deploy/worker/build/
+deploy/worker/secrets.env

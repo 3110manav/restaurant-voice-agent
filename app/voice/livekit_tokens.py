@@ -11,7 +11,10 @@ import os
 
 from livekit import api
 
-AGENT_NAME = "sarthi-voice"
+# The name the web app dispatches calls to and the worker registers under. Set LIVEKIT_AGENT_NAME to
+# something else (say "sarthi-voice-dev") in your local .env and calls made from your local site go to
+# your local worker only, so it never competes with the worker hosted on LiveKit Cloud.
+AGENT_NAME = os.environ.get("LIVEKIT_AGENT_NAME", "sarthi-voice")
 
 LIVEKIT_URL = os.environ.get("LIVEKIT_URL")
 LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY")
