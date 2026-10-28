@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+*.log
+.env
+.env.*
+secrets.env
+.git/
+.claude/
+tests/

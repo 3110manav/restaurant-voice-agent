@@ -586,9 +586,39 @@ Backend (FastAPI) on [Render](https://render.com), frontend (Next.js) on
 | `SARTHI_API_BASE_URL` — the Render API's URL (cart sync, defaults to `http://localhost:8000`) | | | ✅ |
 
 The worker is a separate long-running process (`python -m app.voice.livekit_worker start`,
-deps in `requirements-livekit.txt`) and also reads the committed `chroma_db/`,
-so whatever hosts it needs the same repo checkout and the same keys. Redeploy it
-whenever `app/` changes — it runs its own copy of the agent code.
+deps in `requirements-livekit.txt` for local use). Restaurant calls read their menus from Supabase;
+only the old four-persona demos need the local `chroma_db/`, and the worker loads that on demand.
+Redeploy the worker whenever `app/` changes: it runs its own copy of the agent code.
+
+### Hosting the worker on LiveKit Cloud (so calls work without your laptop)
+
+`deploy/worker/` holds everything. LiveKit builds from one folder that needs its own `Dockerfile`
+(the repo root's belongs to the API), so `deploy/worker/deploy.sh` stages just the worker's code and
+deploys from there.
+
+1. Install the CLI and log in: `brew install livekit-cli`, then `lk cloud auth`, then
+   `lk project list` and `lk project set-default "<your project>"` if you have several.
+2. `cp deploy/worker/secrets.env.example deploy/worker/secrets.env` and fill it in: the Groq, Google and
+   Sarvam keys, the Supabase URL and **secret** key, and `SARTHI_API_BASE_URL` (your Render address, which
+   is where each guest's cart is synced; without it, voice-ordered items don't show in the cart). Don't add
+   the `LIVEKIT_*` values: LiveKit Cloud supplies those itself.
+3. `deploy/worker/deploy.sh`. The first run creates the agent, builds the image on LiveKit's servers
+   (limit: 10 minutes) and starts it, then saves `deploy/worker/livekit.toml`. **Commit that file**: later
+   runs of the same command roll out a new version to the same agent.
+4. Check it: `lk agent status`, `lk agent logs`. A call from the deployed site is now answered by it.
+
+Things to know:
+- **Cold start.** On LiveKit's free Build plan a worker with no active calls is scaled to zero, so the
+  first call after a quiet spell waits an extra 10 to 20 seconds for the agent to join ("Connecting…").
+  Paid plans keep it warm.
+- **Limits on the free plan:** 1,000 agent minutes a month, 5 calls at once. When the minutes run out, new
+  calls fail until the next month rather than costing anything.
+- **Secrets** are updated with `lk agent update-secrets --secrets-file deploy/worker/secrets.env`, which
+  restarts the agent without cutting off calls in progress.
+- **Local testing next to the cloud worker.** Both would register as `sarthi-voice`, and LiveKit's docs
+  don't say how a call is split between two workers with the same name. So add
+  `LIVEKIT_AGENT_NAME=sarthi-voice-dev` to your local `.env`: your local site then calls only your local
+  worker, and the hosted site only the hosted one.
 
 **Known limitations of this setup** (fine for a demo, not for real
 traffic): sessions/carts live in memory (`app/main.py`'s `sessions` dict,

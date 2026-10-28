@@ -33,6 +33,7 @@ shared store), same as the README's MemorySaver caveat.
 from __future__ import annotations
 
 import asyncio
+import functools
 import json
 import logging
 
@@ -47,27 +48,31 @@ from livekit.plugins import groq, silero  # noqa: E402
 from app.agent import language as lang  # noqa: E402
 from app.agent.graph import RestaurantOrderingAgent  # noqa: E402
 from app.menu.snapshot import LiveMenu, menu_cache  # noqa: E402
-from app.rag.menu_store import GROCERY_PATH, MenuStore  # noqa: E402
 from app.voice.livekit_llm import SarthiLLM  # noqa: E402
 from app.voice.livekit_rooms import parse_room_name  # noqa: E402
+from app.voice.livekit_tokens import AGENT_NAME  # noqa: E402
 from app.voice.livekit_tts import build_speech, warm_phrases  # noqa: E402
 
 logger = logging.getLogger("sarthi.livekit_worker")
 
-# Built once per worker process, same two catalogs as app/main.py, reused
-# across every realtime session this process handles.
-_food_menu_store = MenuStore()
-_grocery_store = MenuStore(data_path=GROCERY_PATH, collection_name="grocery_catalog")
-
-
-def _menu_store_for(persona: str) -> MenuStore:
-    return _grocery_store if persona == "quick_commerce" else _food_menu_store
+@functools.cache
+def _menu_store_for(persona: str):
+    """The old four-persona demos read a local Chroma index. It is built on first use, and only if the
+    package is installed: the worker image hosted on LiveKit Cloud leaves Chroma out, since restaurant
+    calls (the real product) read their menus from Supabase. Returns None when unavailable."""
+    try:
+        from app.rag.menu_store import GROCERY_PATH, MenuStore
+    except ImportError:
+        return None
+    if persona == "quick_commerce":
+        return MenuStore(data_path=GROCERY_PATH, collection_name="grocery_catalog")
+    return MenuStore()
 
 
 server = AgentServer()
 
 
-@server.rtc_session(agent_name="sarthi-voice")
+@server.rtc_session(agent_name=AGENT_NAME)
 async def entrypoint(ctx: JobContext) -> None:
     await ctx.connect()
 
@@ -96,9 +101,11 @@ async def entrypoint(ctx: JobContext) -> None:
         )
         greeting = lang.greeting(language, agent.agent_name, menu.restaurant["name"])
     else:
-        agent = RestaurantOrderingAgent(
-            session_id=f"livekit:{session_id}", menu_store=_menu_store_for(persona), persona=persona
-        )
+        store = _menu_store_for(persona)
+        if store is None:
+            logger.error("persona %r needs the legacy menu index, which this worker doesn't have; ending call", persona)
+            return
+        agent = RestaurantOrderingAgent(session_id=f"livekit:{session_id}", menu_store=store, persona=persona)
         greeting = lang.greeting(language, agent.agent_name)
 
     agent.set_language(language)
