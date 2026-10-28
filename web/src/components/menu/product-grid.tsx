@@ -129,7 +129,7 @@ function DishCard({
         {variants.length === 0 ? (
           <span className="text-sm font-semibold">{formatPrice(item.price)}</span>
         ) : (
-          <span className="text-xs text-muted-foreground">Pick a size</span>
+          <span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground">Pick a size</span>
         )}
         {unavailable ? (
           <Badge variant="outline" className="text-[10px]">
@@ -140,8 +140,8 @@ function DishCard({
             {item.spice_level}
           </Badge>
         ) : (
-          <Badge variant="outline" className="text-[10px]">
-            {item.category}
+          <Badge variant="outline" className="max-w-[60%] min-w-0 justify-start text-[10px]">
+            <span className="truncate">{item.category}</span>
           </Badge>
         )}
       </CardContent>

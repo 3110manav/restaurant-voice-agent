@@ -1,9 +1,11 @@
 "use client";
 
 import { FloatingChatWidget } from "@/components/chat/floating-chat-widget";
+import { MobileOrderingUI } from "@/components/mobile/mobile-ordering-ui";
 import { OrderPanel } from "@/components/chat/order-panel";
 import { ProductGrid } from "@/components/menu/product-grid";
 import { useChatSession } from "@/hooks/use-chat-session";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { Persona } from "@/lib/personas";
 
 /**
@@ -24,9 +26,11 @@ export function OrderingPage({
   tableNo?: string | null;
 }) {
   const session = useChatSession(persona, { restaurant, tableNo });
+  const isMobile = useIsMobile();
 
   return (
-    <div className="flex flex-1 flex-col lg:flex-row">
+    // The bottom padding on phones keeps the last dishes clear of the pinned bottom bar.
+    <div className="flex flex-1 flex-col pb-32 lg:flex-row lg:pb-0">
       <ProductGrid
         persona={persona}
         restaurant={restaurant}
@@ -34,14 +38,18 @@ export function OrderingPage({
         onAdd={(itemId, variant) => session.addItemDirect(itemId, 1, variant)}
         onRemove={(itemId, variant) => session.removeItemDirect(itemId, 1, variant)}
       />
-      <div className="border-t p-4 lg:w-[280px] lg:border-t-0 lg:border-l">
+      <div className="hidden border-t p-4 lg:block lg:w-[280px] lg:border-t-0 lg:border-l">
         <OrderPanel
           cart={session.cart}
           serviceLog={session.serviceLog}
           serviceLogLabel={persona.hasServiceLog ? persona.serviceLogLabel : null}
         />
       </div>
-      <FloatingChatWidget persona={persona} session={session} />
+      {isMobile ? (
+        <MobileOrderingUI persona={persona} session={session} />
+      ) : (
+        <FloatingChatWidget persona={persona} session={session} />
+      )}
     </div>
   );
 }

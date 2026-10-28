@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { BarVisualizer, useRoomContext, useTranscriptions, useVoiceAssistant } from "@livekit/components-react";
+import { useLocalParticipant, useRoomContext, useTranscriptions, useVoiceAssistant } from "@livekit/components-react";
 import { PhoneOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { AgentOrb, orbStateFor } from "@/components/voice/agent-orb";
 import type { Persona } from "@/lib/personas";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,7 @@ export function RealtimeCallPanel({
   onEnd: () => void;
 }) {
   const { state, audioTrack } = useVoiceAssistant();
+  const { microphoneTrack } = useLocalParticipant();
   const transcriptions = useTranscriptions();
   const room = useRoomContext();
   const scrollEndRef = useRef<HTMLDivElement>(null);
@@ -60,32 +62,12 @@ export function RealtimeCallPanel({
         </p>
       </div>
 
-      <div
-        className={cn(
-          "relative flex size-32 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-300",
-          speaking && "border-primary shadow-[0_0_30px_var(--color-primary)]",
-          listening && "border-primary/50",
-          !speaking && !listening && "border-border"
-        )}
-      >
-        <div
-          style={
-            {
-              "--lk-fg": "var(--color-primary)",
-              "--lk-va-bar-bg": "color-mix(in oklch, var(--color-primary) 20%, transparent)",
-              "--lk-bg": "transparent",
-            } as React.CSSProperties
-          }
-          className="flex h-16 w-24 items-center justify-center"
-        >
-          <BarVisualizer
-            state={state}
-            track={audioTrack}
-            barCount={5}
-            options={{ minHeight: 15, maxHeight: 100 }}
-          />
-        </div>
-      </div>
+      <AgentOrb
+        className="size-28 shrink-0 sm:size-32"
+        state={orbStateFor(state)}
+        agentTrack={audioTrack?.publication?.track?.mediaStreamTrack}
+        userTrack={microphoneTrack?.track?.mediaStreamTrack}
+      />
 
       <div className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto text-xs">
         {transcriptions.map((t, i) => {

@@ -418,6 +418,19 @@ answer is worked out. The call's speech adapter splits sentences with no minimum
 (`app/voice/livekit_worker.py`), so each sentence of a longer reply also starts playing as soon as it
 is ready.
 
+**Phone layout.** Below the `lg` breakpoint the ordering page has a bar pinned to the bottom (the cart
+summary and an "Ask Kabir" button). The chat and the cart open as bottom sheets over a dimmed menu
+(half height, drag or tap the handle for full height, tap outside to close; they rise above the
+on-screen keyboard). A voice call is lifted out of the chat so it survives closing it: while it is live a
+slim strip above the bar (orb, state, latest line, mute, end) lets the guest keep browsing and ordering.
+A brief "Added ..." note appears when the cart grows, however it grew. Desktop keeps the floating
+chat bubble and the cart column. See `web/src/components/mobile/` and `web/src/hooks/use-realtime-call.ts`.
+
+**The call screen.** A call shows a soft, grainy gradient orb (`web/src/components/voice/agent-orb.tsx`,
+one WebGL shader, tinted with the restaurant's colour). It drifts when idle, stirs while the guest talks,
+shimmers while Kabir thinks, and while Kabir speaks waves travel inward through it in time with his real
+voice level (a Web Audio analyser on the agent's track). Without WebGL it falls back to a pulsing gradient circle.
+
 **Staying warm.** The backend loads every restaurant's menu at startup, the web app pings `/api/health`
 as soon as the landing page opens, and a menu that is slow to load says why. The free Render tier still
 sleeps after about 15 minutes idle, so for demos add a free monitor (UptimeRobot or cron-job.org) that

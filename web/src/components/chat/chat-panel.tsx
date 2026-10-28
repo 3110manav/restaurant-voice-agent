@@ -17,11 +17,18 @@ export function ChatPanel({
   session,
   placeholder,
   scrollHeight = "60vh",
+  onRequestCall,
+  callBusy = false,
 }: {
   persona: Persona;
   session: ChatSession;
   placeholder: string;
   scrollHeight?: string;
+  /** When given, the phone button asks the parent to handle the call (the phone layout shows it as a
+   * strip that outlives this panel) instead of showing the call inside the panel. */
+  onRequestCall?: () => void;
+  /** A call is already live, so the phone button is disabled. */
+  callBusy?: boolean;
 }) {
   const {
     sessionId,
@@ -97,8 +104,8 @@ export function ChatPanel({
           type="button"
           variant="outline"
           size="icon"
-          onClick={() => setCallActive(true)}
-          disabled={!sessionId}
+          onClick={() => (onRequestCall ? onRequestCall() : setCallActive(true))}
+          disabled={!sessionId || callBusy}
           aria-label={`Start a realtime call with ${persona.agentName}`}
           title="Realtime voice call"
         >
