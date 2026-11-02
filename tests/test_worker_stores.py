@@ -1,8 +1,10 @@
 """The worker loads the old four-persona menu index only on demand, so the hosted worker image can leave Chroma out."""
 import sys
+import pytest
 
 
 def test_legacy_menu_index_is_optional(monkeypatch):
+    pytest.importorskip("livekit.agents")
     monkeypatch.setenv("GROQ_API_KEY", "test")
     monkeypatch.setenv("SARVAM_API_KEY", "test")
     from app.voice import livekit_worker as worker

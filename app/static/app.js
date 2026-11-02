@@ -3,10 +3,10 @@
   sessionStorage.setItem("voice-agent-session", sessionId);
 
   const state = {
-    persona: "online",
-    transcripts: { online: [], waiter: [] },
-    cart: { online: [], waiter: [] },
-    serviceLog: { online: [], waiter: [] },
+    persona: "quick_commerce",
+    transcripts: { quick_commerce: [], waiter: [] },
+    cart: { quick_commerce: [], waiter: [] },
+    serviceLog: { quick_commerce: [], waiter: [] },
   };
 
   const el = {

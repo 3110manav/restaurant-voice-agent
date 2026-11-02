@@ -22,7 +22,13 @@ export interface Persona {
   layout: "grid" | "direct-chat";
 }
 
-export const PERSONAS: Persona[] = [
+/**
+ * The agents that are live: Veer (kirana) and Kabir (restaurants). The others stay defined below but
+ * get no link or page. Add a key here to bring one back (and to ENABLED_PERSONAS in app/agent/graph.py).
+ */
+const ENABLED_PERSONA_KEYS: PersonaKey[] = ["quick_commerce", "waiter"];
+
+const ALL_PERSONAS: Persona[] = [
   {
     slug: "online",
     key: "online",
@@ -38,7 +44,7 @@ export const PERSONAS: Persona[] = [
     slug: "quick-commerce",
     key: "quick_commerce",
     agentName: "Veer",
-    vertical: "Quick commerce",
+    vertical: "Kirana",
     tagline: "Everyday essentials in minutes, like Instamart or Blinkit.",
     placeholder: "Add shampoo and a pack of batteries, quick...",
     hasServiceLog: false,
@@ -68,6 +74,8 @@ export const PERSONAS: Persona[] = [
     layout: "direct-chat",
   },
 ];
+
+export const PERSONAS = ALL_PERSONAS.filter((p) => ENABLED_PERSONA_KEYS.includes(p.key));
 
 export function getPersonaBySlug(slug: string): Persona | undefined {
   return PERSONAS.find((p) => p.slug === slug);

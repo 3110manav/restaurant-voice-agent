@@ -46,7 +46,7 @@ from livekit.agents import Agent, AgentServer, AgentSession, JobContext  # noqa:
 from livekit.plugins import groq, silero  # noqa: E402
 
 from app.agent import language as lang  # noqa: E402
-from app.agent.graph import RestaurantOrderingAgent  # noqa: E402
+from app.agent.graph import ENABLED_PERSONAS, RestaurantOrderingAgent  # noqa: E402
 from app.menu.snapshot import LiveMenu, menu_cache  # noqa: E402
 from app.voice.livekit_llm import SarthiLLM  # noqa: E402
 from app.voice.livekit_rooms import parse_room_name  # noqa: E402
@@ -57,16 +57,14 @@ logger = logging.getLogger("sarthi.livekit_worker")
 
 @functools.cache
 def _menu_store_for(persona: str):
-    """The old four-persona demos read a local Chroma index. It is built on first use, and only if the
-    package is installed: the worker image hosted on LiveKit Cloud leaves Chroma out, since restaurant
-    calls (the real product) read their menus from Supabase. Returns None when unavailable."""
+    """Kirana calls (and the waiter without a restaurant) read a local Chroma index, loaded on first
+    use. Restaurant calls read their menus from Supabase and never touch it. Returns None when Chroma
+    isn't installed, so the worker declines the call instead of crashing."""
     try:
-        from app.rag.menu_store import GROCERY_PATH, MenuStore
+        from app.rag.menu_store import store_for_persona
     except ImportError:
         return None
-    if persona == "quick_commerce":
-        return MenuStore(data_path=GROCERY_PATH, collection_name="grocery_catalog")
-    return MenuStore()
+    return store_for_persona(persona)
 
 
 server = AgentServer()
@@ -78,7 +76,7 @@ async def entrypoint(ctx: JobContext) -> None:
 
     persona, session_id = parse_room_name(ctx.room.name)
     # The web app tells us which restaurant (and table) this call is for through the
-    # dispatch metadata; without it this is a legacy four-persona call.
+    # dispatch metadata; without it this is a kirana (or standalone waiter) call.
     meta = json.loads(ctx.job.metadata or "{}")
     restaurant_slug, table_no = meta.get("restaurant"), meta.get("table_no")
     language = lang.normalize(meta.get("language"))
@@ -101,9 +99,12 @@ async def entrypoint(ctx: JobContext) -> None:
         )
         greeting = lang.greeting(language, agent.agent_name, menu.restaurant["name"])
     else:
+        if persona not in ENABLED_PERSONAS:
+            logger.error("persona %r is not enabled; ending call", persona)
+            return
         store = _menu_store_for(persona)
         if store is None:
-            logger.error("persona %r needs the legacy menu index, which this worker doesn't have; ending call", persona)
+            logger.error("persona %r needs the local menu index, which this worker doesn't have; ending call", persona)
             return
         agent = RestaurantOrderingAgent(session_id=f"livekit:{session_id}", menu_store=store, persona=persona)
         greeting = lang.greeting(language, agent.agent_name)

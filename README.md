@@ -5,6 +5,12 @@ portfolio/learning project covering the full stack of an applied LLM
 product: tool-calling agents, RAG, speech-to-text/text-to-speech, a
 premium Next.js frontend, and (optionally) real persistence via Supabase.
 
+> **Live right now: Veer (kirana) and Kabir (restaurants) only.** Meera and Ira
+> are hidden: their code stays, but the API, voice worker, CLIs and web app
+> refuse them. To bring one back, add its key to `ENABLED_PERSONAS` in
+> `app/agent/graph.py` and `ENABLED_PERSONA_KEYS` in `web/src/lib/personas.ts`.
+> Everything below that mentions all four describes the full engine.
+
 One brand, one shared agent engine, four personas — each with its own name
 and its own job:
 

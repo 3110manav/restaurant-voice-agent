@@ -7,7 +7,7 @@ export const maxDuration = 60;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const persona = searchParams.get("persona") ?? "online";
+  const persona = searchParams.get("persona") ?? "waiter";
   const restaurant = searchParams.get("restaurant");
   const query = new URLSearchParams({ persona });
   if (restaurant) query.set("restaurant", restaurant);

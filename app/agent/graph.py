@@ -189,6 +189,11 @@ AGENT_NAMES = {
     "hotel": "Ira",
 }
 
+# The agents that are live: Veer (kirana) and Kabir (restaurants). The others stay defined above but
+# can't be reached through the API, the voice worker or the CLIs. Add a key here to bring one back
+# (and to ENABLED_PERSONA_KEYS in web/src/lib/personas.ts for the web app).
+ENABLED_PERSONAS = ("quick_commerce", "waiter")
+
 
 class AgentBusyError(Exception):
     """The LLM provider's rate limit is exhausted even after retries (Groq's free tier
@@ -204,7 +209,7 @@ class RestaurantOrderingAgent:
         self,
         session_id: str,
         menu_store,
-        persona: str = "online",
+        persona: str = "waiter",
         model: str = "openai/gpt-oss-120b",
         restaurant: dict | None = None,
         table_no: str | None = None,
