@@ -94,7 +94,11 @@ def _quantity(n: int, language: str) -> str:
 
 
 def _label(line: dict) -> str:
-    return f"{line['variant']} {line['name']}" if line.get("variant") else line["name"]
+    variant = line.get("variant")
+    if not variant:
+        return line["name"]
+    # "Large Margherita", but "Sugar 1 kg": "1 1 kg Sugar" would be hard to follow when spoken.
+    return f"{line['name']} {variant}" if variant[0].isdigit() else f"{variant} {line['name']}"
 
 
 def _join(parts: list[str], language: str) -> str:

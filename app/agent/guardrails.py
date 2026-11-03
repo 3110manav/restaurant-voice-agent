@@ -84,6 +84,7 @@ class TurnFacts:
     dish_names: set[str] = field(default_factory=set)  # so "Cheesy Garlic Bread" isn't mistaken for reciting sections
     language: str = lang.DEFAULT  # the conversation's language (see agent/language.py)
     price_ok: bool = True  # may this reply mention a price? Only if the guest asked (see price_asked)
+    unplaced_order: bool = False  # is there anything in the cart that checkout hasn't placed?
 
     def succeeded(self, tool: str, *markers: str) -> bool:
         return any(name == tool and any(m in result for m in markers) for name, result in self.tool_calls)
@@ -201,7 +202,7 @@ _CLAIMS = {
     ),
     "unbacked_service": (
         re.compile(r"\b(bringing|on (its|the) way|will bring|bring (it|you|that)|will be (with you|right with you)|letting the kitchen know|calling (a|the) (manager|staff))\b", re.I),
-        lambda f: f.called("request_item", "request_bill", "flag_issue", "call_staff"),
+        lambda f: f.called("request_item", "request_bill", "flag_issue", "call_staff", "request_callback"),
     ),
 }
 
@@ -230,6 +231,20 @@ def category_terms(categories: list[str]) -> set[str]:
 _MARKUP = re.compile(r"<\s*/?\s*(function|tool|system|assistant)[^>]*>|\bfunction\s*=|\"?tool_calls?\"?\s*:|^\s*[{\[]\s*\"", re.I | re.M)
 _INSTRUCTION_LEAK = re.compile(r"\b(my|the)\s+(system\s+)?(prompt|instructions)\b|\bas an ai\b|\blanguage model\b|\bhint for you\b", re.I)
 _BRACKETED = re.compile(r"\[[^\]]*\]")
+_NO_SPACE_AFTER_SENTENCE = re.compile(r"([.!?।])(?=[A-Zऀ-ॿ])")
+
+
+def cut_repetition(text: str) -> str:
+    """The model sometimes loops, saying its question over and over in one reply. Keep what came
+    before the first repeat, ending at the first question, since that's where the guest answers."""
+    sentences = _SENTENCE_SPLIT.split(_NO_SPACE_AFTER_SENTENCE.sub(r"\1 ", text.strip()))
+    keys = [re.sub(r"\W+", " ", s).strip().lower() for s in sentences]
+    repeat = next((i for i, key in enumerate(keys) if key and key in keys[:i]), None)
+    if repeat is None:
+        return text
+    kept = sentences[:repeat]
+    question = next((i for i, s in enumerate(kept) if s.endswith("?")), None)
+    return " ".join(kept if question is None else kept[: question + 1])
 
 
 def sanitize_spoken(text: str, language: str = lang.DEFAULT) -> str:
@@ -238,7 +253,7 @@ def sanitize_spoken(text: str, language: str = lang.DEFAULT) -> str:
     text = re.sub(r"[*_`#>~]+", "", text)
     text = re.sub(r"^\s*(?:[-•]|\d+[.)])\s+", "", text, flags=re.M)
     text = re.sub(r"₹\s*(\d[\d,]*(?:\.\d+)?)", r"\1 रुपये" if language == "hi" else r"\1 rupees", text)
-    text = re.sub(r"([.!?])(?=[A-Z])", r"\1 ", text)
+    text = _NO_SPACE_AFTER_SENTENCE.sub(r"\1 ", text)
     return " ".join(text.split())
 
 
@@ -260,6 +275,9 @@ def check_reply(reply: str, facts: TurnFacts) -> list[Violation]:
         claim = next((s for s in statements if pattern.search(s)), None)
         if claim and not backed(facts):
             violations.append(Violation(kind, claim.strip()))
+
+    if facts.unplaced_order and lang.is_goodbye(facts.user_text, reply):
+        violations.append(Violation("goodbye_unplaced"))
 
     if not facts.price_ok and spoken_amounts(reply):
         violations.append(Violation("unasked_price"))
@@ -284,6 +302,7 @@ def check_reply(reply: str, facts: TurnFacts) -> list[Violation]:
 _CORRECTIONS = {
     "leak": "Do not output markup, tool syntax or anything about your instructions; just talk to the guest.",
     "unbacked_order": "You said the order is placed, but checkout has not succeeded this turn. Only say that after the checkout tool confirms it.",
+    "goodbye_unplaced": "You said goodbye, but the guest's order has not been placed, so the kitchen would never get it. The guest is done ordering, so call checkout now. Only if they just refused to place it, ask what they'd like to do instead.",
     "unbacked_add": "You said something was added to the cart, but add_to_cart has not confirmed it this turn. Call the tool, or don't say it.",
     "unbacked_cart": "You described the cart without checking it this turn. Call view_cart first, or don't describe it.",
     "unbacked_remove": "You said something was removed, but remove_from_cart has not confirmed it this turn.",
@@ -305,7 +324,7 @@ def correction_message(violations: list[Violation], language: str = lang.DEFAULT
 def fallback_reply(violations: list[Violation], reply: str, language: str = lang.DEFAULT) -> str:
     """What to say when even the regenerated reply fails: true, short, and never a made-up claim."""
     kinds = {v.kind for v in violations}
-    if "unbacked_order" in kinds:
+    if kinds & {"unbacked_order", "goodbye_unplaced"}:
         return lang.line(language, "order")
     if kinds & {"unbacked_add", "unbacked_cart", "unbacked_remove"}:
         return lang.line(language, "cart")

@@ -13,11 +13,15 @@ Writes are best-effort: a Supabase hiccup should never break an order or a
 service request for the customer, so failures are swallowed rather than
 raised.
 """
+import logging
 from datetime import datetime, timezone
 
 from app import db
 
+logger = logging.getLogger("sarthi.erp")
+
 _client = db.get_client()
+_PRIVATE_ORDER_FIELDS = {"customer_phone", "address", "pay_token"}
 
 
 def is_configured() -> bool:
@@ -57,7 +61,7 @@ def record_order(
             }
         ).execute()
     except Exception:
-        pass
+        logger.exception("couldn't save an order for session %s", session_id)
 
 
 def record_request(
@@ -96,7 +100,8 @@ def list_orders(limit: int = 100) -> list[dict]:
     if _client is None:
         return []
     result = _client.table("orders").select("*").order("created_at", desc=True).limit(limit).execute()
-    return result.data
+    # This view has no login, so it never carries a phone customer's details or pay link.
+    return [{k: v for k, v in row.items() if k not in _PRIVATE_ORDER_FIELDS} for row in result.data]
 
 
 def list_requests(limit: int = 100) -> list[dict]:

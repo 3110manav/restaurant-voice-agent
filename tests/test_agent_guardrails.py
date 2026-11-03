@@ -61,6 +61,53 @@ def test_a_false_order_claim_is_regenerated(agent):
     assert not any("placed, thank you" in t for t in history_text(agent))  # the bad draft never enters the history
 
 
+def test_a_looping_reply_is_cut_without_another_model_call(agent):
+    question = "Which size would you like, Regular or Large?"
+    agent.llm_with_tools = ScriptedLLM(AIMessage(content=f"{question}Sure, just tell me the size.{question}" * 20))
+    assert agent.send("okay") == question
+    assert len(agent.llm_with_tools.seen) == 1  # no regeneration, which could guess a size and add it
+    assert history_text(agent)[-1] == question  # the loop doesn't enter the history either
+
+
+def test_a_call_only_ends_once_nothing_is_waiting_to_be_placed(agent):
+    goodbye = ("thank you", "You're welcome! Enjoy your meal.")
+    assert agent.conversation_over(*goodbye)  # nothing ordered at all
+    agent.cart.append({"id": "m1", "name": "Paneer Tikka", "price": 280.0, "quantity": 1})
+    assert not agent.conversation_over(*goodbye)
+    agent._mark_placed()
+    assert agent.conversation_over(*goodbye)
+    agent.cart[0]["quantity"] = 2  # ordered more after placing it
+    assert not agent.conversation_over(*goodbye)
+
+
+def test_saying_goodbye_with_an_unplaced_order_places_it_and_ends_the_call(agent):
+    # What a guest saw: "anything else?", "No", "Enjoy your meal!", and the kitchen never got the order.
+    agent.sales = None
+    agent.cart.append({"id": "m1", "name": "Paneer Tikka", "price": 280.0, "quantity": 1})
+    agent.llm_with_tools = ScriptedLLM(AIMessage(content="Enjoy your meal!"), tool_call("checkout", {}), AIMessage(content="Your order is placed, enjoy!"))
+    reply = agent.send("No")
+    assert "Internal check failed" in str(agent.llm_with_tools.seen[1][-1].content)
+    assert not agent.has_unplaced_order
+    assert "placed" in reply
+    assert agent.conversation_over("No", reply)
+
+
+def test_a_goodbye_that_still_does_not_place_the_order_asks_instead(agent):
+    agent.cart.append({"id": "m1", "name": "Paneer Tikka", "price": 280.0, "quantity": 1})
+    agent.llm_with_tools = ScriptedLLM(AIMessage(content="Enjoy your meal!"), AIMessage(content="Have a good day!"))
+    reply = agent.send("No")
+    assert "haven't placed" in reply
+    assert not agent.conversation_over("No", reply)
+
+
+def test_the_call_stays_open_on_the_turn_after_the_order_unless_they_say_goodbye(agent):
+    agent.cart.append({"id": "m1", "name": "Paneer Tikka", "price": 280.0, "quantity": 1})
+    agent._mark_placed()
+    agent.llm_with_tools = ScriptedLLM(AIMessage(content="Sure, one moment."))
+    reply = agent.send("can you tell me more about the chef")
+    assert not agent.conversation_over("can you tell me more about the chef", reply)
+
+
 def test_two_bad_drafts_fall_back_to_a_safe_true_reply(agent):
     agent.llm_with_tools = ScriptedLLM(AIMessage(content="Order confirmed!"), AIMessage(content="Your order is confirmed."))
     assert "haven't placed" in agent.send("that's all")

@@ -27,6 +27,7 @@ ENGLISH_DEFAULT_VOICE = "hannah"
 HINDI_MODEL = "bulbul:v3"
 HINDI_DEFAULT_VOICE = "shubh"
 HINDI_LANGUAGE_CODE = "hi-IN"
+ENGLISH_INDIA_LANGUAGE_CODE = "en-IN"
 
 
 def _synthesize_english(text: str, voice: str = ENGLISH_DEFAULT_VOICE) -> bytes:
@@ -39,10 +40,10 @@ def _synthesize_english(text: str, voice: str = ENGLISH_DEFAULT_VOICE) -> bytes:
     return response.read()
 
 
-def _synthesize_hindi(text: str, voice: str = HINDI_DEFAULT_VOICE) -> bytes:
+def _synthesize_hindi(text: str, voice: str = HINDI_DEFAULT_VOICE, language_code: str = HINDI_LANGUAGE_CODE) -> bytes:
     result = _sarvam_client.text_to_speech.convert(
         text=text,
-        language_code=HINDI_LANGUAGE_CODE,
+        language_code=language_code,
         model=HINDI_MODEL,
         speaker=voice,
         output_audio_codec="wav",
@@ -57,6 +58,13 @@ def synthesize(text: str, persona: str = "online", language: str | None = None) 
     if use_hindi_voice(text, language):
         return _synthesize_hindi(text, voices["hi"])
     return _synthesize_english(text, voices["en"])
+
+
+def synthesize_sarvam(text: str, persona: str = "online") -> bytes:
+    """Phone calls use one voice for the whole call: Bulbul speaks both Hindi and Indian English,
+    chosen from the sentence's script, so a call that switches language doesn't switch speaker."""
+    code = HINDI_LANGUAGE_CODE if use_hindi_voice(text, None) else ENGLISH_INDIA_LANGUAGE_CODE
+    return _synthesize_hindi(text, voices_for(persona)["hi"], code)
 
 
 def speak(text: str, persona: str = "online") -> None:

@@ -17,6 +17,9 @@ latency shape as the text/push-to-talk UI today.
 from __future__ import annotations
 
 import asyncio
+import logging
+import time
+from collections.abc import Callable
 
 from livekit.agents import APIConnectOptions
 from livekit.agents.llm import LLM, ChatChunk, ChatContext, ChatMessage, ChoiceDelta, LLMStream, Tool
@@ -27,6 +30,8 @@ from livekit.agents.utils import shortuuid
 from app.agent import language as lang
 from app.agent.graph import AgentBusyError, RestaurantOrderingAgent
 from app.voice import cart_sync
+
+logger = logging.getLogger("sarthi.livekit_llm")
 
 
 def _last_user_text(chat_ctx: ChatContext) -> str:
@@ -51,8 +56,10 @@ class SarthiLLM(LLM):
         persona: str,
         restaurant: str | None = None,
         table_no: str | None = None,
+        on_goodbye: Callable[[], None] | None = None,
     ) -> None:
         super().__init__()
+        self._on_goodbye = on_goodbye
         self._agent = agent
         self._session_id = session_id
         self._persona = persona
@@ -100,10 +107,16 @@ class SarthiLLMStream(LLMStream):
             self._event_ch.send_nowait(
                 ChatChunk(id=shortuuid(), delta=ChoiceDelta(role="assistant", content=f"{ack} "))
             )
+        started = time.monotonic()
         try:
             reply = await loop.run_in_executor(None, agent.send, user_text)
         except AgentBusyError:
             reply = lang.line(agent.language, "busy")
+        except Exception:  # a timed out model call, say: the guest must not be left in silence
+            logger.exception("agent failed on this turn")
+            reply = lang.line(agent.language, "default")
+        # The session's own LLM timing stops at the acknowledgement, so this is the real thinking time.
+        logger.info("agent took %d ms", (time.monotonic() - started) * 1000)
 
         asyncio.create_task(
             cart_sync.sync_cart(
@@ -117,3 +130,5 @@ class SarthiLLMStream(LLMStream):
                 delta=ChoiceDelta(role="assistant", content=reply),
             )
         )
+        if llm._on_goodbye and agent.conversation_over(user_text, reply):
+            llm._on_goodbye()

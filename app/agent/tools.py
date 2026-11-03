@@ -158,10 +158,14 @@ def build_tools(
     sales: SalesState | None = None,
     events: list[dict] | None = None,
     price_ok=None,
+    checkout_handler=None,
+    on_placed=None,
 ) -> list:
     """`events`, when given, collects what each action did, so simple turns can be answered in code
     (app/agent/replies.py). `price_ok()` says whether the guest has asked about prices this turn; if it
-    returns False the tools hide prices from the model (the waiter only talks money when asked)."""
+    returns False the tools hide prices from the model (the waiter only talks money when asked).
+    `checkout_handler()`, when given, takes over checkout (phone orders, app/phone/ordering.py).
+    `on_placed()`, when given, is told each time checkout places the order."""
 
     def prices() -> bool:
         return True if price_ok is None else bool(price_ok())
@@ -271,6 +275,8 @@ def build_tools(
     @tool
     def checkout() -> str:
         """Finalize the order. Only call this after the customer explicitly confirms they're done ordering."""
+        if checkout_handler is not None:
+            return checkout_handler()
         if not cart:
             note({"type": "problem"})
             return "Can't check out — the cart is empty."
@@ -284,6 +290,8 @@ def build_tools(
         summary = ", ".join(f"{line['quantity']}x {_line_label(line)}" for line in cart)
         erp.record_order(session_id, persona, list(cart), total, restaurant_id=restaurant_id, table_no=table_no)
         note({"type": "checkout"})
+        if on_placed:
+            on_placed()
         return f"Order placed: {summary}." + (f" Total: {format_price(total)}." if prices() else "") + " Thank you!"
 
     tools = [search_menu, get_item_details, add_to_cart, remove_from_cart, view_cart, checkout]

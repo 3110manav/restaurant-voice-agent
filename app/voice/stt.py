@@ -1,28 +1,26 @@
-"""Speech-to-text via Groq's hosted Whisper.
+"""Speech-to-text via Sarvam's Saaras, for push-to-talk and the CLIs.
 
-The conversation's language (the web app's English / हिन्दी toggle) is passed to Whisper, so a short
-or accented English clip can't be mis-detected as Hindi and written in Devanagari. Without a language
-(the legacy CLIs) Whisper auto-detects.
+Codemix mode hears Hindi, English and a mix of the two, so a guest can speak either way whatever the
+web app's English / हिन्दी toggle says. The toggle still decides the language of the reply.
 """
-from groq import Groq
+from sarvamai import SarvamAI
 
 # Without an explicit timeout, a stalled connection blocks forever with no
 # visible error — bound it so a network hiccup fails loudly instead of
 # hanging the CLI.
-_client = Groq(timeout=30.0, max_retries=1)  # reads GROQ_API_KEY from the environment
+_client = SarvamAI(timeout=30.0)  # reads SARVAM_API_KEY from the environment
 
-MODEL = "whisper-large-v3-turbo"
+MODEL = "saaras:v3"
 
 
-def transcribe_bytes(data: bytes, filename: str = "audio.wav", language: str | None = None) -> str:
-    options = {"language": language} if language else {}
-    result = _client.audio.transcriptions.create(
+def transcribe_bytes(data: bytes, filename: str = "audio.wav") -> str:
+    result = _client.speech_to_text.transcribe(
         file=(filename, data),
         model=MODEL,
-        response_format="text",
-        **options,
+        mode="codemix",
+        language_code="unknown",
     )
-    return str(result).strip()
+    return result.transcript.strip()
 
 
 def transcribe(audio_path: str) -> str:

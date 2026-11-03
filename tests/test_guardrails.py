@@ -158,6 +158,28 @@ def test_sanitize_fixes_missing_space_between_sentences():
     assert g.sanitize_spoken("Anything else?Would you like a drink?") == "Anything else? Would you like a drink?"
 
 
+def test_a_looping_reply_is_cut_at_its_first_question():
+    looped = (
+        "Which size would you like—Regular, Medium, or Large? Sure, just let me know the size you prefer. "
+        "Which size would you like—Regular, Medium, or Large? Which size would you like—Regular, Medium, or Large?"
+    )
+    assert g.cut_repetition(looped) == "Which size would you like—Regular, Medium, or Large?"
+
+
+def test_repeats_are_found_without_spaces_or_matching_punctuation():
+    assert g.cut_repetition("Regular, Medium, or Large?Sure.Regular, Medium or Large?") == "Regular, Medium, or Large?"
+    assert g.cut_repetition("कौन सा साइज़ चाहिए? कौन सा साइज़ चाहिए?") == "कौन सा साइज़ चाहिए?"
+
+
+def test_a_repeat_with_no_question_keeps_what_came_before_it():
+    assert g.cut_repetition("Added one naan. Coming up. Added one naan.") == "Added one naan. Coming up."
+
+
+def test_a_normal_reply_is_left_alone():
+    reply = "Added one naan. That's 3.5 rupees more. Anything else?"
+    assert g.cut_repetition(reply) == reply
+
+
 def test_fallbacks_never_make_a_false_claim():
     assert "haven't placed" in g.fallback_reply([g.Violation("unbacked_order")], "")
     assert g.fallback_reply([g.Violation("too_long")], "One. Two. Three. Four.") == "One. Two."

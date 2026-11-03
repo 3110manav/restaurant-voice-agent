@@ -16,9 +16,8 @@ session's cart/history to resume — reusing the exact same
 RestaurantOrderingAgent, tools, and catalogs as the text and push-to-talk
 paths via SarthiLLM (app/voice/livekit_llm.py). Silero VAD plus LiveKit's
 own turn detection give barge-in (interrupting the agent mid-sentence) for
-free; Groq's Whisper handles STT, the same model the push-to-talk path uses.
-TTS is SarthiTTS (app/voice/livekit_tts.py), wrapping the existing
-English/Hindi routing rather than a second TTS integration.
+free. Speech is all Sarvam, as on phone calls: Saaras for STT, and Bulbul
+for TTS through SarthiTTS (app/voice/livekit_tts.py). The LLM stays on Groq.
 
 Known limitation: this worker is a separate OS process from the FastAPI
 app, so a realtime voice session keeps its own fresh in-memory cart rather
@@ -43,12 +42,20 @@ load_dotenv()
 
 from livekit import agents  # noqa: E402
 from livekit.agents import Agent, AgentServer, AgentSession, JobContext  # noqa: E402
-from livekit.plugins import groq, silero  # noqa: E402
+from livekit.plugins import silero  # noqa: E402
 
 from app.agent import language as lang  # noqa: E402
 from app.agent.graph import ENABLED_PERSONAS, RestaurantOrderingAgent  # noqa: E402
 from app.menu.snapshot import LiveMenu, menu_cache  # noqa: E402
 from app.voice.livekit_llm import SarthiLLM  # noqa: E402
+from app.voice.livekit_phone import (  # noqa: E402
+    TURN_HANDLING,
+    _timings,
+    build_stt,
+    hang_up_after_goodbye,
+    is_phone_room,
+    phone_entrypoint,
+)
 from app.voice.livekit_rooms import parse_room_name  # noqa: E402
 from app.voice.livekit_tokens import AGENT_NAME  # noqa: E402
 from app.voice.livekit_tts import build_speech, warm_phrases  # noqa: E402
@@ -74,6 +81,10 @@ server = AgentServer()
 async def entrypoint(ctx: JobContext) -> None:
     await ctx.connect()
 
+    if is_phone_room(ctx.room.name):
+        await phone_entrypoint(ctx)
+        return
+
     persona, session_id = parse_room_name(ctx.room.name)
     # The web app tells us which restaurant (and table) this call is for through the
     # dispatch metadata; without it this is a kirana (or standalone waiter) call.
@@ -96,6 +107,7 @@ async def entrypoint(ctx: JobContext) -> None:
             persona=persona,
             restaurant=menu.restaurant,
             table_no=table_no,
+            live_call=True,
         )
         greeting = lang.greeting(language, agent.agent_name, menu.restaurant["name"])
     else:
@@ -106,21 +118,31 @@ async def entrypoint(ctx: JobContext) -> None:
         if store is None:
             logger.error("persona %r needs the local menu index, which this worker doesn't have; ending call", persona)
             return
-        agent = RestaurantOrderingAgent(session_id=f"livekit:{session_id}", menu_store=store, persona=persona)
+        agent = RestaurantOrderingAgent(session_id=f"livekit:{session_id}", menu_store=store, persona=persona, live_call=True)
         greeting = lang.greeting(language, agent.agent_name)
 
     agent.set_language(language)
 
     session = AgentSession(
-        stt=groq.STT(model="whisper-large-v3-turbo", language=language),
-        llm=SarthiLLM(agent, session_id=session_id, persona=persona, restaurant=restaurant_slug, table_no=table_no),
-        tts=build_speech(persona, language),
+        stt=build_stt(),
+        llm=SarthiLLM(
+            agent, session_id=session_id, persona=persona, restaurant=restaurant_slug, table_no=table_no,
+            on_goodbye=lambda: hang_up_after_goodbye(ctx, session),
+        ),
+        tts=build_speech(persona, language, sarvam_only=True),
         vad=silero.VAD.load(),
+        turn_handling=TURN_HANDLING,
     )
+
+    @session.on("conversation_item_added")
+    def _on_item(event) -> None:
+        timings = _timings(event.item)
+        if timings:
+            logger.info("turn timings in ms: %s", timings)
 
     await session.start(Agent(instructions=agent.system_prompt), room=ctx.room)
     # Pre-generate the acknowledgement phrases in the background so they play instantly.
-    asyncio.get_running_loop().run_in_executor(None, warm_phrases, persona, language, lang.all_acks(language))
+    asyncio.get_running_loop().run_in_executor(None, warm_phrases, persona, language, lang.all_acks(language), True)
     session.say(greeting, allow_interruptions=True)
 
 

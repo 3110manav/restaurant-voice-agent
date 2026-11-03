@@ -2,8 +2,8 @@
 
 POST /chat        {"session_id", "message", "persona"} -> reply + cart + service_log
 POST /chat/voice   multipart: audio file + session_id + persona -> transcript,
-                   reply, cart, service_log, and base64 WAV audio (English via
-                   Orpheus/Groq, Hindi via Sarvam AI's Bulbul)
+                   reply, cart, service_log, and base64 WAV audio (speech is
+                   all Sarvam AI: Saaras hears, Bulbul speaks)
 GET  /menu?persona -> the catalog for that persona (food menu, or the
                    separate grocery catalog for quick_commerce), for
                    browsing UIs (product grids)
@@ -60,10 +60,12 @@ from app.menu import repository  # noqa: E402
 from app.menu.credits import photo_credits  # noqa: E402
 from app.menu.snapshot import LiveMenu, menu_cache  # noqa: E402
 from app.owner_api import router as owner_router  # noqa: E402
+from app.phone import outbox  # noqa: E402
+from app.phone.router import router as phone_router  # noqa: E402
 from app.rag.menu_store import GROCERY_PATH, MenuStore  # noqa: E402
 from app.voice import livekit_tokens  # noqa: E402
 from app.voice.stt import transcribe_bytes  # noqa: E402
-from app.voice.tts import synthesize  # noqa: E402
+from app.voice.tts import synthesize_sarvam  # noqa: E402
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -84,12 +86,15 @@ def _warm_menus() -> None:
 @contextlib.asynccontextmanager
 async def lifespan(_app: FastAPI):
     threading.Thread(target=_warm_menus, daemon=True).start()  # never delays the server becoming ready
+    stop_outbox = outbox.start()  # retries phone orders' WhatsApp messages
     yield
+    stop_outbox.set()
 
 
 app = FastAPI(title="Voice Ordering Agent", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.include_router(owner_router)
+app.include_router(phone_router)
 
 # Two catalogs: the food menu (waiter) and a separate grocery catalog for
 # quick_commerce (shampoo, batteries, snacks, etc.) — see
@@ -278,7 +283,7 @@ async def chat_voice(
     persona = agent.persona
 
     audio_bytes = await audio.read()
-    transcript = transcribe_bytes(audio_bytes, filename=audio.filename or "audio.webm", language=agent.language)
+    transcript = transcribe_bytes(audio_bytes, filename=audio.filename or "audio.webm")
 
     if not transcript:
         return VoiceChatResponse(transcript="", reply="", cart=agent.cart, service_log=agent.service_log)
@@ -286,7 +291,7 @@ async def chat_voice(
     reply = send_or_busy(agent, transcript)
 
     try:
-        reply_audio_b64 = base64.b64encode(synthesize(reply, persona, agent.language)).decode("ascii")
+        reply_audio_b64 = base64.b64encode(synthesize_sarvam(reply, persona)).decode("ascii")
     except Exception:
         reply_audio_b64 = None  # TTS unavailable/blocked — client falls back to text only
 

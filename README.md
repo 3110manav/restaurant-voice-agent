@@ -119,10 +119,9 @@ adding a third catalog later is a one-line call, not a new class.
 - `app/voice/stt.py` / `app/voice/tts.py` — speech-to-text via Groq-hosted
   Whisper; text-to-speech auto-routed by script (Groq's Orpheus for
   English, Sarvam AI's Bulbul for Hindi).
-- `app/voice/voices.py` — which voice each persona speaks with, so the voice
-  matches the agent's gender: Meera and Ira are female (Orpheus `hannah` /
-  `diana`, Bulbul `priya` / `ritu`), Veer and Kabir are male (Orpheus `austin`
-  / `daniel`, Bulbul `rohan` / `kabir`).
+- `app/voice/voices.py` — which voice each persona speaks with: Bulbul's
+  `shubh` for every agent. Only the legacy voice CLI still uses the Orpheus
+  voices (`hannah`, `austin`, `daniel`, `diana`).
 - `app/voice/recorder.py` — push-to-talk mic recording, CLI only.
 - `app/voice/livekit_worker.py` + `livekit_llm.py` + `livekit_tts.py` +
   `livekit_rooms.py` — the realtime/interruptible voice worker (see
@@ -493,12 +492,13 @@ to end against a real LiveKit Cloud project, not just in isolation.
   LiveKit's `llm.LLM` interface. It doesn't replay LiveKit's chat history
   into the agent — the agent's own LangGraph `MemorySaver` already tracks
   that — it just forwards the latest utterance to `agent.send()`.
-- `app/voice/livekit_tts.py` — adapts `app/voice/tts.py`'s existing
-  English/Hindi routing (Groq Orpheus / Sarvam Bulbul) to LiveKit's
-  `tts.TTS` interface, instead of a second TTS integration.
-- `app/voice/livekit_worker.py` — the worker entrypoint: Groq Whisper for
-  STT (same model the push-to-talk path uses), Silero VAD for turn
-  detection/barge-in, the two adapters above for the brain and the voice.
+- `app/voice/livekit_tts.py` — adapts `app/voice/tts.py` to LiveKit's
+  `tts.TTS` interface. Calls speak through Sarvam Bulbul in both Hindi and
+  Indian English, so a call keeps one voice.
+- `app/voice/livekit_worker.py` — the worker entrypoint: Sarvam Saaras for
+  STT, Silero VAD for turn detection/barge-in, the two adapters above for
+  the brain (Groq) and the voice (Sarvam). Push-to-talk speaks through
+  Sarvam too.
   Reads which persona and session to resume from the room name
   (`sarthi__{persona}__{session_id}`, see `app/voice/livekit_rooms.py`,
   unit tested). Runs as its own long-lived process, separate from

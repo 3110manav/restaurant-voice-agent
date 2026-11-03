@@ -19,5 +19,9 @@ def test_english_voice_gender_matches_agent_gender():
     assert voices_for("waiter")["en"] in ORPHEUS_MALE  # Kabir
 
 
+def test_every_agent_speaks_through_the_same_sarvam_voice():
+    assert {voices["hi"] for voices in PERSONA_VOICES.values()} == {"shubh"}
+
+
 def test_unknown_persona_falls_back_to_online_voice():
     assert voices_for("nope") == PERSONA_VOICES["online"]
