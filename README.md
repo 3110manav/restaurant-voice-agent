@@ -62,9 +62,9 @@ RestaurantOrderingAgent — app/agent/graph.py
         ▼  (checkout + service requests only, best-effort)
 Supabase — orders, requests tables (app/erp.py, optional)
 
-Voice path (orthogonal to the above): mic audio -> STT (Whisper via Groq)
--> agent -> TTS (Orpheus/Groq for English, Sarvam AI's Bulbul for Hindi)
--> spoken reply. Push-to-talk today; see Roadmap for realtime/barge-in.
+Voice path (orthogonal to the above): mic audio -> STT (Sarvam AI's Saaras)
+-> agent -> TTS (Sarvam AI's Bulbul v4 Flash) -> spoken reply. Push-to-talk
+and realtime calls both.
 ```
 
 Why the frontend proxies through its own API routes instead of calling the
@@ -116,12 +116,13 @@ adding a third catalog later is a one-line call, not a new class.
 - `app/erp.py` — optional, best-effort writes of finalized orders and
   service/front-desk requests to Supabase (see **Supabase (optional)**
   below). A no-op with no project configured.
-- `app/voice/stt.py` / `app/voice/tts.py` — speech-to-text via Groq-hosted
-  Whisper; text-to-speech auto-routed by script (Groq's Orpheus for
-  English, Sarvam AI's Bulbul for Hindi).
-- `app/voice/voices.py` — which voice each persona speaks with: Bulbul's
-  `shubh` for every agent. Only the legacy voice CLI still uses the Orpheus
-  voices (`hannah`, `austin`, `daniel`, `diana`).
+- `app/voice/stt.py` / `app/voice/tts.py` — speech-to-text via Sarvam's
+  Saaras; text-to-speech via Sarvam's Bulbul v4 Flash, with numbers grouped
+  the Indian way (`1,280`) for it.
+- `app/voice/voices.py` — which voice each persona speaks with: Shubh for
+  every agent, `shubh_hi_customer` for purely Hindi sentences and
+  `shubh_enhi_banking` for anything with Latin letters. Only the legacy voice
+  CLI still uses the Orpheus voices (`hannah`, `austin`, `daniel`, `diana`).
 - `app/voice/recorder.py` — push-to-talk mic recording, CLI only.
 - `app/voice/livekit_worker.py` + `livekit_llm.py` + `livekit_tts.py` +
   `livekit_rooms.py` — the realtime/interruptible voice worker (see
@@ -237,8 +238,8 @@ Try things like:
 
 Everything above also works in Hindi, or mixed Hindi/English, for both
 text and voice — spoken replies too: the agent replies in whichever
-language you used, and `app/voice/tts.py` routes Hindi text to Sarvam AI
-and English text to Groq's Orpheus automatically.
+language you used, and `app/voice/tts.py` picks the Bulbul voice from each
+sentence's script.
 
 In the web app, voice is push-to-talk: click the mic, speak, click again
 (or the stop icon) to send. It needs HTTPS or `localhost` for mic access —
@@ -387,10 +388,10 @@ Tools add their own limits: at most 20 of one item per line.
 
 **Language.** English / हिन्दी is an explicit toggle in the chat panel (and before a call starts), not
 a guess. The choice is sent with every message and call and drives everything at once: the agent gets a
-`LANGUAGE:` line at the end of every model call (never stored in the history), Whisper is told which
-language to expect, a reply in the wrong script is regenerated (English must contain no Devanagari; Hindi
-must be mostly Devanagari, with prices as digits plus रुपये), and the voice follows the setting (Orpheus
-for English, Sarvam for Hindi) instead of the script. A call's language is fixed when it starts. See
+`LANGUAGE:` line at the end of every model call (never stored in the history), and a reply in the wrong
+script is regenerated (English must contain no Devanagari; Hindi must be mostly Devanagari; prices are
+digits plus "rupees" or रुपये). Speech-to-text hears either language whatever the setting. A call's
+language is fixed when it starts. See
 `app/agent/language.py`.
 
 **Conversation.** Kabir does not open with the cuisines or sections. A vague "I'm hungry"
@@ -493,8 +494,8 @@ to end against a real LiveKit Cloud project, not just in isolation.
   into the agent — the agent's own LangGraph `MemorySaver` already tracks
   that — it just forwards the latest utterance to `agent.send()`.
 - `app/voice/livekit_tts.py` — adapts `app/voice/tts.py` to LiveKit's
-  `tts.TTS` interface. Calls speak through Sarvam Bulbul in both Hindi and
-  Indian English, so a call keeps one voice.
+  `tts.TTS` interface. Calls stream Bulbul v4 Flash sentence by sentence, in
+  Hindi and Indian English, so speech starts before a sentence is finished.
 - `app/voice/livekit_worker.py` — the worker entrypoint: Sarvam Saaras for
   STT, Silero VAD for turn detection/barge-in, the two adapters above for
   the brain (Groq) and the voice (Sarvam). Push-to-talk speaks through
@@ -650,9 +651,9 @@ voice pipeline are exercised manually via the CLIs and web app.
 ## Roadmap
 
 1. ✅ **Text-only agent** — tool calling, cart state, RAG over the menu.
-2. ✅ **Speech-to-text** — mic input via Whisper (Groq).
-3. ✅ **Text-to-speech** — Orpheus (Groq) for English, Sarvam AI's Bulbul
-   for Hindi, routed automatically by script.
+2. ✅ **Speech-to-text** — mic input via Sarvam AI's Saaras.
+3. ✅ **Text-to-speech** — Sarvam AI's Bulbul v4 Flash, with the voice
+   chosen automatically by script.
 4. ✅ **Two personas → four personas** — Meera, Veer, Kabir, Ira,
    all under the Sarthi brand, sharing one engine.
 5. ✅ **Hindi voice output**, alongside the Hindi STT/understanding that

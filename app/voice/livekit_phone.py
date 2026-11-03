@@ -38,6 +38,9 @@ HANG_UP_PAUSE = 1.0  # seconds after the goodbye, so its last words reach the gu
 _pending: set[asyncio.Task] = set()  # keeps a hang-up from being garbage collected before it runs
 
 
+PHONE_SAMPLE_RATE = 8000  # all a phone line carries, so asking Sarvam for more only adds transfer time
+
+
 def build_stt() -> sarvam.STT:
     """Speech-to-text for every call, phone or browser: Saaras hears Hindi, English and a mix of both."""
     return sarvam.STT(language="unknown", model=STT_MODEL, mode="codemix")
@@ -135,7 +138,7 @@ async def phone_entrypoint(ctx: JobContext) -> None:
         stt=build_stt(),
         llm=PhoneLLM(call, on_goodbye=lambda: hang_up_after_goodbye(ctx, session)),
         # language=None: Hindi or English is read from each sentence's script, since a call can switch.
-        tts=build_speech(call.persona, None, sarvam_only=True),
+        tts=build_speech(call.persona, None, sarvam_only=True, sample_rate=PHONE_SAMPLE_RATE),
         vad=silero.VAD.load(),
         turn_handling=TURN_HANDLING,
     )
@@ -152,5 +155,7 @@ async def phone_entrypoint(ctx: JobContext) -> None:
     ctx.add_shutdown_callback(_finish)
 
     await session.start(Agent(instructions=call.agent.system_prompt), room=ctx.room)
-    loop.run_in_executor(None, warm_phrases, call.persona, None, [*lang.all_acks("hi"), *lang.all_acks("en")], True)
+    loop.run_in_executor(
+        None, warm_phrases, call.persona, None, [*lang.all_acks("hi"), *lang.all_acks("en")], True, PHONE_SAMPLE_RATE
+    )
     session.say(call.greeting, allow_interruptions=True)

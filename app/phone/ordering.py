@@ -18,7 +18,6 @@ import uuid
 from langchain_core.tools import tool
 
 from app.currency import format_price
-from app.agent.replies import number_words
 from app.phone import messages, numbers, outbox, repository, upi
 
 logger = logging.getLogger("sarthi.phone.ordering")
@@ -156,7 +155,7 @@ class PhoneOrder:
             where_hi, where_en = "दुकान से पिकअप", "Pickup from the store"
         self._say(
             f"आपका ऑर्डर: {items}। कुल {total} रुपये। {where_hi}। बिल और पेमेंट QR व्हाट्सएप पर {ending} वाले नंबर पर आएगा। ऑर्डर पक्का कर दूँ?",
-            f"Your order: {items}. Total {number_words(total)} rupees. {where_en}. "
+            f"Your order: {items}. Total {total} rupees. {where_en}. "
             f"The bill and payment QR will come on WhatsApp to the number ending {ending}. Shall I place the order?",
         )
         return f"Read back to the customer: {self.spoken} Only call checkout after they say yes in their next message."

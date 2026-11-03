@@ -134,7 +134,7 @@ def test_confirmations_carry_no_prices_and_the_bill_carries_the_total():
     added = {"type": "added", "lines": [{"name": "Margherita", "variant": "Large", "quantity": 1}, {"name": "Garlic Bread", "variant": None, "quantity": 2}]}
     assert replies.compose([added], "en") == "Added one Large Margherita and two Garlic Bread. Anything else?"
     assert replies.compose([added], "hi") == "1 Large Margherita और 2 Garlic Bread जोड़ दिया गया है। और कुछ?"
-    assert replies.compose([{"type": "bill", "total": 708}], "en") == "Your total comes to seven hundred eight rupees. I'll bring the bill over."
+    assert replies.compose([{"type": "bill", "total": 708}], "en") == "Your total comes to 708 rupees. I'll bring the bill over."
     assert replies.compose([{"type": "bill", "total": 708}], "hi") == "आपका कुल 708 रुपये हुआ। बिल अभी लाते हैं।"
     assert replies.compose([{"type": "checkout"}], "en") == "Your order is placed. Thank you!"
 

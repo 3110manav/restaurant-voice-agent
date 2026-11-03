@@ -73,7 +73,7 @@ def caller_language(text: str, current: str) -> str:
 _DIRECTIVES = {
     "en": (
         "LANGUAGE: English. Reply only in English, in Latin letters, even if the guest writes Hindi "
-        "words or Devanagari. Say prices in words followed by 'rupees'."
+        "words or Devanagari. Write prices as digits followed by 'rupees', for example 560 rupees."
     ),
     "hi": (
         "LANGUAGE: Hindi. Reply only in simple, everyday spoken Hindi written in Devanagari, the way a "

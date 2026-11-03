@@ -8,7 +8,7 @@ ORPHEUS_MALE = {"austin", "daniel", "troy"}
 def test_every_persona_has_english_and_hindi_voice():
     assert set(PERSONA_VOICES) == set(_PERSONAS)
     for voices in PERSONA_VOICES.values():
-        assert set(voices) == {"en", "hi"}
+        assert set(voices) == {"en", "hi", "mixed"}
         assert voices["en"] in ORPHEUS_FEMALE | ORPHEUS_MALE
 
 
@@ -19,8 +19,9 @@ def test_english_voice_gender_matches_agent_gender():
     assert voices_for("waiter")["en"] in ORPHEUS_MALE  # Kabir
 
 
-def test_every_agent_speaks_through_the_same_sarvam_voice():
-    assert {voices["hi"] for voices in PERSONA_VOICES.values()} == {"shubh"}
+def test_every_agent_speaks_as_shubh():
+    for voices in PERSONA_VOICES.values():
+        assert voices["hi"].startswith("shubh_hi_") and voices["mixed"].startswith("shubh_enhi_")
 
 
 def test_unknown_persona_falls_back_to_online_voice():

@@ -201,7 +201,7 @@ def test_asking_for_the_bill_says_the_total_and_only_then(agent):
     agent.llm_with_tools = ScriptedLLM(tool_call("add_to_cart", {"items": [{"name": "Paneer Tikka", "quantity": 2}]}))
     agent.send("two paneer tikka")
     agent.llm_with_tools = ScriptedLLM(tool_call("request_bill", {}))
-    assert agent.send("can we have the bill please") == "Your total comes to five hundred sixty rupees. I'll bring the bill over."
+    assert agent.send("can we have the bill please") == "Your total comes to 560 rupees. I'll bring the bill over."
 
 
 def test_placing_the_order_does_not_announce_the_total(agent):

@@ -84,7 +84,7 @@ _SHARED_VOICE_STYLE = """Your reply is spoken aloud by text-to-speech: use plain
 markdown, lists, dashes, numbering or emoji. Say several items in one natural sentence. Keep every \
 reply as short as possible, one short sentence when it will do; this is a fast ordering conversation, \
 not a menu reading. Prices are in Indian rupees: say the amount and the word "rupees" ("रुपये" in \
-Hindi), such as "one hundred sixty rupees", and never read out the ₹ symbol."""
+Hindi), such as "160 rupees", and never write the ₹ symbol."""
 
 _CONVERSATION_STYLE = """Talk like a friendly waiter, not a menu reader. Never recite the menu's \
 sections or the cuisines you serve unless the customer asks what kind of food there is, and then \

@@ -177,7 +177,7 @@ def test_changing_the_cart_after_a_read_back_reads_it_back_with_the_new_total(fa
     order.prepare_read_back()
     order.start_turn("en")
     order.cart[0]["quantity"] = 1
-    assert "Total forty eight rupees" in order.spoken_reply()
+    assert "Total 48 rupees" in order.spoken_reply()
     assert order.read_back == order.cart and order.read_back_turn == order.turn
     assert order.checkout().startswith("Order not placed")  # a fresh read-back needs a fresh yes
     order.start_turn("en")
