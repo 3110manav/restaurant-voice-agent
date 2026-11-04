@@ -8,6 +8,7 @@ import { PhotoCredits } from "@/components/photo-credits";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchRestaurant, type RestaurantInfo } from "@/lib/api";
+import { setCallerPromptEnabled } from "@/lib/caller";
 import { personaForRestaurant } from "@/lib/personas";
 
 /** After a few seconds of loading, says why: on the free tier the first scan after a quiet spell wakes the server. */
@@ -64,6 +65,7 @@ export function RestaurantPage({ slug }: { slug: string }) {
       .then((info) => {
         if (cancelled) return;
         document.title = `${info.name} — Sarthi`;
+        setCallerPromptEnabled(Boolean(info.demo_mode)); // demo stores ask who is calling when a call starts
         setState({ status: "ready", info });
       })
       .catch((err: Error) => {

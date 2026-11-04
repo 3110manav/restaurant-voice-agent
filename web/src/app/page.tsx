@@ -13,8 +13,11 @@ import {
 
 import { RestaurantCard } from "@/components/demo/restaurant-card";
 import { WarmBackend } from "@/components/warm-backend";
-import { DEMO_RESTAURANTS } from "@/lib/demo";
+import { DEMO_STORES } from "@/lib/demo";
 import { PERSONAS } from "@/lib/personas";
+
+const RESTAURANTS = DEMO_STORES.filter((s) => s.kind === "restaurant");
+const DELIVERY_STORES = DEMO_STORES.filter((s) => s.kind !== "restaurant");
 
 const STEPS = [
   { icon: QrCode, title: "Guest scans the table QR", body: "The menu opens in the browser. No app to install, no login." },
@@ -91,18 +94,27 @@ export default function Home() {
       <section id="demo" className="mx-auto w-full max-w-6xl scroll-mt-6 px-6 py-16">
         <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Three restaurants, three kinds of menu</h2>
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Restaurants, a kirana and a pharmacy</h2>
             <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-              Pick one and order as a guest would. On a laptop, scan the QR with your phone to see the real thing.
-              Every restaurant has its own menu, its own look and its own owner console.
+              Pick one and order as a customer would. On a laptop, scan the QR with your phone to see the real thing.
+              Every store has its own menu, its own look and its own owner console.
             </p>
           </div>
           <Link href="/demo" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <Smartphone className="size-4" /> Printable QR sheet
           </Link>
         </div>
+        <h3 className="mb-3 text-sm font-semibold tracking-wide text-muted-foreground uppercase">Restaurants</h3>
         <div className="grid gap-5 md:grid-cols-3">
-          {DEMO_RESTAURANTS.map((r) => (
+          {RESTAURANTS.map((r) => (
+            <RestaurantCard key={r.slug} restaurant={r} />
+          ))}
+        </div>
+        <h3 className="mt-10 mb-3 text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+          Stores that deliver
+        </h3>
+        <div className="grid gap-5 md:grid-cols-3">
+          {DELIVERY_STORES.map((r) => (
             <RestaurantCard key={r.slug} restaurant={r} />
           ))}
         </div>
@@ -144,7 +156,7 @@ export default function Home() {
               </Link>
             ))}
           </div>
-          <p className="text-xs">Sarthi · voice and text ordering for restaurants.</p>
+          <p className="text-xs">Sarthi · voice and text ordering for restaurants and stores.</p>
         </div>
       </footer>
     </div>

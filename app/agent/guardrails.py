@@ -19,7 +19,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 
-from app.agent import language as lang
+from app.agent import language as lang, medical
 
 logger = logging.getLogger("sarthi.guardrails")
 
@@ -84,6 +84,7 @@ class TurnFacts:
     dish_names: set[str] = field(default_factory=set)  # so "Cheesy Garlic Bread" isn't mistaken for reciting sections
     language: str = lang.DEFAULT  # the conversation's language (see agent/language.py)
     price_ok: bool = True  # may this reply mention a price? Only if the guest asked (see price_asked)
+    medical: bool = False  # a pharmacy: no doses, diagnoses or cures (see agent/medical.py)
 
     def succeeded(self, tool: str, *markers: str) -> bool:
         return any(name == tool and any(m in result for m in markers) for name, result in self.tool_calls)
@@ -276,6 +277,9 @@ def check_reply(reply: str, facts: TurnFacts) -> list[Violation]:
         if len(hits) >= 3:
             violations.append(Violation("menu_dump", ", ".join(sorted(hits))))
 
+    if facts.medical:
+        violations.extend(Violation(kind) for kind in medical.reply_issues(reply))
+
     if len(reply) > MAX_REPLY_CHARS:
         violations.append(Violation("too_long", str(len(reply))))
     return violations
@@ -294,6 +298,8 @@ _CORRECTIONS = {
     "unasked_price": "The guest did not ask about prices, so do not mention any price, amount or total. Offer or confirm without money.",
     "wrong_language": "Wrong language. Follow the LANGUAGE line exactly: English in Latin letters only, or Hindi in Devanagari.",
     "too_long": "That's too long to say aloud. Reply in at most two short sentences.",
+    "dosage_advice": "You gave a dose or a schedule. You must never say how much, how often or for how long to take anything. Say the pharmacist will advise on that.",
+    "diagnosis": "You named a diagnosis or said a medicine cures something. You are not a doctor: say only what an item is commonly used for, and that the pharmacist will confirm.",
 }
 
 
@@ -305,6 +311,8 @@ def correction_message(violations: list[Violation], language: str = lang.DEFAULT
 def fallback_reply(violations: list[Violation], reply: str, language: str = lang.DEFAULT) -> str:
     """What to say when even the regenerated reply fails: true, short, and never a made-up claim."""
     kinds = {v.kind for v in violations}
+    if kinds & {"dosage_advice", "diagnosis"}:
+        return lang.line(language, "pharmacist")
     if "unbacked_order" in kinds:
         return lang.line(language, "order")
     if kinds & {"unbacked_add", "unbacked_cart", "unbacked_remove"}:

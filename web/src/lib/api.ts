@@ -1,3 +1,5 @@
+import { getCallerPhone } from "@/lib/caller";
+
 export interface CartLine {
   id: string;
   name: string;
@@ -90,6 +92,10 @@ export interface RestaurantInfo {
   currency: string;
   accent_color: string | null;
   logo_url: string | null;
+  /** "restaurant", "kirana" or "pharmacy"; absent on older backends (treat as a restaurant). */
+  business_type?: "restaurant" | "kirana" | "pharmacy";
+  /** A demo store asks a caller for their number when a call starts (see lib/caller.ts). */
+  demo_mode?: boolean;
 }
 
 /** Which restaurant (and table) a conversation belongs to; absent for the four legacy personas. */
@@ -128,6 +134,7 @@ export async function sendChatMessage(
       restaurant: ctx.restaurant,
       table_no: ctx.tableNo,
       language: ctx.language,
+      phone: getCallerPhone(),
     }),
   });
   return parseOrThrow(res);
@@ -141,6 +148,8 @@ export async function sendVoiceMessage(
 ): Promise<VoiceChatResponse> {
   const formData = new FormData();
   formData.append("audio", audio, "recording.webm");
+  const phone = getCallerPhone();
+  if (phone) formData.append("phone", phone); // in the body, not the URL
 
   const params = new URLSearchParams({ session_id: sessionId, persona });
   if (ctx.restaurant) params.set("restaurant", ctx.restaurant);
@@ -280,6 +289,7 @@ export async function fetchLiveKitToken(
       restaurant: ctx.restaurant,
       table_no: ctx.tableNo,
       language: ctx.language,
+      phone: getCallerPhone(),
     }),
   });
   return parseOrThrow(res);

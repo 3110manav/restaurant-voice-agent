@@ -46,7 +46,8 @@ from livekit.agents import Agent, AgentServer, AgentSession, JobContext  # noqa:
 from livekit.plugins import groq, silero  # noqa: E402
 
 from app.agent import language as lang  # noqa: E402
-from app.agent.graph import RestaurantOrderingAgent  # noqa: E402
+from app.agent.graph import RestaurantOrderingAgent, persona_for  # noqa: E402
+from app.customers.session import start_session  # noqa: E402
 from app.menu.snapshot import LiveMenu, menu_cache  # noqa: E402
 from app.voice.livekit_llm import SarthiLLM  # noqa: E402
 from app.voice.livekit_rooms import parse_room_name  # noqa: E402
@@ -67,6 +68,16 @@ def _menu_store_for(persona: str):
     if persona == "quick_commerce":
         return MenuStore(data_path=GROCERY_PATH, collection_name="grocery_catalog")
     return MenuStore()
+
+
+def _caller_phone(ctx: JobContext, meta: dict) -> tuple[str | None, bool]:
+    """(number, verified). A real phone call carries its caller ID as a SIP attribute: verified. A number in the
+    dispatch metadata came from the web page the call was started on: not verified (see start_session)."""
+    for participant in ctx.room.remote_participants.values():
+        number = (participant.attributes or {}).get("sip.phoneNumber")
+        if number:
+            return number, True
+    return meta.get("phone"), False
 
 
 server = AgentServer()
@@ -91,15 +102,21 @@ async def entrypoint(ctx: JobContext) -> None:
         if menu is None:
             logger.error("restaurant %r not found; ending call", restaurant_slug)
             return
-        persona = "waiter"
+        persona = persona_for(menu.restaurant)
+        # Who is calling: the web demo passes a number in the metadata; a real phone call carries the
+        # caller ID as a SIP attribute on the caller's participant.
+        caller, verified = _caller_phone(ctx, meta)
         agent = RestaurantOrderingAgent(
             session_id=f"livekit:{restaurant_slug}:{session_id}",
             menu_store=LiveMenu(restaurant_slug),
             persona=persona,
             restaurant=menu.restaurant,
             table_no=table_no,
+            customer=start_session(menu.restaurant, caller, table_no, language, verified=verified),
         )
-        greeting = lang.greeting(language, agent.agent_name, menu.restaurant["name"])
+        agent.channel = "voice"
+        agent.set_language(language)
+        greeting = agent.opening_line(menu.restaurant["name"])
     else:
         store = _menu_store_for(persona)
         if store is None:

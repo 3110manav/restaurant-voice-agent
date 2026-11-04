@@ -23,6 +23,7 @@ system prompt:
                          a room issue, starting checkout, and calling staff.
 """
 import logging
+import threading
 
 import groq
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -31,12 +32,15 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
-from app.agent import guardrails, language as lang, replies
+from app import erp
+from app.agent import guardrails, language as lang, medical, replies
 from app.agent.hotel_tools import build_hotel_tools
 from app.agent.salesflow import SalesState
 from app.agent.service_tools import build_service_tools
 from app.agent.state import AgentState
 from app.agent.tools import build_tools
+from app.customers.session import CustomerSession
+from app.whatsapp import channels, client, notify
 
 logger = logging.getLogger("sarthi.agent")
 
@@ -174,12 +178,50 @@ If a dish is not available right now, say so and suggest something similar.
 Reminder: follow the LANGUAGE line at the end of the conversation."""
 
 
+_STORE_KIND = {"kirana": "a neighbourhood general store", "pharmacy": "a pharmacy"}
+
+_MEDICAL_RULES = """You are a shop assistant, not a doctor or a pharmacist. Never diagnose, never say how much, \
+how often or for how long to take anything, and never say a medicine cures or treats something: say only what an \
+item is commonly used for, using only what search_menu or get_item_details returned. When the customer describes \
+a symptom, search for it, offer one or two over-the-counter options in a short sentence, and say the pharmacist \
+will confirm. An item marked as needing a prescription can be added, but tell the customer a valid prescription \
+is needed. When they are done and the order has one, ask whether they would rather send a photo of the \
+prescription on WhatsApp or talk to the pharmacist first, and record the answer with choose_prescription_path. For doses, pregnancy, babies, mixing medicines or \
+side effects, say the pharmacist will help and do not answer yourself. If someone sounds very unwell, tell them to \
+see a doctor or call one one two right away."""
+
+
+def store_system_prompt(agent_name: str, store_name: str, business_type: str, tagline: str | None = None) -> str:
+    """The prompt for a kirana or a pharmacy: a phone or chat order to be delivered, in a few short turns."""
+    kind = _STORE_KIND.get(business_type, "a store")
+    about = f" ({tagline})" if tagline else ""
+    pharmacy = business_type == "pharmacy"
+    example = "add a Dolo 650 and two ORS sachets" if pharmacy else "add two bars of soap and a pack of batteries"
+    return f"""{_LANGUAGE_RULE}
+
+You are {agent_name}, the {BRAND_NAME} voice assistant for {store_name}, {kind}{about}. A customer is \
+ordering from the store by voice, for delivery. {_SHARED_VOICE_STYLE}
+
+Be quick and friendly, the way a good shopkeeper is. {_ordering_behavior(example)}
+
+{_MEDICAL_RULES if pharmacy else "If an item comes in several brands or sizes, ask which one in a few words."}
+
+Money: do not quote prices unless the customer asks. When the order is placed the system tells them the \
+total. Never invent a price.
+
+If an item is not available, say so and suggest the closest alternative from the store.
+
+Reminder: follow the LANGUAGE line at the end of the conversation."""
+
+
 # persona -> (system prompt, extra tool-builder or None for ordering-only personas)
 _PERSONAS = {
     "online": (ONLINE_SYSTEM_PROMPT, None),
     "quick_commerce": (QUICK_COMMERCE_SYSTEM_PROMPT, None),
     "waiter": (WAITER_SYSTEM_PROMPT, build_service_tools),
     "hotel": (HOTEL_SYSTEM_PROMPT, build_hotel_tools),
+    # Kirana and pharmacy stores: the real prompt comes from the store's row (see store_system_prompt).
+    "store": (store_system_prompt("Shubh", "the store", "kirana"), None),
 }
 
 AGENT_NAMES = {
@@ -187,7 +229,13 @@ AGENT_NAMES = {
     "quick_commerce": "Veer",
     "waiter": "Kabir",
     "hotel": "Ira",
+    "store": "Shubh",
 }
+
+
+def persona_for(store: dict) -> str:
+    """Which persona serves a store row: the waiter for restaurants, the store assistant otherwise."""
+    return "waiter" if (store.get("business_type") or "restaurant") == "restaurant" else "store"
 
 
 class AgentBusyError(Exception):
@@ -199,6 +247,10 @@ class AgentBusyError(Exception):
 class RestaurantOrderingAgent:
     language = lang.DEFAULT  # replaced per instance by set_language()
     _price_ok = True  # restaurant mode: only when the guest has asked about money (see send)
+    business_type = "restaurant"  # "kirana" and "pharmacy" are set per instance from the store's row
+    customer = None  # a CustomerSession for stores and phone calls (app/customers/session.py)
+    restaurant = None  # the store's row, for telling its owner about a placed order
+    channel = "web"  # where the conversation happens: "web", "voice" or "whatsapp" (set by the caller)
 
     def __init__(
         self,
@@ -208,6 +260,7 @@ class RestaurantOrderingAgent:
         model: str = "openai/gpt-oss-120b",
         restaurant: dict | None = None,
         table_no: str | None = None,
+        customer: CustomerSession | None = None,
     ):
         if persona not in _PERSONAS:
             raise ValueError(f"unknown persona: {persona!r}")
@@ -218,9 +271,13 @@ class RestaurantOrderingAgent:
         self.cart: list[dict] = []
         self.service_log: list[dict] = []
         self.restaurant_id = restaurant["id"] if restaurant else None
+        self.business_type = (restaurant or {}).get("business_type") or "restaurant"
+        self.customer = customer
+        self.restaurant = restaurant
         self.menu_store = menu_store
-        # Cross-sell offers (a drink with the first order, a dessert at the end) only in restaurant mode.
-        self.sales = SalesState() if restaurant else None
+        # Cross-sell offers (a drink with the first order, a dessert at the end) only for restaurants:
+        # a pharmacy must not upsell medicines, and a kirana order is a quick list.
+        self.sales = SalesState() if restaurant and self.business_type == "restaurant" else None
         self._regens = 0
         # What each action did this turn, so a turn of simple successful actions is answered in code.
         self.events: list[dict] = []
@@ -229,12 +286,16 @@ class RestaurantOrderingAgent:
         if restaurant:
             # Multi-restaurant mode: the waiter takes its identity from the restaurant's row.
             self.agent_name = restaurant.get("agent_name") or self.agent_name
-            system_prompt = restaurant_system_prompt(
-                self.agent_name,
-                restaurant["name"],
-                restaurant.get("cuisine"),
-                table_no,
-            )
+            if self.business_type == "restaurant":
+                system_prompt = restaurant_system_prompt(
+                    self.agent_name, restaurant["name"], restaurant.get("cuisine"), table_no
+                )
+            else:
+                system_prompt = store_system_prompt(
+                    self.agent_name, restaurant["name"], self.business_type, restaurant.get("tagline")
+                )
+        if customer is not None:
+            system_prompt += customer.prompt_block()
         self.system_prompt = system_prompt
         in_restaurant = restaurant is not None
         self.tools = build_tools(
@@ -242,6 +303,10 @@ class RestaurantOrderingAgent:
             sales=self.sales,
             events=self.events if in_restaurant else None,
             price_ok=(lambda: self._price_ok) if in_restaurant else None,
+            customer=customer,
+            say_total=in_restaurant and self.business_type != "restaurant",
+            on_order=self._order_placed if in_restaurant and customer is not None else None,
+            shop_whatsapp=self._shop_whatsapp if in_restaurant and customer is not None else None,
         )
         if build_extra_tools is not None:
             if build_extra_tools is build_service_tools:
@@ -286,8 +351,12 @@ class RestaurantOrderingAgent:
             names = {d["name"] for d in getattr(self.menu_store, "menu", [])}
         except LookupError:
             terms, names = set(), set()
-        price_ok = self._price_ok or any(name in ("get_item_details", "request_bill") for name, _ in tool_calls)
-        return guardrails.TurnFacts(user_text, tool_calls, known, terms, names, self.language, price_ok)
+        told = ("get_item_details", "request_bill") + (("checkout",) if self.business_type != "restaurant" else ())
+        price_ok = self._price_ok or any(name in told for name, _ in tool_calls)
+        return guardrails.TurnFacts(
+            user_text, tool_calls, known, terms, names, self.language, price_ok,
+            medical=self.business_type == "pharmacy",
+        )
 
     def _checked(self, messages: list, response: AIMessage) -> AIMessage:
         """Validate the model's final reply against what really happened; regenerate once if it fails."""
@@ -346,13 +415,56 @@ class RestaurantOrderingAgent:
 
     def set_language(self, language: str | None) -> None:
         self.language = lang.normalize(language)
+        if self.customer is not None:
+            self.customer.language = self.language
+
+    def opening_line(self, store_name: str | None = None) -> str:
+        """The first thing said on a call: by name for a caller we recognise, else a plain welcome."""
+        if self.customer is not None and self.customer.context.known:
+            return lang.greeting_known(self.language, self.agent_name, store_name, self.customer.display_name())
+        return lang.greeting(self.language, self.agent_name, store_name)
+
+    def _shop_whatsapp(self) -> dict | None:
+        """What the closing line may say about WhatsApp. It claims the shop was messaged only if that will really
+        happen: the store has a WhatsApp number, someone to alert, and a token to send with."""
+        try:
+            channel = channels.channel_for_store(self.restaurant_id)
+        except Exception:
+            return None
+        if channel is None:
+            return None
+        alerted = bool(client.token_for(channel) and (channel.notify_numbers or channel.rx_numbers))
+        return {"alerted": alerted, "number": channel.display_number, "channel": self.channel}
+
+    def _order_placed(self, order: dict) -> None:
+        """Tell the store's owner (or pharmacist) about a placed order, off the conversation's thread so the
+        guest never waits for WhatsApp."""
+        order = {**order, "channel": self.channel}
+        threading.Thread(target=notify.order_placed, args=(self.restaurant, order), daemon=True).start()
+
+    def _flag_for_pharmacist(self, kind: str, text: str) -> None:
+        """Leave a row for the staff: an emergency to look at now, or a question to call back about."""
+        erp.record_request(
+            self.session_id,
+            self.persona,
+            "medical_emergency" if kind == "emergency" else "pharmacist_callback",
+            details=text[:300],
+            restaurant_id=self.restaurant_id,
+        )
 
     def send(self, user_text: str) -> str:
         verdict = guardrails.check_input(user_text, self.language)
         if verdict.reply is not None:
             return verdict.reply  # blocked or empty: answered without the model, kept out of the history
+        if self.business_type == "pharmacy":
+            kind = medical.screen_input(verdict.text)
+            if kind:  # an emergency, or a question for the pharmacist: fixed answer, no model, staff told
+                self._flag_for_pharmacist(kind, verdict.text)
+                return lang.line(self.language, "emergency" if kind == "emergency" else "pharmacist")
         self._regens = 0
         self.events.clear()
+        if self.customer is not None:
+            self.customer.awaiting_confirm = False  # whatever they say now answers the read-back
         self._price_ok = self.restaurant_id is None or guardrails.price_asked(verdict.text)
         config = {"configurable": {"thread_id": self.session_id}}
         try:

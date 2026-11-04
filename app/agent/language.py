@@ -68,7 +68,10 @@ def directive(language: str) -> str:
     return _DIRECTIVES[normalize(language)]
 
 
-AGENT_NAMES_HI = {"Meera": "मीरा", "Veer": "वीर", "Kabir": "कबीर", "Ira": "इरा"}
+AGENT_NAMES_HI = {
+    "Meera": "मीरा", "Veer": "वीर", "Kabir": "कबीर", "Ira": "इरा", "Shubh": "शुभ", "Sehat": "सेहत",
+    "Sakhi": "सखी", "Munim": "मुनीम", "Mitra": "मित्र", "Arjun": "अर्जुन",
+}
 
 
 def greeting(language: str, agent_name: str, restaurant_name: str | None = None) -> str:
@@ -78,6 +81,16 @@ def greeting(language: str, agent_name: str, restaurant_name: str | None = None)
         return f"नमस्ते, {place}मैं {name} हूँ।"
     place = f"welcome to {restaurant_name}. " if restaurant_name else ""
     return f"Namaste, {place}I'm {agent_name}." if place else f"Namaste, I'm {agent_name}."
+
+
+def greeting_known(language: str, agent_name: str, store_name: str | None, customer_name: str | None) -> str:
+    """The opening line for a caller we recognise: by name, and offering their usual."""
+    if normalize(language) == "hi":
+        name = AGENT_NAMES_HI.get(agent_name, agent_name)
+        who = f" {customer_name} जी" if customer_name else ""
+        return f"नमस्ते{who}, फिर से स्वागत है। मैं {name} हूँ। पिछली बार जैसा ही, या कुछ नया?"
+    who = f" {customer_name}" if customer_name else ""
+    return f"Welcome back{who}! I'm {agent_name}. The same as last time, or something new today?"
 
 
 # Fixed lines for when the model isn't asked (or its reply was rejected twice). Gender-neutral Hindi.
@@ -92,6 +105,13 @@ LINES = {
         "amount": "Let me double check that price for you. Which dish did you mean?",
         "dump": "What are you in the mood for? Something light, or something filling?",
         "default": "Sorry, could you say that once more?",
+        "emergency": "That sounds serious. Please call one one two, or go to the nearest hospital right now. I'm letting our pharmacist know.",
+        "pharmacist": "For that, our pharmacist is the right person to ask. I'll leave them a note and they'll get back to you. Shall I add anything to your order meanwhile?",
+        "details": "Before I place your order, may I have your name and your full delivery address? Or would you rather pick it up?",
+        "rx_choice": "One of these needs a prescription. Would you like to send a photo of it on WhatsApp, or talk to our pharmacist first?",
+        "rx_received": "Thank you, we've received your prescription for order {code}. Our pharmacist will check it and confirm shortly.",
+        "rx_none": "Thanks for the photo! I don't see an order waiting for a prescription. What would you like to order?",
+        "wa_unsupported": "I can read text messages and photos for now. Could you type what you'd like to order?",
     },
     "hi": {
         "injection": "ऑर्डर और टेबल से जुड़ी बातों में ही मदद हो पाएगी। आप क्या लेना चाहेंगे?",
@@ -103,6 +123,13 @@ LINES = {
         "amount": "ज़रा क़ीमत दोबारा देख लेते हैं। आप किस डिश की बात कर रहे हैं?",
         "dump": "आज क्या खाने का मन है? कुछ हल्का, या भरपेट?",
         "default": "माफ़ कीजिए, क्या आप फिर से कह सकते हैं?",
+        "emergency": "यह गंभीर लग रहा है। कृपया अभी एक एक दो पर कॉल कीजिए, या सबसे पास के अस्पताल जाइए। हमारे फार्मासिस्ट को अभी बता देते हैं।",
+        "pharmacist": "इसके बारे में हमारे फार्मासिस्ट ही सही सलाह दे पाएँगे। हम उन्हें नोट छोड़ देते हैं, वे आपसे बात करेंगे। तब तक ऑर्डर में कुछ जोड़ दें?",
+        "details": "ऑर्डर देने से पहले, क्या हम आपका नाम और पूरा डिलीवरी पता ले लें? या आप खुद आकर ले लेंगे?",
+        "rx_choice": "इनमें एक दवा के लिए पर्चा चाहिए। आप उसकी फोटो व्हाट्सऐप पर भेजेंगे, या पहले हमारे फार्मासिस्ट से बात करेंगे?",
+        "rx_received": "धन्यवाद, ऑर्डर {code} के लिए आपका पर्चा मिल गया है। हमारे फार्मासिस्ट देखकर जल्दी कन्फ़र्म करेंगे।",
+        "rx_none": "फोटो के लिए धन्यवाद! पर्चे का इंतज़ार करता कोई ऑर्डर नहीं दिख रहा। आप क्या मँगवाना चाहेंगे?",
+        "wa_unsupported": "अभी मैं टेक्स्ट मैसेज और फोटो पढ़ सकता हूँ। क्या आप लिखकर बता सकते हैं कि क्या चाहिए?",
     },
 }
 

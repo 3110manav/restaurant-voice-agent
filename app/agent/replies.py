@@ -12,9 +12,12 @@ request says the total.
 """
 import re
 
-from app.agent.language import normalize
+from app.agent.language import line as lang_line, normalize
 
-FAST_TOOLS = {"add_to_cart", "remove_from_cart", "checkout", "request_item", "flag_issue", "request_bill", "call_staff"}
+FAST_TOOLS = {
+    "add_to_cart", "remove_from_cart", "checkout", "request_item", "flag_issue", "request_bill", "call_staff",
+    "save_delivery_details", "choose_pickup", "choose_prescription_path",
+}
 
 _ONES = (
     "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen "
@@ -58,6 +61,10 @@ _PHRASES = {
 }
 _EVENT_GROUP = {
     "added": "order",
+    # Answers to a question the shop asked ("I want to pick it up", "I want to talk to the pharmacist") are not new orders.
+    "details_saved": "order",
+    "pickup_chosen": "order",
+    "rx_path_chosen": "order",
     "removed": "remove",
     "checkout": "checkout",
     "checkout_held": "checkout",
@@ -106,7 +113,62 @@ def _join(parts: list[str], language: str) -> str:
 
 def _added(event: dict, language: str) -> str:
     items = _join([f"{_quantity(l['quantity'], language)} {_label(l)}" for l in event["lines"]], language)
-    return f"{items} जोड़ दिया गया है।" if language == "hi" else f"Added {items}."
+    text = f"{items} जोड़ दिया गया है।" if language == "hi" else f"Added {items}."
+    if any(l.get("rx") for l in event["lines"]):  # a pharmacy item that needs a prescription
+        text += (
+            " इसके लिए पर्चा चाहिए, भेजने से पहले हमारे फार्मासिस्ट उसे देख लेंगे।"
+            if language == "hi"
+            else " That one needs a prescription, and our pharmacist will check it before it goes out."
+        )
+    return text
+
+
+def spoken_digits(number: str | None) -> str:
+    """+919876543210 -> "9 8 7 6 5, 4 3 2 1 0": a phone number, said in two groups of five."""
+    digits = "".join(ch for ch in (number or "") if ch.isdigit())
+    if len(digits) > 10:
+        digits = digits[-10:]  # drop the country code: it is said in India without it
+    if len(digits) != 10:
+        return " ".join(digits)
+    return f"{' '.join(digits[:5])}, {' '.join(digits[5:])}"
+
+
+def _placed(event: dict, language: str) -> str:
+    """The order-placed line. Stores tell the total here, and where it is going."""
+    hi = language == "hi"
+    text = "आपका ऑर्डर दे दिया गया है" if hi else "Your order is placed"
+    total = event.get("total")
+    if event.get("say_total") and total:
+        text += f", कुल {round(total)} रुपये।" if hi else f". The total is {number_words(total)} rupees."
+    else:
+        text += "।" if hi else "."
+    area = event.get("area")
+    if event.get("fulfilment") == "delivery":
+        place = f" {area} में" if area and hi else (f" in {area}" if area else "")
+        text += f" यह आपके पते{place} भेजा जाएगा।" if hi else f" It will go to your address{place}."
+    elif event.get("fulfilment") == "pickup":
+        text += " आप आकर ले सकते हैं।" if hi else " You can pick it up from the store."
+    alerted, number, where = event.get("wa_alerted"), event.get("wa_number"), event.get("wa_channel")
+    if event.get("rx_path") == "whatsapp":
+        if where != "whatsapp" and number:
+            # A phone call or the website: the customer is not in a WhatsApp chat with the shop yet, so tell them
+            # where to send the photo. Messaging the shop first also opens the chat for the order updates.
+            text += (
+                f" कृपया पर्चे की फोटो दुकान के व्हाट्सऐप नंबर {spoken_digits(number)} पर भेज दीजिए, फार्मासिस्ट देखकर ऑर्डर कन्फ़र्म करेंगे।"
+                if hi
+                else f" Please send a clear photo of the prescription to the shop's WhatsApp number, {spoken_digits(number)}, and our pharmacist will check it and confirm the order."
+            )
+        else:
+            text += (
+                " पर्चे की साफ़ फोटो व्हाट्सऐप पर भेज दीजिए, फार्मासिस्ट देखकर ऑर्डर कन्फ़र्म करेंगे।"
+                if hi
+                else " Please send a clear photo of the prescription on WhatsApp, and our pharmacist will check it and confirm the order."
+            )
+    elif event.get("rx_path") == "pharmacist":
+        text += " हमारे फार्मासिस्ट आपको जल्दी कॉल करेंगे।" if hi else " Our pharmacist will call you shortly."
+    elif alerted and event.get("fulfilment") in ("delivery", "pickup"):
+        text += " मैंने आपका ऑर्डर दुकान को व्हाट्सऐप पर भेज दिया है।" if hi else " I've sent your order to the shop on WhatsApp."
+    return text + (" धन्यवाद!" if hi else " Thank you!")
 
 
 def _removed(event: dict, language: str) -> str:
@@ -151,9 +213,34 @@ def compose(events: list[dict], language: str) -> str | None:
             parts.append(_offer(e, language))
             asked_something = True
         elif kind == "checkout_held":
-            pass  # the dessert offer that follows is the reply
+            pass  # the offer, or the request for the delivery details, that follows is the reply
+        elif kind == "details_saved":
+            # Read back exactly what was saved (code, not the model, so a name is never misspelt).
+            first = (e.get("name") or "").split(" ")[0]
+            if hi:
+                parts.append(f"धन्यवाद{' ' + first if first else ''}। पता: {e['line']}। क्या यह सही है?")
+            else:
+                parts.append(f"Thank you{', ' + first if first else ''}. I have {e['line']}. Is that right?")
+            asked_something = True
+        elif kind == "pickup_chosen":
+            parts.append("ठीक है, आप खुद आकर ले लेंगे। ऑर्डर दे दें?" if hi else "Okay, you'll pick it up from the store. Shall I place the order?")
+            asked_something = True
+        elif kind == "rx_choice_needed":
+            parts.append(lang_line(language, "rx_choice"))
+            asked_something = True
+        elif kind == "rx_path_chosen":
+            if any(x["type"] in ("checkout", "checkout_held") for x in events):
+                continue  # the order is placed (or the next question asked) in the same turn
+            if e["path"] == "whatsapp":
+                parts.append("ठीक है, पर्चा व्हाट्सऐप पर भेजना है। ऑर्डर दे दें?" if hi else "Okay, you'll send the prescription on WhatsApp. Shall I place the order?")
+            else:
+                parts.append("ठीक है, फार्मासिस्ट आपको कॉल करेंगे। ऑर्डर दे दें?" if hi else "Okay, our pharmacist will call you. Shall I place the order?")
+            asked_something = True
+        elif kind == "details_needed":
+            parts.append(lang_line(language, "details"))
+            asked_something = True
         elif kind == "checkout":
-            parts.append("आपका ऑर्डर दे दिया गया है, धन्यवाद!" if hi else "Your order is placed. Thank you!")
+            parts.append(_placed(e, language))
         elif kind == "bill":
             total = e.get("total")
             if total:

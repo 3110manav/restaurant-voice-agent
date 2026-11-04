@@ -590,7 +590,99 @@ deps in `requirements-livekit.txt` for local use). Restaurant calls read their m
 only the old four-persona demos need the local `chroma_db/`, and the worker loads that on demand.
 Redeploy the worker whenever `app/` changes: it runs its own copy of the agent code.
 
-### Hosting the worker on LiveKit Cloud (so calls work without your laptop)
+### Stores, customers and medicines
+
+A store is a row in `restaurants` with a `business_type`: `restaurant` (Kabir, dine-in), `kirana` (a general
+store) or `pharmacy`. Kirana and pharmacy orders are always delivered; they use the `store` persona
+(`app/agent/graph.py`), with no waiter tools and no cross-selling.
+
+**Set up** (once): run `supabase/migrations/002_stores_customers.sql` in the Supabase SQL editor, then
+
+```
+python -m app.seed_restaurants --only gupta-general-store     # 100 grocery items
+python -m app.seed_restaurants --only care-plus-medicals      # 44 medicines (10 need a prescription)
+```
+
+**How the database works.** Items stay in `dishes` for every store type (`brand` added; `is_veg` may be NULL).
+`medicine_info` holds a pharmacy item's salt, strength, `rx_required`, `schedule` (H or H1; schedule X is not
+allowed), `uses`, `symptoms` and `precautions`; the embedding text includes them, so "something for a sore
+throat" finds the right items. `customers` is keyed by `(restaurant_id, phone)` with phone in E.164, so one store
+never sees another's customers; `customer_addresses` holds their addresses (one default). `orders` gained
+`customer_id`, `caller_phone`, `fulfilment` (`dine_in`, `delivery`, `pickup`), `address_snapshot` (the address as
+it was at order time) and `needs_pharmacist`. The `customer_context()` database function returns the customer,
+saved address, order count and last order in one round trip when a call starts; `forget_customer()` deletes a
+customer and blanks their personal details on past orders.
+
+**Recognising a caller** (`app/customers/session.py`). The caller's number is the key. A returning customer is
+greeted by name, offered their last order, and never asked for an address. A new customer is asked for name and
+address after they are done choosing and before the order is placed (checkout is held in code until there is an
+address or a pickup). In the browser there is no caller ID, so a demo store (`restaurants.demo_mode`, on for the five demo stores) asks
+"Who's calling?" when a call starts: type a mobile number and the agent recognises it if it has ordered before. A
+typed number proves nothing about who is typing, so it is only honoured on demo stores, it travels in the request
+body (never the URL), and it is never sent a WhatsApp message. A real store leaves `demo_mode` off and recognises
+people by caller ID on a real call (to be confirmed as the SIP attribute `sip.phoneNumber` when Exotel is
+connected) or by their WhatsApp number.
+
+**Pharmacy safety** (`app/agent/medical.py`). An emergency ("chest pain") or a question about doses, side
+effects, pregnancy or babies never reaches the model: it gets a fixed answer and the staff get a request row
+(`medical_emergency` or `pharmacist_callback`). A reply that gives a dose or schedule, a diagnosis or a cure is
+rejected and regenerated. Prescription items can be ordered but are flagged for the pharmacist to verify. The
+medicine text in `app/data/stores/` is a draft: every item is `ai_draft` until a pharmacist approves it.
+
+## WhatsApp
+
+Orders reach the shop on WhatsApp, and customers can order by chatting on WhatsApp too. It uses Meta's
+WhatsApp Cloud API directly (`app/whatsapp/`).
+
+**What happens.** An ordinary order sends the owner a "new order" alert (they reply `CONFIRM K7M2P` or
+`REJECT K7M2P out of stock`; the customer is told). A pharmacy order with a prescription medicine holds at
+checkout while the agent asks: send a photo of the prescription on WhatsApp, or talk to the pharmacist first.
+"WhatsApp" parks the order as `awaiting_prescription` and asks the customer for the photo; when the photo
+arrives it moves to `prescription_received` and the pharmacist is told (`SHOW K7M2P` shows it to them, then
+`CONFIRM` or `REJECT`). "Pharmacist" parks it as `awaiting_pharmacist` and asks the pharmacist to call.
+An order is never confirmed by the agent: only a human can.
+
+**Chatting on WhatsApp.** Anything a customer sends to the store's number goes to the same agent as the web
+chat and the call, recognised by their number (so a returning customer is not asked for an address). A text
+order can be added to, changed and placed in the chat. Not built yet: changing an order after it has been
+placed, voice notes, and location pins.
+
+**Rules the code enforces.** Only a verified number is ever messaged as a customer (a real call's caller ID, or
+the sender of a WhatsApp message), never one typed into a web page. Alerts to one store are capped per hour.
+Staff alerts are templates (`app/whatsapp/templates.md`); replies inside the customer's 24-hour window are free
+text. Webhooks are rejected unless correctly signed, and each message is handled once however often Meta retries.
+
+**Several numbers.** `store_channels` maps each store to its WhatsApp number (Meta's `phone_number_id`), the
+owner and pharmacist numbers, and the name of the env var holding that number's token. Moving a store to a new
+number is one command:
+
+```
+python -m app.whatsapp_setup --store care-plus-medicals --phone-number-id <id> --display-number +91... \
+    --notify +91owner --rx +91pharmacist [--disable-old <old id>]
+python -m app.whatsapp_setup --list
+```
+
+**Setup.**
+1. Run `supabase/migrations/003_whatsapp.sql`.
+2. In Meta for Developers create an app (type Business), add WhatsApp, and note the number's *Phone number ID*.
+   To start, Meta's free test number works (it can message up to five numbers you verify). For your own
+   business number see the coexistence note below.
+3. Set `WHATSAPP_ACCESS_TOKEN` on Render **and** in `deploy/worker/secrets.env`; `WHATSAPP_APP_SECRET` and
+   `WHATSAPP_VERIFY_TOKEN` on Render.
+4. In Meta, register the webhook `https://<your-api>/whatsapp/webhook` with your verify token and subscribe to
+   `messages`.
+5. Submit the six templates in `app/whatsapp/templates.md`.
+6. Register the number with `app.whatsapp_setup`.
+
+Until a token is set nothing is sent: messages are logged with status `logged`, so the flow can be built and
+demoed first. To receive webhooks on your laptop use a tunnel (ngrok or cloudflared) and set
+`WHATSAPP_ALLOW_UNSIGNED=1` while testing.
+
+**Using your own business number.** A number on the Cloud API stops working in the WhatsApp Business app
+unless it is connected with Meta's "coexistence" option (Embedded Signup), which keeps both working. Without it,
+move the number only when you are ready to use it through Sarthi alone.
+
+## Hosting the worker on LiveKit Cloud (so calls work without your laptop)
 
 `deploy/worker/` holds everything. LiveKit builds from one folder that needs its own `Dockerfile`
 (the repo root's belongs to the API), so `deploy/worker/deploy.sh` stages just the worker's code and
