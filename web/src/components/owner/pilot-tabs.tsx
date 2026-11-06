@@ -13,7 +13,9 @@ import {
   listCustomers,
   markTablePaid,
   markTableServed,
+  fetchCustomerVisits,
   type Customer,
+  type CustomerVisit,
   type MonthlyReport,
   type OwnerRestaurant,
   type StageAverages,
@@ -94,12 +96,22 @@ export function TonightTab({ restaurant }: { restaurant: OwnerRestaurant }) {
     }
   }
 
+  const waiting = (data?.tables ?? []).filter((t) => t.state === "long");
+
   return (
     <div className="flex flex-col gap-5">
       <LoadError error={error} />
+      {waiting.length > 0 && (
+        <div role="alert" className="rounded-lg border border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+          <strong className="font-semibold">
+            {waiting.map((t) => `Table ${t.table_no ?? "?"}`).join(", ")} {waiting.length === 1 ? "has" : "have"} waited a long time for food.
+          </strong>{" "}
+          Check with the kitchen, then tap Food served.
+        </div>
+      )}
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold">Tables right now</h2>
+          <h2 className="text-xl font-semibold">Tables right now</h2>
           <p className="text-sm text-muted-foreground">
             {data ? `${data.tables.length} open ${data.tables.length === 1 ? "table" : "tables"}` : "Loading…"}
           </p>
@@ -117,7 +129,7 @@ export function TonightTab({ restaurant }: { restaurant: OwnerRestaurant }) {
               <div
                 key={t.id}
                 className={cn(
-                  "flex flex-col gap-1 rounded-lg border p-3",
+                  "flex flex-col gap-1 rounded-xl border bg-background p-3.5",
                   status.tone === "warn" && "border-amber-500 bg-amber-50 dark:bg-amber-950/30"
                 )}
               >
@@ -211,6 +223,7 @@ export function CustomersTab({ restaurant }: { restaurant: OwnerRestaurant }) {
   const load = useCallback(() => listCustomers(restaurant.id), [restaurant.id]);
   const { data, error } = usePolled<Customer[]>(load, 0);
   const [query, setQuery] = useState("");
+  const [open, setOpen] = useState<Customer | null>(null);
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (data ?? []).filter((c) => !q || c.phone.includes(q) || (c.name ?? "").toLowerCase().includes(q));
@@ -260,12 +273,15 @@ export function CustomersTab({ restaurant }: { restaurant: OwnerRestaurant }) {
               <TableHead className="text-right">Visits</TableHead>
               <TableHead>Last visit</TableHead>
               <TableHead>Offers</TableHead>
+              <TableHead>
+                <span className="sr-only">Past visits</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {shown.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
                   {data ? "No customers yet." : "Loading…"}
                 </TableCell>
               </TableRow>
@@ -281,13 +297,63 @@ export function CustomersTab({ restaurant }: { restaurant: OwnerRestaurant }) {
                   <TableCell className={c.offers_opt_in ? "text-green-700 dark:text-green-400" : "text-muted-foreground"}>
                     {c.offers_opt_in ? "On" : "Off"}
                   </TableCell>
+                  <TableCell className="text-right">
+                    <Button size="sm" variant="outline" className="h-9" onClick={() => setOpen(c)}>
+                      Past visits
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
+      {open && <CustomerVisits key={open.id} restaurantId={restaurant.id} customer={open} onClose={() => setOpen(null)} />}
     </div>
+  );
+}
+
+function CustomerVisits({ restaurantId, customer, onClose }: { restaurantId: string; customer: Customer; onClose: () => void }) {
+  const load = useCallback(() => fetchCustomerVisits(restaurantId, customer.id), [customer.id, restaurantId]);
+  const { data, error } = usePolled<CustomerVisit[]>(load, 0);
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-3">
+        <div>
+          <CardTitle>{customer.name ?? customer.phone}: past visits</CardTitle>
+          <CardDescription>
+            {customer.visits} {customer.visits === 1 ? "visit" : "visits"}, first on {formatTime(customer.first_seen_at)}
+          </CardDescription>
+        </div>
+        <Button size="sm" variant="ghost" className="h-9" onClick={onClose}>
+          Close
+        </Button>
+      </CardHeader>
+      <CardContent className="flex flex-col">
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        {!data ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : data.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No table visits recorded with this number.</p>
+        ) : (
+          data.map((v) => (
+            <div key={v.seated_at} className="flex flex-wrap justify-between gap-2 border-t py-2.5 text-sm">
+              <span>
+                <span className="text-muted-foreground">
+                  {formatTime(v.seated_at)}
+                  {v.table_no ? ` · Table ${v.table_no}` : ""} ·{" "}
+                </span>
+                {v.ordered.map((l) => `${l.quantity} × ${l.name}${l.variant ? ` (${l.variant})` : ""}`).join(", ") || "Nothing ordered"}
+              </span>
+              <span className="font-medium">
+                {v.bill_total ? formatPrice(v.bill_total) : "—"}
+                {v.rating ? ` · ${v.rating}★` : ""}
+              </span>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -305,7 +371,6 @@ export function ReportTab({ restaurant }: { restaurant: OwnerRestaurant }) {
 
   const cards = data
     ? [
-        { label: "Extra earned from suggestions", value: formatPrice(data.upsell_total), note: "Dishes guests added from the suggestion card" },
         {
           label: "Average table turn",
           value: data.averages.turn !== null ? `${data.averages.turn} min` : "—",
@@ -340,6 +405,13 @@ export function ReportTab({ restaurant }: { restaurant: OwnerRestaurant }) {
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (
         <>
+          <div className="rounded-xl bg-foreground p-6 text-background">
+            <p className="text-sm opacity-80">Extra earned from suggestions</p>
+            <p className="text-5xl leading-tight font-bold tabular-nums">{formatPrice(data.upsell_total)}</p>
+            <p className="text-sm opacity-80">
+              Dishes guests added from {restaurant.agent_name}&apos;s suggestion card, across {data.table_orders} kitchen tickets.
+            </p>
+          </div>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
             {cards.map((c) => (
               <Card key={c.label}>

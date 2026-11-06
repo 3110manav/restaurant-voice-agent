@@ -11,16 +11,17 @@ import { SettingsTab } from "@/components/owner/settings-tab";
 import { useOwnerSession } from "@/components/owner/use-owner-session";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isHexColor, readableOn } from "@/lib/brand";
 import { AuthRequiredError, fetchOwnerMenu, type OwnerMenu } from "@/lib/owner-api";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { key: "tonight", label: "Tonight" },
-  { key: "menu", label: "Menu" },
-  { key: "orders", label: "Orders" },
-  { key: "requests", label: "Table requests" },
   { key: "customers", label: "Customers" },
   { key: "report", label: "Monthly report" },
+  { key: "orders", label: "Orders" },
+  { key: "requests", label: "Table requests" },
+  { key: "menu", label: "Menu" },
   { key: "settings", label: "Settings & QR" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
@@ -66,43 +67,56 @@ function Console({ id }: { id: string }) {
   const { restaurant } = menu;
   const canEdit = restaurant.role !== "staff";
 
+  const accent = isHexColor(restaurant.accent_color) ? restaurant.accent_color : "#1c1917";
+
   return (
-    <div className="mx-auto flex min-h-screen max-w-4xl flex-col gap-5 p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+    <div className="flex min-h-screen flex-col bg-muted/40">
+      <header className="border-b bg-background">
+        <div className="mx-auto w-full max-w-[1240px] px-6 pt-4">
           <Link href="/owner" className="text-xs text-muted-foreground underline-offset-4 hover:underline">
             ← All restaurants
           </Link>
-          <h1 className="text-xl font-semibold">{restaurant.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            {[restaurant.cuisine, `Waiter: ${restaurant.agent_name}`].filter(Boolean).join(" · ")}
-          </p>
+          <div className="mt-2 mb-3 flex flex-wrap items-center gap-3">
+            <div
+              aria-hidden="true"
+              className="flex size-10 shrink-0 items-center justify-center rounded-lg text-lg font-semibold"
+              style={{ background: accent, color: readableOn(accent) }}
+            >
+              {restaurant.name.trim().charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-40 flex-1">
+              <h1 className="text-lg leading-tight font-semibold">{restaurant.name}</h1>
+              <p className="text-sm text-muted-foreground">
+                {[restaurant.cuisine, `Waiter: ${restaurant.agent_name}`, restaurant.status === "live" ? "Live" : "Draft"]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            </div>
+            <Link href={`/r/${restaurant.slug}`} target="_blank" className={buttonVariants({ variant: "outline" })}>
+              Open guest page ↗
+            </Link>
+          </div>
+          <nav aria-label="Console sections" className="flex flex-wrap gap-1">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                aria-pressed={tab === t.key}
+                onClick={() => setTab(t.key)}
+                className={cn(
+                  "h-11 border-b-2 px-3.5 text-sm",
+                  tab === t.key ? "font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+                style={tab === t.key ? { borderColor: accent } : undefined}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
         </div>
-        <Link
-          href={`/r/${restaurant.slug}`}
-          target="_blank"
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          Open customer page ↗
-        </Link>
-      </div>
+      </header>
 
-      <div className="flex flex-wrap gap-1 border-b">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setTab(t.key)}
-            className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm",
-              tab === t.key ? "border-primary font-medium" : "border-transparent text-muted-foreground"
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
+      <main className="mx-auto flex w-full max-w-[1240px] flex-col gap-5 p-6">
       {tab === "menu" &&
         (canEdit ? (
           <MenuEditor menu={menu} onChanged={reload} />
@@ -125,6 +139,7 @@ function Console({ id }: { id: string }) {
         ) : (
           <p className="text-sm text-muted-foreground">Only owners and managers can change settings.</p>
         ))}
+      </main>
     </div>
   );
 }

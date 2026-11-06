@@ -109,3 +109,20 @@ def test_resolving_a_request_is_scoped_to_the_restaurant(client, monkeypatch):
 def test_slugify():
     assert owner_api._slugify("Sarson Da Khet!") == "sarson-da-khet"
     assert owner_api._slugify("   ") == "restaurant"
+
+
+def test_customer_visits_are_for_owners_and_scoped_to_the_restaurant(client, monkeypatch):
+    from app.table import repository as table_repository
+
+    monkeypatch.setattr(table_repository, "get_customer",
+                        lambda rid, cid: {"id": cid, "phone": "9812345678"} if (rid, cid) == ("r1", "c1") else None)
+    monkeypatch.setattr(table_repository, "list_sessions_for_phone", lambda rid, phone: [
+        {"seated_at": "2026-11-06T13:00:00+00:00", "table_no": "3", "ordered": [{"id": "m1"}], "bill_total": 693,
+         "rating": 5, "guest_phone": phone, "feedback": "private"},
+    ])
+    r = client.get("/owner/restaurants/r1/customers/c1/visits", headers=bearer("good-owner"))
+    assert r.status_code == 200
+    assert r.json()["visits"] == [{"seated_at": "2026-11-06T13:00:00+00:00", "table_no": "3", "ordered": [{"id": "m1"}],
+                                   "bill_total": 693, "rating": 5}]
+    assert client.get("/owner/restaurants/r1/customers/c1/visits", headers=bearer("good-staff")).status_code == 404
+    assert client.get("/owner/restaurants/r1/customers/zz/visits", headers=bearer("good-owner")).status_code == 404

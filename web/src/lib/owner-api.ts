@@ -177,3 +177,16 @@ export const listCustomers = (restaurantId: string) =>
 
 export const fetchMonthlyReport = (restaurantId: string, month?: string) =>
   ownerFetch<MonthlyReport>(`restaurants/${restaurantId}/report${month ? `?month=${encodeURIComponent(month)}` : ""}`);
+
+export interface CustomerVisit {
+  seated_at: string;
+  table_no: string | null;
+  ordered: { id: string; name: string; quantity: number; variant?: string }[];
+  bill_total: number | null;
+  rating: number | null;
+}
+
+export const fetchCustomerVisits = (restaurantId: string, customerId: string) =>
+  ownerFetch<{ customer: Customer; visits: CustomerVisit[] }>(`restaurants/${restaurantId}/customers/${customerId}/visits`).then(
+    (r) => r.visits
+  );

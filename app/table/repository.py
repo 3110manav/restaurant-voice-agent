@@ -109,6 +109,29 @@ def save_customer(restaurant_id: str, phone: str, name: str | None, offers_opt_i
     return client.table("customers").insert(row).execute().data[0]
 
 
+def get_customer(restaurant_id: str, customer_id: str) -> dict | None:
+    client = _c()
+    if client is None:
+        return None
+    rows = (
+        client.table("customers").select("*")
+        .eq("id", customer_id).eq("restaurant_id", restaurant_id).limit(1).execute().data
+    )
+    return rows[0] if rows else None
+
+
+def list_sessions_for_phone(restaurant_id: str, phone: str, limit: int = 20) -> list[dict]:
+    """A customer's past visits: the table sessions where they gave this number at the bill."""
+    client = _c()
+    if client is None:
+        return []
+    return (
+        client.table("table_sessions").select("*")
+        .eq("restaurant_id", restaurant_id).eq("guest_phone", phone)
+        .order("seated_at", desc=True).limit(limit).execute().data
+    )
+
+
 def list_customers(restaurant_id: str, limit: int = 500) -> list[dict]:
     client = _c()
     if client is None:

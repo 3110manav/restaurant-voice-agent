@@ -316,6 +316,26 @@ def customers(restaurant_id: str, user_id: str = Depends(current_user_id)) -> di
     return {"customers": table_repository.list_customers(restaurant_id)}
 
 
+@router.get("/restaurants/{restaurant_id}/customers/{customer_id}/visits")
+def customer_visits(restaurant_id: str, customer_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    """One customer's past visits: when, which table, what they ordered and the bill."""
+    _restaurant_for(user_id, restaurant_id, editor=True)
+    customer = table_repository.get_customer(restaurant_id, customer_id)
+    if customer is None:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    visits = [
+        {
+            "seated_at": row.get("seated_at"),
+            "table_no": row.get("table_no"),
+            "ordered": row.get("ordered") or [],
+            "bill_total": row.get("bill_total"),
+            "rating": row.get("rating"),
+        }
+        for row in table_repository.list_sessions_for_phone(restaurant_id, customer["phone"])
+    ]
+    return {"customer": customer, "visits": visits}
+
+
 @router.get("/restaurants/{restaurant_id}/report")
 def monthly_report(restaurant_id: str, month: str | None = None, user_id: str = Depends(current_user_id)) -> dict:
     restaurant = _restaurant_for(user_id, restaurant_id)
