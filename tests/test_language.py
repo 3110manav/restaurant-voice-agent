@@ -177,6 +177,7 @@ def test_acknowledgements_skip_small_talk_and_rotate():
 
 
 def test_short_phrases_are_generated_once_and_then_played_from_memory(monkeypatch):
+    pytest.importorskip("livekit.agents")
     monkeypatch.setenv("GROQ_API_KEY", "test")
     monkeypatch.setenv("SARVAM_API_KEY", "test")
     from app.voice import livekit_tts as lt
@@ -196,6 +197,7 @@ def test_short_phrases_are_generated_once_and_then_played_from_memory(monkeypatc
 
 
 def test_the_calls_speech_adapter_builds_and_speaks_short_sentences_immediately(monkeypatch):
+    pytest.importorskip("livekit.agents")
     monkeypatch.setenv("GROQ_API_KEY", "test")
     monkeypatch.setenv("SARVAM_API_KEY", "test")
     from livekit.agents import tts as lk_tts

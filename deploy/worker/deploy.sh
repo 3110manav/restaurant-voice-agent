@@ -15,6 +15,10 @@ command -v lk >/dev/null || { echo "Install the LiveKit CLI first: brew install 
 rm -rf "$build"
 mkdir -p "$build"
 rsync -a --exclude '__pycache__' --exclude '*.pyc' --exclude 'data/' "$root/app/" "$build/app/"
+# Kirana calls read the grocery catalog and its pre-built index (restaurant calls read Supabase instead).
+mkdir -p "$build/app/data"
+cp "$root/app/data/grocery.json" "$root/app/data/menu.json" "$build/app/data/"
+cp -R "$root/chroma_db" "$build/chroma_db"
 cp "$here/Dockerfile" "$here/requirements.txt" "$here/.dockerignore" "$build/"
 
 if [ -f "$here/livekit.toml" ]; then

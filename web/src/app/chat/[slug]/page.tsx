@@ -8,7 +8,7 @@ export function generateStaticParams() {
   return PERSONAS.map((persona) => ({ slug: persona.slug }));
 }
 
-// All four slugs are already enumerated above and prerendered statically,
+// All the enabled slugs are already enumerated above and prerendered statically,
 // so there's no per-request URL data to make "instant": this just silences
 // Next's instant-navigation advisory for that known case.
 export const instant = false;

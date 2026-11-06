@@ -236,6 +236,12 @@ AGENT_NAMES = {
     "store": "Shubh",
 }
 
+# The agents that are live: Veer (kirana), Kabir (restaurants) and the "store" assistant that serves every store
+# row that is not a restaurant (Shubh, Sehat). The others stay defined above but
+# can't be reached through the API, the voice worker or the CLIs. Add a key here to bring one back
+# (and to ENABLED_PERSONA_KEYS in web/src/lib/personas.ts for the web app).
+ENABLED_PERSONAS = ("quick_commerce", "waiter", "store")
+
 
 def persona_for(store: dict) -> str:
     """Which persona serves a store row: the waiter for restaurants, the store assistant otherwise."""
@@ -260,7 +266,7 @@ class RestaurantOrderingAgent:
         self,
         session_id: str,
         menu_store,
-        persona: str = "online",
+        persona: str = "waiter",
         model: str | None = None,
         restaurant: dict | None = None,
         table_no: str | None = None,

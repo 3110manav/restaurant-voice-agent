@@ -5,10 +5,8 @@ back through the speakers (Orpheus/Groq for English, Sarvam AI's Bulbul
 for Hindi — see app/voice/tts.py).
 
 Usage:
-    python voice_cli.py                  # online delivery-app persona (Meera)
-    python voice_cli.py quick_commerce   # quick-commerce persona (Veer)
-    python voice_cli.py waiter           # in-restaurant waiter persona (Kabir)
-    python voice_cli.py hotel            # hotel front-desk persona (Ira)
+    python voice_cli.py                  # in-restaurant waiter persona (Kabir)
+    python voice_cli.py quick_commerce   # kirana persona (Veer)
 """
 import sys
 import tempfile
@@ -18,21 +16,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from app.agent.graph import _PERSONAS, RestaurantOrderingAgent  # noqa: E402
-from app.rag.menu_store import MenuStore  # noqa: E402
+from app.agent.graph import ENABLED_PERSONAS, RestaurantOrderingAgent  # noqa: E402
+from app.rag.menu_store import store_for_persona  # noqa: E402
 from app.voice.recorder import record_until_enter  # noqa: E402
 from app.voice.stt import transcribe  # noqa: E402
 from app.voice.tts import speak  # noqa: E402
 
 
 def main():
-    persona = sys.argv[1] if len(sys.argv) > 1 else "online"
-    if persona not in _PERSONAS:
-        print(f"Unknown persona {persona!r}. Choose one of: {', '.join(_PERSONAS)}")
+    persona = sys.argv[1] if len(sys.argv) > 1 else "waiter"
+    if persona not in ENABLED_PERSONAS:
+        print(f"Unknown persona {persona!r}. Choose one of: {', '.join(ENABLED_PERSONAS)}")
         return
 
     print(f"Loading menu and building the {persona} agent...")
-    menu_store = MenuStore()
+    menu_store = store_for_persona(persona)
     agent = RestaurantOrderingAgent(session_id=f"voice-cli-{persona}", menu_store=menu_store, persona=persona)
 
     print(f"Ready ({agent.agent_name}, {persona} persona). Speak naturally. Ctrl+C to quit.\n")

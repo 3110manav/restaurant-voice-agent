@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # The realtime voice worker, hosted on LiveKit Cloud (`lk agent create` / `lk agent deploy`).
-# Built from the staged folder that deploy.sh prepares: this file, requirements.txt and app/.
+# Built from the staged folder that deploy.sh prepares: this file, requirements.txt, app/ and chroma_db/.
 # Follows LiveKit's Python template: a glibc slim base, a non-root user, and the worker started with
 # the `start` subcommand. LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET are injected by LiveKit
 # Cloud; every other secret comes from secrets.env (never copied into the image).
@@ -17,6 +17,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ app/
+COPY chroma_db/ chroma_db/
 
 FROM base
 ARG UID=10001

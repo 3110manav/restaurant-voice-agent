@@ -1,9 +1,10 @@
-# What the realtime voice worker imports and nothing else (no web framework, no Chroma, no test tools),
+# What the realtime voice worker imports and nothing else (no web framework, no test tools),
 # so the image builds well inside LiveKit's 10 minute limit.
 livekit-agents[groq,silero]~=1.8
 langchain-core
 langchain-groq
 langchain-google-genai
+langchain-chroma
 langgraph
 python-dotenv
 pydantic
