@@ -98,13 +98,13 @@ def test_a_new_customer_is_asked_for_an_address_before_the_order_is_placed(recor
         call("save_delivery_details", {"name": "Ravi", "address": "4 MG Road, Bandra West, Mumbai", "area": "Bandra West"}),
         call("checkout", {}),
     )
-    assert "Added" in agent.send("two lifebuoy soaps")
+    assert "Done, two Lifebuoy Soap" in agent.send("two lifebuoy soaps")
     held = agent.send("that's all, place the order")
-    assert "name and your full delivery address" in held and recorded["orders"] == []  # held: nothing placed
+    assert "name and delivery address" in held and recorded["orders"] == []  # held: nothing placed
     # the read-back is composed in code from what was saved, with no second model call
-    assert agent.send("I'm Ravi, 4 MG Road Bandra West Mumbai") == "Thank you, Ravi. I have 4 MG Road, Bandra West, Mumbai. Is that right?"
+    assert agent.send("I'm Ravi, 4 MG Road Bandra West Mumbai") == "Thanks, Ravi. Got it: 4 MG Road, Bandra West, Mumbai. Is that right?"
     placed = agent.send("yes")
-    assert "Your order is placed" in placed and "eighty rupees" in placed and "Bandra West" in placed
+    assert "All set" in placed and "eighty rupees" in placed and "Bandra West" in placed
     (_, kw), = recorded["orders"]
     assert kw["extra"]["fulfilment"] == "delivery" and kw["extra"]["customer_id"] == "c9"
     assert kw["extra"]["address_snapshot"]["area"] == "Bandra West"
@@ -119,14 +119,14 @@ def test_a_returning_customer_is_never_asked_for_an_address(recorded):
     )
     agent.send("same as last time")
     placed = agent.send("that's all, place the order")
-    assert "Your order is placed" in placed and "Andheri West" in placed and "name and your full" not in placed
+    assert "All set" in placed and "Andheri West" in placed and "name and delivery address" not in placed
     (_, kw), = recorded["orders"]
     assert kw["extra"]["customer_id"] == "c1" and kw["extra"]["address_snapshot"]["area"] == "Andheri West"
 
 
 def test_the_opening_line_greets_a_known_caller_by_name(recorded):
     assert make("kirana", KNOWN).opening_line("Test Store").startswith("Welcome back Meera!")
-    assert make("kirana").opening_line("Test Store").startswith("Namaste, welcome to Test Store")
+    assert make("kirana").opening_line("Test Store").startswith("Namaste! Welcome to Test Store")
 
 
 def test_pickup_places_the_order_without_an_address(recorded):
@@ -137,9 +137,9 @@ def test_pickup_places_the_order_without_an_address(recorded):
         call("checkout", {}),
     )
     agent.send("a pack of duracell batteries")
-    assert "Shall I place the order?" in agent.send("I'll pick it up")
+    assert "Shall I place it?" in agent.send("I'll pick it up")
     placed = agent.send("yes place it")
-    assert "pick it up" in placed
+    assert "pick up" in placed
     assert recorded["orders"][0][1]["extra"]["fulfilment"] == "pickup"
 
 
@@ -157,7 +157,7 @@ def test_an_address_taken_this_turn_cannot_be_placed_until_the_customer_confirms
     agent.send("a lifebuoy soap")
     reply = agent.send("place the order, I'm Ravi, 4 MG Road Bandra West Mumbai")
     assert "Is that right?" in reply and recorded["orders"] == []
-    assert "Your order is placed" in agent.send("yes")  # the next message is the confirmation
+    assert "All set" in agent.send("yes")  # the next message is the confirmation
     assert len(recorded["orders"]) == 1
 
 
@@ -248,7 +248,7 @@ def test_an_ordinary_order_skips_the_prescription_question_and_tells_the_shop(re
     agent.llm_with_tools = ScriptedLLM(call("add_to_cart", {"items": [{"name": "Dolo", "quantity": 2}]}), call("checkout", {}))
     agent.send("two dolo 650")
     placed = agent.send("that's all")
-    assert "Your order is placed" in placed and "prescription" not in placed.lower()
+    assert "All set" in placed and "prescription" not in placed.lower()
     import time
     for _ in range(100):  # the shop is told from a background thread
         if recorded["announced"]:

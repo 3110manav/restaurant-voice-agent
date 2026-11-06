@@ -79,8 +79,9 @@ def greeting(language: str, agent_name: str, restaurant_name: str | None = None)
         name = AGENT_NAMES_HI.get(agent_name, agent_name)
         place = f"{restaurant_name} में आपका स्वागत है। " if restaurant_name else ""
         return f"नमस्ते, {place}मैं {name} हूँ।"
-    place = f"welcome to {restaurant_name}. " if restaurant_name else ""
-    return f"Namaste, {place}I'm {agent_name}." if place else f"Namaste, I'm {agent_name}."
+    if restaurant_name:
+        return f"Namaste! Welcome to {restaurant_name}, I'm {agent_name}. What can I get you?"
+    return f"Namaste! I'm {agent_name}. What can I get you?"
 
 
 def greeting_known(language: str, agent_name: str, store_name: str | None, customer_name: str | None) -> str:
@@ -99,7 +100,7 @@ LINES = {
         "injection": "I can only help with your order and anything you need at the table. What would you like to have?",
         "empty": "Sorry, I didn't catch that. Could you say it once more?",
         "busy": "Sorry, I'm a little busy right now. Could you say that again in a moment?",
-        "order": "I haven't placed that order yet. Shall I go ahead and place it?",
+        "order": "I haven't placed it yet. Shall I go ahead?",
         "cart": "Let me make sure I get that right. What would you like me to add or change?",
         "service": "Let me get someone to help with that. One moment please.",
         "amount": "Let me double check that price for you. Which dish did you mean?",
@@ -107,9 +108,9 @@ LINES = {
         "default": "Sorry, could you say that once more?",
         "emergency": "That sounds serious. Please call one one two, or go to the nearest hospital right now. I'm letting our pharmacist know.",
         "pharmacist": "For that, our pharmacist is the right person to ask. I'll leave them a note and they'll get back to you. Shall I add anything to your order meanwhile?",
-        "details": "Before I place your order, may I have your name and your full delivery address? Or would you rather pick it up?",
-        "rx_choice": "One of these needs a prescription. Would you like to send a photo of it on WhatsApp, or talk to our pharmacist first?",
-        "rx_received": "Thank you, we've received your prescription for order {code}. Our pharmacist will check it and confirm shortly.",
+        "details": "Sure! Can I have your name and delivery address? Or will you pick it up?",
+        "rx_choice": "One of these needs a prescription. Want to send a photo of it on WhatsApp, or talk to our pharmacist first?",
+        "rx_received": "Thanks, got the prescription for order {code}. Our pharmacist will check it and confirm shortly.",
         "rx_none": "Thanks for the photo! I don't see an order waiting for a prescription. What would you like to order?",
         "wa_unsupported": "I can read text messages and photos for now. Could you type what you'd like to order?",
     },

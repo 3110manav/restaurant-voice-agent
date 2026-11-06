@@ -144,13 +144,13 @@ def test_a_customer_already_chatting_on_whatsapp_is_not_sent_a_template(announce
 
 def test_a_prescription_order_to_be_sent_on_whatsapp_goes_to_the_pharmacist_and_asks_the_customer(announce):
     notify.order_placed(STORE, order(rx_path="whatsapp"))
-    assert [(to, name) for to, name, _ in announce] == [("+919822222222", "sarthi_rx_alert"), ("+919876543210", "sarthi_rx_request")]
+    assert [(to, name) for to, name, _ in announce] == [("+919822222222", "sarthi_rx_order"), ("+919876543210", "sarthi_rx_request")]
     assert "[Rx]" in announce[0][2][2] and "prescription on WhatsApp" in announce[0][2][3]
 
 
 def test_choosing_the_pharmacist_asks_the_pharmacist_to_call_and_says_nothing_to_the_customer(announce):
     notify.order_placed(STORE, order(rx_path="pharmacist"))
-    assert [(to, name) for to, name, _ in announce] == [("+919822222222", "sarthi_rx_alert")]
+    assert [(to, name) for to, name, _ in announce] == [("+919822222222", "sarthi_rx_order")]
     assert "call +919876543210" in announce[0][2][3]
 
 
@@ -351,3 +351,33 @@ def test_the_checker_surfaces_metas_own_message_for_a_bad_token(monkeypatch):
     transport = httpx.MockTransport(lambda r: httpx.Response(401, json={"error": {"code": 190, "message": "Session has expired"}}))
     with pytest.raises(client.WhatsAppError, match="190: Session has expired"):
         whatsapp_check.describe("PNID1", httpx.Client(transport=transport))
+
+
+def test_registering_a_number_posts_the_pin_and_reports_metas_refusal(monkeypatch):
+    from app import whatsapp_check
+    monkeypatch.setenv("WHATSAPP_ACCESS_TOKEN", "t")
+    seen = {}
+
+    def ok(request):
+        seen["url"], seen["body"] = str(request.url), json.loads(request.content)
+        return httpx.Response(200, json={"success": True})
+
+    whatsapp_check.register("PNID1", "123456", httpx.Client(transport=httpx.MockTransport(ok)))
+    assert seen["url"].endswith("/PNID1/register") and seen["body"] == {"messaging_product": "whatsapp", "pin": "123456"}
+    refuse = httpx.MockTransport(lambda r: httpx.Response(400, json={"error": {"code": 133005, "message": "Two-step verification PIN mismatch"}}))
+    with pytest.raises(client.WhatsAppError, match="133005"):
+        whatsapp_check.register("PNID1", "000000", httpx.Client(transport=refuse))
+
+
+def test_an_alert_is_plain_text_when_the_owner_has_messaged_the_shop_recently(announce, monkeypatch):
+    monkeypatch.setattr(channels, "window_open", lambda rid, peer: peer == "+919811111111")  # only the owner wrote first
+    notify.order_placed(STORE, order(lines=[LINES[0]], total=64.0, phone_verified=False))
+    (to, kind, body), = [m for m in announce if m[0] == "+919811111111"]
+    assert kind == "text" and "New order K7M2P" in body and "Rs 64" in body and "Reply with CONFIRM or REJECT" in body
+
+
+def test_a_prescription_alert_is_plain_text_inside_the_pharmacists_window(announce, monkeypatch):
+    monkeypatch.setattr(channels, "window_open", lambda rid, peer: True)
+    notify.order_placed(STORE, order(rx_path="whatsapp", phone_verified=False))
+    (to, kind, body), = [m for m in announce if m[0] == "+919822222222"]
+    assert kind == "text" and "needs a prescription check" in body and "[Rx]" in body

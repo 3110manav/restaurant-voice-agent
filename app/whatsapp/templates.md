@@ -1,11 +1,15 @@
-# WhatsApp message templates to submit
+# WhatsApp message templates
+
+The wording lives in `app/whatsapp/template_defs.py`. Easiest: `python -m app.whatsapp_templates --waba-id <id> --submit`
+submits them all and `--status` shows which are approved. The text below is for submitting by hand in WhatsApp
+Manager instead, and it matches the code.
 
 Submit these in Meta's WhatsApp Manager (Message templates > Create). Category **Utility**, language
 **English**. Use exactly these names and variable positions: the code fills `{{1}}`, `{{2}}`... in this
 order. Approval usually takes minutes to a day. Until a template is approved Meta rejects that message
 (the order itself is never affected, and a failed send is recorded in `whatsapp_messages`).
 
-**Start with three** (`sarthi_order_alert`, `sarthi_rx_alert`, `sarthi_rx_request`): they cover the owner's
+**Start with three** (`sarthi_order_alert`, `sarthi_rx_order`, `sarthi_rx_request`): they cover the owner's
 alert, the pharmacist's alert and asking for the prescription photo. Submit the other three the same day so
 they are ready: a confirmation to the caller, a status update after the owner replies, and the pharmacist's
 "photo arrived" nudge. Alerts go to a DIFFERENT phone from the store's business number (a number can't
@@ -17,19 +21,19 @@ Sample values for Meta's review form are in brackets.
 
 **sarthi_order_alert**
 ```
-New order {{1}} from {{2}}: {{3}}. Total {{4}}. {{5}}. Reply CONFIRM {{1}} to accept it, or REJECT {{1}} if you can't.
+Order {{1}} from {{2}} needs a prescription check. Items: {{3}}. Status: {{4}} Reply with CONFIRM or REJECT followed by the order code once it is checked.
 ```
 [K7M2P] [Ravi (+919876543210)] [2 x Moisturizing Soap Bar, 1 x AA Batteries] [Rs 225] [Deliver to: 15 Shanti Nagar, Vashi]
 
-**sarthi_rx_alert** (the pharmacist)
+**sarthi_rx_order** (the pharmacist)
 ```
-Prescription order {{1}} from {{2}}: {{3}}. The customer {{4}} Reply CONFIRM {{1}} or REJECT {{1}} once it is checked.
+Prescription order {{1}} from {{2}}: {{3}}. The customer {{4}} Reply with CONFIRM or REJECT followed by the order code once it is checked.
 ```
-[K7M2P] [Ravi (+919876543210)] [1 x Azithral 500 [Rx]] [will send the prescription on WhatsApp. The order waits for it.]
+[K7M2P] [Ravi (+919876543210)] [1 x Azithral 500 [Rx]] [the customer will send the prescription on WhatsApp, and the order waits for it.]
 
 **sarthi_rx_received** (the pharmacist, when the photo arrives)
 ```
-Prescription received for order {{1}} from {{2}}. Reply SHOW {{1}} to view it, then CONFIRM {{1}} or REJECT {{1}}.
+Prescription received for order {{1}} from {{2}}. Reply with SHOW followed by the order code to view it, then CONFIRM or REJECT.
 ```
 [K7M2P] [Ravi (+919876543210)]
 

@@ -23,6 +23,7 @@ system prompt:
                          a room issue, starting checkout, and calling staff.
 """
 import logging
+import os
 import threading
 
 import groq
@@ -45,6 +46,7 @@ from app.whatsapp import channels, client, notify
 logger = logging.getLogger("sarthi.agent")
 
 BRAND_NAME = "Sarthi"
+DEFAULT_MODEL = "openai/gpt-oss-120b"
 _CUISINES = "Indian, South Indian, Chinese dim sum, Japanese sushi, Italian pasta and pizza, and sandwiches"
 _GROCERY_CATEGORIES = (
     "personal care, household essentials, snacks, beverages, baby care, "
@@ -55,7 +57,9 @@ _LANGUAGE_RULE = """CRITICAL, above every other instruction: the app sets the re
 line at the end of the conversation tells you which. Always follow it exactly, whatever language the \
 customer or the tool results use. Tool results are in English for the engineers only."""
 
-_SHARED_VOICE_STYLE = """Your reply is spoken aloud by text-to-speech: use plain spoken sentences only, with no \
+_SHARED_VOICE_STYLE = """Sound like a warm, quick neighbourhood shopkeeper: everyday words, short sentences, a friendly "Sure" or \
+"Done" to confirm, and never stiff phrases like "I have added the following items". Your reply is spoken aloud by \
+text-to-speech: use plain spoken sentences only, with no \
 markdown, lists, dashes, numbering or emoji. Say several items in one natural sentence. Keep every \
 reply as short as possible, one short sentence when it will do; this is a fast ordering conversation, \
 not a menu reading. Prices are in Indian rupees: say the amount and the word "rupees" ("रुपये" in \
@@ -184,7 +188,7 @@ _MEDICAL_RULES = """You are a shop assistant, not a doctor or a pharmacist. Neve
 how often or for how long to take anything, and never say a medicine cures or treats something: say only what an \
 item is commonly used for, using only what search_menu or get_item_details returned. When the customer describes \
 a symptom, search for it, offer one or two over-the-counter options in a short sentence, and say the pharmacist \
-will confirm. An item marked as needing a prescription can be added, but tell the customer a valid prescription \
+will confirm. Offer, never add: put an item in the cart only when the customer names it or says yes to your suggestion. An item marked as needing a prescription can be added, but tell the customer a valid prescription \
 is needed. When they are done and the order has one, ask whether they would rather send a photo of the \
 prescription on WhatsApp or talk to the pharmacist first, and record the answer with choose_prescription_path. For doses, pregnancy, babies, mixing medicines or \
 side effects, say the pharmacist will help and do not answer yourself. If someone sounds very unwell, tell them to \
@@ -257,7 +261,7 @@ class RestaurantOrderingAgent:
         session_id: str,
         menu_store,
         persona: str = "online",
-        model: str = "openai/gpt-oss-120b",
+        model: str | None = None,
         restaurant: dict | None = None,
         table_no: str | None = None,
         customer: CustomerSession | None = None,
@@ -317,7 +321,12 @@ class RestaurantOrderingAgent:
             else:
                 self.tools += build_extra_tools(self.service_log, session_id, persona)
 
-        llm = ChatGroq(model=model, temperature=0, timeout=30.0, max_retries=3)
+        # The model and its "thinking" effort are settings, not code: SARTHI_MODEL and SARTHI_REASONING_EFFORT
+        # (low, medium or high, for models that reason, like gpt-oss) let you trade speed for care without a deploy.
+        model = model or os.environ.get("SARTHI_MODEL", DEFAULT_MODEL)
+        effort = os.environ.get("SARTHI_REASONING_EFFORT")
+        extra = {"reasoning_effort": effort} if effort else {}
+        llm = ChatGroq(model=model, temperature=0, timeout=30.0, max_retries=3, **extra)
         self.llm_with_tools = llm.bind_tools(self.tools)
 
         self.checkpointer = MemorySaver()

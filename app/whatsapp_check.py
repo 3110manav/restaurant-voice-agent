@@ -2,11 +2,16 @@
 
     python -m app.whatsapp_check --phone-number-id 123456789012345
     python -m app.whatsapp_check --phone-number-id 123456789012345 --send +919811111111
+    python -m app.whatsapp_check --phone-number-id 123456789012345 --register 123456
 
 Needs WHATSAPP_ACCESS_TOKEN in .env. Without --send it only asks Meta about the number (who it is, its quality
 rating): nothing is sent. With --send it sends Meta's built-in `hello_world` template, which every test number
 has already approved, to that phone. On Meta's free test number the phone must first be added and verified
 under WhatsApp > API Setup > "To".
+
+--register PIN completes the Cloud API registration of a number you added yourself (your own business number):
+Meta shows it as "Pending" until this is done. PIN is a six-digit code you choose; it becomes that number's
+two-step verification PIN, so keep it. The test number is already registered and doesn't need this.
 """
 import argparse
 import os
@@ -36,15 +41,38 @@ def describe(phone_number_id: str, http: httpx.Client) -> dict:
     return response.json()
 
 
+def register(phone_number_id: str, pin: str, http: httpx.Client) -> None:
+    """Register the number with the Cloud API (POST /{id}/register). Raises client.WhatsAppError on a rejection."""
+    response = http.post(
+        f"{client.GRAPH}/{client.graph_version()}/{phone_number_id}/register",
+        json={"messaging_product": "whatsapp", "pin": pin},
+        headers={"Authorization": f"Bearer {os.environ.get('WHATSAPP_ACCESS_TOKEN')}"},
+    )
+    if response.status_code >= 400:
+        error = response.json().get("error", {})
+        raise client.WhatsAppError(f"{error.get('code')}: {error.get('message')}")
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--phone-number-id", required=True)
     p.add_argument("--send", help="a phone to send Meta's hello_world template to")
+    p.add_argument("--register", metavar="PIN", help="register your own number with the Cloud API, using this six-digit PIN")
     args = p.parse_args()
+    if args.register and not (args.register.isdigit() and len(args.register) == 6):
+        p.error("--register needs a six-digit PIN")
 
     if not os.environ.get("WHATSAPP_ACCESS_TOKEN"):
         print("WHATSAPP_ACCESS_TOKEN is not set in .env")
         return 1
+    if args.register:
+        try:
+            with httpx.Client(timeout=15.0) as http:
+                register(args.phone_number_id, args.register, http)
+            print("Registered. Keep that PIN: it is now this number's two-step verification PIN.")
+        except client.WhatsAppError as exc:
+            print(f"Registration failed: {exc}")
+            return 1
     try:
         with httpx.Client(timeout=15.0) as http:
             info = describe(args.phone_number_id, http)

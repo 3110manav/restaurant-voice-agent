@@ -5,8 +5,8 @@
         path "whatsapp"        the customer is asked to send a photo of the prescription, or
         path "pharmacist"      the pharmacist is asked to call the customer
 
-Alerts to staff are always templates (they have not messaged us, so there is no open window). A message to
-the customer is free text when they messaged us in the last 23 hours, else a template.
+An alert to staff is a template unless they have messaged the shop number in the last 23 hours (then it is plain
+text). A message to the customer is free text when they messaged us in the last 23 hours, else a template.
 
 Two safety rules:
   - A customer is messaged only if their number is verified (a real call's caller ID), or, on a demo store, if the
@@ -26,7 +26,7 @@ logger = logging.getLogger("sarthi.whatsapp")
 
 TEMPLATES = {
     "order_alert": os.environ.get("WHATSAPP_TPL_ORDER_ALERT", "sarthi_order_alert"),
-    "rx_alert": os.environ.get("WHATSAPP_TPL_RX_ALERT", "sarthi_rx_alert"),
+    "rx_alert": os.environ.get("WHATSAPP_TPL_RX_ALERT", "sarthi_rx_order"),
     "order_confirmation": os.environ.get("WHATSAPP_TPL_ORDER_CONFIRMATION", "sarthi_order_confirmation"),
     "rx_request": os.environ.get("WHATSAPP_TPL_RX_REQUEST", "sarthi_rx_request"),
     "order_update": os.environ.get("WHATSAPP_TPL_ORDER_UPDATE", "sarthi_order_update"),
@@ -87,26 +87,34 @@ def order_placed(store: dict, order: dict) -> None:
         if not _within_limit(store["id"]):
             logger.warning("alert limit reached for %s; order %s not announced", store.get("slug"), order["code"])
             return
-        _alert_staff(channel, order)
+        _alert_staff(channel, order, store["id"])
         _tell_customer(channel, store, order)
     except Exception:
         logger.warning("couldn't announce order %s", order.get("code"), exc_info=True)
 
 
-def _alert_staff(channel: Channel, order: dict) -> None:
+def _alert_staff(channel: Channel, order: dict, store_id: str) -> None:
+    """Tell the owner (or the pharmacist). Plain text if they have messaged the shop number in the last 23 hours
+    (their window is open, so no template and no per-message charge), otherwise the approved template."""
     items = items_summary(order["lines"])
     oid = order.get("order_id")
     if order.get("rx_path"):
         if order["rx_path"] == "whatsapp":
-            how = "will send the prescription on WhatsApp. The order waits for it."
+            how = "the customer will send the prescription on WhatsApp, and the order waits for it."
         else:
-            how = f"wants to speak to the pharmacist first. Please call {order.get('phone') or 'them (no number given)'}."
-        for number in channel.pharmacists():
-            client.send_template(channel, number, TEMPLATES["rx_alert"], [order["code"], _who(order), items, how], oid)
+            how = f"the customer wants to speak to the pharmacist first. Please call {order.get('phone') or 'them (no number given)'}."
+        params = [order["code"], _who(order), items, how]
+        text = f"Order {params[0]} from {params[1]} needs a prescription check. Items: {items}. Status: {how} Reply with CONFIRM or REJECT followed by the order code once it is checked."
+        template, numbers = TEMPLATES["rx_alert"], channel.pharmacists()
     else:
         params = [order["code"], _who(order), items, _money(order["total"]), _destination(order)]
-        for number in channel.notify_numbers:
-            client.send_template(channel, number, TEMPLATES["order_alert"], params, oid)
+        text = f"New order {params[0]} from {params[1]}: {items}. Total {params[3]}. {params[4]}. Reply with CONFIRM or REJECT followed by the order code."
+        template, numbers = TEMPLATES["order_alert"], channel.notify_numbers
+    for number in numbers:
+        if channels.window_open(store_id, number):
+            client.send_text(channel, number, text, oid)
+        else:
+            client.send_template(channel, number, template, params, oid)
 
 
 def _tell_customer(channel: Channel, store: dict, order: dict) -> None:
