@@ -1,4 +1,5 @@
 import type { AdminOrder, AdminRequest, MenuItem } from "@/lib/api";
+import type { CornerStyle, HeadingStyle, ThemeMode } from "@/lib/brand";
 import { getSupabase } from "@/lib/supabase";
 
 export interface OwnerRestaurant {
@@ -11,6 +12,17 @@ export interface OwnerRestaurant {
   accent_color: string | null;
   status: "draft" | "live";
   role?: "owner" | "manager" | "staff";
+  // Table QR pilot (supabase/migrations/003_table_pilot.sql); absent until that migration runs.
+  logo_url?: string | null;
+  theme_mode?: ThemeMode | null;
+  corner_style?: CornerStyle | null;
+  heading_style?: HeadingStyle | null;
+  google_review_url?: string | null;
+  upi_id?: string | null;
+  upi_payee_name?: string | null;
+  upi_is_merchant?: boolean | null;
+  gst_rate?: number | null;
+  baseline_turn_minutes?: number | null;
 }
 
 export interface OwnerMenu {
@@ -95,3 +107,73 @@ export const listOwnerRequests = (restaurantId: string) =>
 
 export const resolveOwnerRequest = (restaurantId: string, requestId: string) =>
   ownerFetch<AdminRequest>(`restaurants/${restaurantId}/requests/${requestId}/resolve`, { method: "POST" });
+
+// ------------------------------------------------------------- table QR pilot --
+
+export type TableStatus = "ordering" | "food" | "long" | "eating" | "bill" | "paid";
+
+export interface TonightTable {
+  id: string;
+  table_no: string | null;
+  state: TableStatus;
+  minutes: number | null;
+  amount: number;
+  rounds: number;
+  payment_method: "upi" | "counter" | null;
+}
+
+export interface StageAverages {
+  seated_to_ordered: number | null;
+  ordered_to_food: number | null;
+  food_to_bill: number | null;
+  bill_to_paid: number | null;
+  turn: number | null;
+}
+
+export interface Tonight {
+  tables: TonightTable[];
+  averages: StageAverages;
+  sessions: number;
+}
+
+export interface Customer {
+  id: string;
+  phone: string;
+  name: string | null;
+  offers_opt_in: boolean;
+  visits: number;
+  first_seen_at: string;
+  last_visit_at: string;
+}
+
+export interface MonthlyReport {
+  month: string;
+  tables_served: number;
+  table_orders: number;
+  upsell_total: number;
+  averages: StageAverages;
+  baseline_turn_minutes: number | null;
+  turn_saved_minutes: number | null;
+  new_customers: number;
+  new_customers_opted_in: number;
+  ratings: number;
+  average_rating: number | null;
+  complaints: number;
+}
+
+export const fetchTonight = (restaurantId: string) => ownerFetch<Tonight>(`restaurants/${restaurantId}/tonight`);
+
+export const markTableServed = (restaurantId: string, rowId: string) =>
+  ownerFetch<{ ok: boolean }>(`restaurants/${restaurantId}/tables/${rowId}/served`, { method: "POST" });
+
+export const markTablePaid = (restaurantId: string, rowId: string) =>
+  ownerFetch<{ ok: boolean }>(`restaurants/${restaurantId}/tables/${rowId}/paid`, { method: "POST" });
+
+export const closeTable = (restaurantId: string, rowId: string) =>
+  ownerFetch<{ ok: boolean }>(`restaurants/${restaurantId}/tables/${rowId}/close`, { method: "POST" });
+
+export const listCustomers = (restaurantId: string) =>
+  ownerFetch<{ customers: Customer[] }>(`restaurants/${restaurantId}/customers`).then((r) => r.customers);
+
+export const fetchMonthlyReport = (restaurantId: string, month?: string) =>
+  ownerFetch<MonthlyReport>(`restaurants/${restaurantId}/report${month ? `?month=${encodeURIComponent(month)}` : ""}`);

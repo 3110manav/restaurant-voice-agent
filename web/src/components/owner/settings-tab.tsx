@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { BrandSettings } from "@/components/owner/brand-settings";
 import { syncEmbeddings, updateRestaurant, type OwnerRestaurant } from "@/lib/owner-api";
 
 export function SettingsTab({
@@ -60,6 +61,7 @@ export function SettingsTab({
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      <BrandSettings restaurant={restaurant} onChanged={onChanged} />
       <Card>
         <CardHeader>
           <CardTitle>Restaurant details</CardTitle>

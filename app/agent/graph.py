@@ -39,6 +39,7 @@ from app.agent.salesflow import SalesState
 from app.agent.service_tools import build_service_tools
 from app.agent.state import AgentState
 from app.agent.tools import build_tools
+from app.table.service import unplaced
 
 logger = logging.getLogger("sarthi.agent")
 
@@ -292,6 +293,8 @@ class RestaurantOrderingAgent:
         self.agent_name = AGENT_NAMES[persona]
         self.cart: list[dict] = []
         self._placed_cart: list[dict] = []
+        # Told about each round that reaches the kitchen (app/table/state.py's bill and turn tracker).
+        self.on_round = None
         self._placed_this_turn = False
         self.service_log: list[dict] = []
         self.phone = phone
@@ -325,6 +328,7 @@ class RestaurantOrderingAgent:
             price_ok=(lambda: self._price_ok) if in_restaurant else None,
             checkout_handler=phone.checkout if phone else None,
             on_placed=self._mark_placed,
+            placed=(lambda: self._placed_cart) if in_restaurant else None,
         )
         if phone:
             self.tools += phone.tools(self.cart)
@@ -442,8 +446,23 @@ class RestaurantOrderingAgent:
         self.language = lang.normalize(language)
 
     def _mark_placed(self) -> None:
+        lines = unplaced(self.cart, self._placed_cart)
         self._placed_cart = copy.deepcopy(self.cart)
         self._placed_this_turn = True
+        if self.on_round and lines:
+            self.on_round(lines)
+
+    def mark_order_placed(self) -> None:
+        """The table page's Send button placed what is new in the cart (app/main.py)."""
+        self._mark_placed()
+
+    def sync_placed(self, placed_cart: list[dict]) -> None:
+        """A voice call's worker process placed an order (app/voice/cart_sync.py): it saved the
+        order itself, so only this session's view of what the kitchen has catches up."""
+        lines = unplaced(placed_cart, self._placed_cart)
+        self._placed_cart = copy.deepcopy(placed_cart)
+        if self.on_round and lines:
+            self.on_round(lines)
 
     @property
     def has_unplaced_order(self) -> bool:

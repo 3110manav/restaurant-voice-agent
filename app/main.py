@@ -25,6 +25,12 @@ POST /cart/sync    {"session_id", "persona", "cart", "service_log"} -> cart.
                    process's session, under the same (session_id, persona)
                    key the text/push-to-talk paths use — see
                    app/voice/cart_sync.py.
+POST /table/open, GET /table/state, POST /table/send, POST /table/served,
+POST /table/bill, POST /table/pay, POST /table/feedback, GET /table/suggestion,
+POST /table/suggestion/dismiss -> the table QR pilot's guest flow: one table
+                   session per guest (app/table/state.py) from the scan to
+                   the bill: send what's new in the cart to the kitchen,
+                   the bill with GST and a split, the UPI link, the rating.
 GET  /admin/orders, GET /admin/requests -> recent rows for the staff-facing
                    view (web/'s /admin page). Empty with configured=false
                    when Supabase isn't set up — see app/erp.py.
@@ -61,8 +67,12 @@ from app.menu.credits import photo_credits  # noqa: E402
 from app.menu.snapshot import LiveMenu, menu_cache  # noqa: E402
 from app.owner_api import router as owner_router  # noqa: E402
 from app.phone import outbox  # noqa: E402
+from app.phone import upi  # noqa: E402
 from app.phone.router import router as phone_router  # noqa: E402
 from app.rag.menu_store import GROCERY_PATH, MenuStore  # noqa: E402
+from app.table.service import unplaced  # noqa: E402
+from app.table.state import TableState  # noqa: E402
+from app.table.suggest import next_suggestion  # noqa: E402
 from app.voice import livekit_tokens  # noqa: E402
 from app.voice.stt import transcribe_bytes  # noqa: E402
 from app.voice.tts import synthesize_sarvam  # noqa: E402
@@ -102,6 +112,8 @@ app.include_router(phone_router)
 food_menu_store = MenuStore()
 grocery_store = MenuStore(data_path=GROCERY_PATH, collection_name="grocery_catalog")
 sessions: dict[str, RestaurantOrderingAgent] = {}
+# One table session per restaurant guest who scanned a table's QR code, keyed like `sessions`.
+table_states: dict[str, TableState] = {}
 
 
 def require_enabled(persona: str) -> None:
@@ -164,6 +176,8 @@ class CartMutationRequest(BaseModel):
     quantity: int = 1
     restaurant: str | None = None
     variant: str | None = None  # size/portion, for dishes that have them
+    table_no: str | None = None
+    suggested: bool = False  # added from the table page's suggestion card (counted as upsell)
 
 
 class CartResponse(BaseModel):
@@ -183,6 +197,33 @@ class CartSyncRequest(BaseModel):
     table_no: str | None = None
     cart: list[dict]
     service_log: list[dict] = []
+    placed_cart: list[dict] | None = None  # what the voice call already sent to the kitchen
+
+
+class TableRequest(BaseModel):
+    session_id: str
+    restaurant: str
+    table_no: str | None = None
+
+
+class TableBillRequest(TableRequest):
+    people: int = 1
+
+
+class TablePayRequest(TableRequest):
+    method: str  # "upi" or "counter"
+    name: str | None = None
+    phone: str | None = None
+    offers_opt_in: bool = False
+
+
+class TableFeedbackRequest(TableRequest):
+    rating: int
+    message: str | None = None
+
+
+class TableDismissRequest(TableRequest):
+    dish_id: str
 
 
 class AdminOrdersResponse(BaseModel):
@@ -220,7 +261,22 @@ def get_or_create_session(
     agent = _session(session_id, persona, restaurant, table_no)
     if language is not None:
         agent.set_language(language)  # the guest can flip the toggle at any message
+    if restaurant and table_no:
+        _attach_table(agent, restaurant, session_id, table_no)
     return agent
+
+
+def _attach_table(
+    agent: RestaurantOrderingAgent, restaurant: str, session_id: str, table_no: str | None
+) -> TableState | None:
+    """This guest's table session, opened the first time they are seen at a table."""
+    state = table_states.get(agent.session_id)
+    if state is None and table_no:
+        state = TableState.open(live_restaurant(restaurant), session_id, table_no)
+        table_states[agent.session_id] = state
+    if state is not None:
+        agent.on_round = state.record_round
+    return state
 
 
 def _session(
@@ -317,7 +373,11 @@ def get_menu(persona: str = "waiter", restaurant: str | None = None) -> MenuResp
 def restaurant_info(slug: str) -> dict:
     """Public details for a restaurant's ordering page (never exposes owner data)."""
     r = live_restaurant(slug)
-    return {k: r.get(k) for k in ("slug", "name", "cuisine", "tagline", "agent_name", "currency", "accent_color", "logo_url")}
+    keys = (
+        "slug", "name", "cuisine", "tagline", "agent_name", "currency", "accent_color", "logo_url",
+        "theme_mode", "corner_style", "heading_style", "gst_rate",
+    )
+    return {k: r.get(k) for k in keys}
 
 
 @app.get("/restaurants/{slug}/photo-credits")
@@ -330,17 +390,19 @@ def restaurant_photo_credits(slug: str) -> dict:
 
 @app.post("/cart/add", response_model=CartResponse)
 def cart_add(req: CartMutationRequest) -> CartResponse:
-    agent = get_or_create_session(req.session_id, req.persona, req.restaurant)
+    agent = get_or_create_session(req.session_id, req.persona, req.restaurant, req.table_no)
     item = get_menu_store(req.persona, req.restaurant).get(req.item_id)
     if not item:
         raise HTTPException(status_code=404, detail=f"No menu item with id '{req.item_id}'")
     message = add_item_to_cart(agent.cart, item, req.quantity, req.variant)
+    if req.suggested and (state := table_states.get(agent.session_id)):
+        state.suggestion_added(req.item_id)
     return CartResponse(cart=agent.cart, message=message)
 
 
 @app.post("/cart/remove", response_model=CartResponse)
 def cart_remove(req: CartMutationRequest) -> CartResponse:
-    agent = get_or_create_session(req.session_id, req.persona, req.restaurant)
+    agent = get_or_create_session(req.session_id, req.persona, req.restaurant, req.table_no)
     message = remove_item_from_cart_by_id(agent.cart, req.item_id, req.quantity, req.variant)
     return CartResponse(cart=agent.cart, message=message)
 
@@ -356,7 +418,131 @@ def cart_sync(req: CartSyncRequest) -> SessionStateResponse:
     agent = get_or_create_session(req.session_id, req.persona, req.restaurant, req.table_no)
     agent.cart[:] = req.cart
     agent.service_log[:] = req.service_log
+    if req.placed_cart is not None and unplaced(req.placed_cart, agent._placed_cart):
+        agent.sync_placed(req.placed_cart)
     return SessionStateResponse(cart=agent.cart, service_log=agent.service_log)
+
+
+# ------------------------------------------------------------- table QR pilot --
+
+
+def _table(req: TableRequest) -> tuple[RestaurantOrderingAgent, TableState]:
+    agent = get_or_create_session(req.session_id, "waiter", req.restaurant, req.table_no)
+    state = _attach_table(agent, req.restaurant, req.session_id, req.table_no)
+    if state is None:
+        raise HTTPException(status_code=400, detail="Scan the QR code on your table to order from it.")
+    return agent, state
+
+
+def _table_view(agent: RestaurantOrderingAgent, state: TableState) -> dict:
+    return {**state.view(), "unsent": unplaced(agent.cart, agent._placed_cart)}
+
+
+@app.post("/table/open")
+def table_open(req: TableRequest) -> dict:
+    agent, state = _table(req)
+    return _table_view(agent, state)
+
+
+@app.get("/table/state")
+def table_state(session_id: str, restaurant: str, table_no: str | None = None) -> dict:
+    agent, state = _table(TableRequest(session_id=session_id, restaurant=restaurant, table_no=table_no))
+    return _table_view(agent, state)
+
+
+@app.post("/table/send")
+def table_send(req: TableRequest) -> dict:
+    """Sends what is new in the guest's cart to the kitchen, as one round."""
+    agent, state = _table(req)
+    lines = unplaced(agent.cart, agent._placed_cart)
+    if not lines:
+        raise HTTPException(status_code=409, detail="Nothing new to send. Add a dish first.")
+    total = sum(line["price"] * line["quantity"] for line in lines)
+    saved = erp.record_order(
+        agent.session_id, agent.persona, lines, total, restaurant_id=state.restaurant_id, table_no=state.table_no
+    )
+    if saved is False:
+        raise HTTPException(status_code=503, detail="Couldn't reach the kitchen, so nothing was sent. Please try again.")
+    agent.mark_order_placed()  # records the round on the table session
+    return {"round": state.rounds, "lines": lines, "table": _table_view(agent, state)}
+
+
+@app.post("/table/served")
+def table_served(req: TableRequest) -> dict:
+    agent, state = _table(req)
+    state.food_served()
+    return _table_view(agent, state)
+
+
+@app.post("/table/bill")
+def table_bill(req: TableBillRequest) -> dict:
+    """The table's bill so far, split `people` ways, with a UPI link for one share."""
+    _, state = _table(req)
+    if not state.ordered:
+        raise HTTPException(status_code=409, detail="Nothing has been sent to the kitchen yet.")
+    state.restaurant = live_restaurant(req.restaurant)  # the owner may have just changed GST or UPI
+    bill = state.request_bill(req.people)
+    r = state.restaurant
+    upi_link = None
+    if r.get("upi_id") and r.get("upi_payee_name") and bill["share"] > 0:
+        reference = f"T{state.table_no or ''}{state.session_id[:6]}".upper()
+        upi_link = upi.payment_uri(r, bill["share"], reference)
+    return {**bill, "upi_link": upi_link, "payee": r.get("upi_payee_name") or r.get("name")}
+
+
+def _indian_mobile(raw: str | None) -> str | None:
+    digits = "".join(ch for ch in (raw or "") if ch.isdigit())
+    if not digits:
+        return None
+    if len(digits) == 12 and digits.startswith("91"):
+        digits = digits[2:]
+    if len(digits) != 10 or digits[0] not in "6789":
+        raise HTTPException(status_code=422, detail="Enter a 10-digit mobile number, or leave it empty.")
+    return digits
+
+
+@app.post("/table/pay")
+def table_pay(req: TablePayRequest) -> dict:
+    """How the guest is paying. Staff confirm the money on the owner console's Tonight screen."""
+    if req.method not in ("upi", "counter"):
+        raise HTTPException(status_code=422, detail="method must be 'upi' or 'counter'")
+    agent, state = _table(req)
+    phone = _indian_mobile(req.phone)
+    name = (req.name or "").strip()[:80] or None
+    state.pay(req.method, name, phone, bool(req.offers_opt_in and phone))
+    return _table_view(agent, state)
+
+
+@app.post("/table/feedback")
+def table_feedback(req: TableFeedbackRequest) -> dict:
+    """The guest's rating. Everyone is offered the Google review link; a message goes to the owner
+    privately as a table request."""
+    if not 1 <= req.rating <= 5:
+        raise HTTPException(status_code=422, detail="rating must be 1 to 5")
+    agent, state = _table(req)
+    state.restaurant = live_restaurant(req.restaurant)
+    message = (req.message or "").strip()[:500] or None
+    state.rate(req.rating, message)
+    if message:
+        erp.record_request(
+            agent.session_id, agent.persona, "complaint", details=message, notes=f"Rated {req.rating} of 5",
+            restaurant_id=state.restaurant_id, table_no=state.table_no,
+        )
+    return {"review_url": state.restaurant.get("google_review_url") or None}
+
+
+@app.get("/table/suggestion")
+def table_suggestion(session_id: str, restaurant: str, table_no: str | None = None) -> dict:
+    agent, state = _table(TableRequest(session_id=session_id, restaurant=restaurant, table_no=table_no))
+    menu = LiveMenu(restaurant)
+    return {"suggestion": next_suggestion(state, menu.menu, menu.get, agent.cart)}
+
+
+@app.post("/table/suggestion/dismiss")
+def table_suggestion_dismiss(req: TableDismissRequest) -> dict:
+    _, state = _table(req)
+    state.suggestion_dismissed(req.dish_id)
+    return {"ok": True}
 
 
 @app.get("/admin/orders", response_model=AdminOrdersResponse)

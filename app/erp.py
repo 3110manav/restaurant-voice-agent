@@ -47,9 +47,11 @@ def record_order(
     total: float,
     restaurant_id: str | None = None,
     table_no: str | None = None,
-) -> None:
+) -> bool:
+    """Saves an order. False means the save failed, so the order did not reach the kitchen: the
+    caller tells the guest instead of claiming it was placed. True also when there is no database."""
     if _client is None:
-        return
+        return True
     try:
         _client.table("orders").insert(
             {
@@ -60,8 +62,10 @@ def record_order(
                 **_tenant_fields(restaurant_id, table_no),
             }
         ).execute()
+        return True
     except Exception:
         logger.exception("couldn't save an order for session %s", session_id)
+        return False
 
 
 def record_request(

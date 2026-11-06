@@ -178,19 +178,21 @@ export function useChatSession(persona: Persona, ctx: RestaurantContext = {}) {
   // Direct, non-agentic cart mutation for UI actions (tapping "Add" on a
   // product card) — see app/main.py's /cart/add for why this bypasses chat.
   const addItemDirect = useCallback(
-    async (itemId: string, quantity = 1, variant?: string) => {
+    async (itemId: string, quantity = 1, variant?: string, opts: { suggested?: boolean } = {}) => {
       if (!sessionId) return;
       try {
         const response = await apiAddToCart(sessionId, persona.key, itemId, quantity, {
           restaurant,
           variant,
+          tableNo,
+          suggested: opts.suggested,
         });
         setCart(response.cart);
       } catch (err) {
         pushError(err);
       }
     },
-    [persona.key, pushError, restaurant, sessionId]
+    [persona.key, pushError, restaurant, sessionId, tableNo]
   );
 
   const removeItemDirect = useCallback(
@@ -200,13 +202,14 @@ export function useChatSession(persona: Persona, ctx: RestaurantContext = {}) {
         const response = await apiRemoveFromCart(sessionId, persona.key, itemId, quantity, {
           restaurant,
           variant,
+          tableNo,
         });
         setCart(response.cart);
       } catch (err) {
         pushError(err);
       }
     },
-    [persona.key, pushError, restaurant, sessionId]
+    [persona.key, pushError, restaurant, sessionId, tableNo]
   );
 
   // Picks up cart/service_log changes made outside this hook's own calls —

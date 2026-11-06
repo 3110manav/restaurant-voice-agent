@@ -90,6 +90,10 @@ export interface RestaurantInfo {
   currency: string;
   accent_color: string | null;
   logo_url: string | null;
+  theme_mode?: "light" | "dark" | null;
+  corner_style?: "sharp" | "soft" | "round" | null;
+  heading_style?: "modern" | "classic" | "bold" | null;
+  gst_rate?: number | null;
 }
 
 /** Which restaurant (and table) a conversation belongs to; absent for the four legacy personas. */
@@ -184,7 +188,7 @@ export async function addToCart(
   persona: string,
   itemId: string,
   quantity = 1,
-  opts: { restaurant?: string; variant?: string } = {}
+  opts: { restaurant?: string; variant?: string; tableNo?: string | null; suggested?: boolean } = {}
 ): Promise<CartMutationResponse> {
   const res = await fetch("/api/cart/add", {
     method: "POST",
@@ -196,6 +200,8 @@ export async function addToCart(
       quantity,
       restaurant: opts.restaurant,
       variant: opts.variant,
+      table_no: opts.tableNo,
+      suggested: opts.suggested,
     }),
   });
   return parseOrThrow(res);
@@ -206,7 +212,7 @@ export async function removeFromCart(
   persona: string,
   itemId: string,
   quantity = 1,
-  opts: { restaurant?: string; variant?: string } = {}
+  opts: { restaurant?: string; variant?: string; tableNo?: string | null } = {}
 ): Promise<CartMutationResponse> {
   const res = await fetch("/api/cart/remove", {
     method: "POST",
@@ -218,6 +224,7 @@ export async function removeFromCart(
       quantity,
       restaurant: opts.restaurant,
       variant: opts.variant,
+      table_no: opts.tableNo,
     }),
   });
   return parseOrThrow(res);
@@ -283,4 +290,96 @@ export async function fetchLiveKitToken(
     }),
   });
   return parseOrThrow(res);
+}
+
+// ------------------------------------------------------------- table QR pilot --
+
+/** One guest's table session: the rounds sent to the kitchen and where the table is in its meal. */
+export interface TableView {
+  table_no: string | null;
+  rounds: number;
+  ordered: CartLine[];
+  food_served: boolean;
+  bill_requested: boolean;
+  payment_method: "upi" | "counter" | null;
+  rating: number | null;
+  people: number;
+  unsent: CartLine[];
+}
+
+export interface TableBill {
+  lines: { id: string; name: string; variant: string | null; quantity: number; price: number; line_total: number }[];
+  subtotal: number;
+  gst_rate: number;
+  gst: number;
+  total: number;
+  people: number;
+  share: number;
+  upi_link: string | null;
+  payee: string;
+}
+
+export interface TableSuggestion {
+  id: string;
+  name: string;
+  price: number;
+  role: "drink" | "side" | "dessert";
+  reason: string;
+}
+
+export interface TableContext {
+  sessionId: string;
+  restaurant: string;
+  tableNo: string | null;
+}
+
+function tableBody(ctx: TableContext, extra: Record<string, unknown> = {}) {
+  return JSON.stringify({ session_id: ctx.sessionId, restaurant: ctx.restaurant, table_no: ctx.tableNo, ...extra });
+}
+
+async function tablePost<T>(path: string, ctx: TableContext, extra: Record<string, unknown> = {}): Promise<T> {
+  const res = await fetch(`/api/table/${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: tableBody(ctx, extra),
+  });
+  return parseOrThrow(res);
+}
+
+async function tableGet<T>(path: string, ctx: TableContext): Promise<T> {
+  const params = new URLSearchParams({ session_id: ctx.sessionId, restaurant: ctx.restaurant });
+  if (ctx.tableNo) params.set("table_no", ctx.tableNo);
+  const res = await fetch(`/api/table/${path}?${params.toString()}`, { cache: "no-store" });
+  return parseOrThrow(res);
+}
+
+export const openTable = (ctx: TableContext) => tablePost<TableView>("open", ctx);
+export const fetchTableState = (ctx: TableContext) => tableGet<TableView>("state", ctx);
+export const sendToKitchen = (ctx: TableContext) =>
+  tablePost<{ round: number; lines: CartLine[]; table: TableView }>("send", ctx);
+export const markFoodServed = (ctx: TableContext) => tablePost<TableView>("served", ctx);
+export const fetchTableBill = (ctx: TableContext, people: number) => tablePost<TableBill>("bill", ctx, { people });
+export const payForTable = (
+  ctx: TableContext,
+  payment: { method: "upi" | "counter"; name?: string; phone?: string; offers_opt_in: boolean }
+) => tablePost<TableView>("pay", ctx, payment);
+export const sendTableFeedback = (ctx: TableContext, rating: number, message?: string) =>
+  tablePost<{ review_url: string | null }>("feedback", ctx, { rating, message });
+export const fetchTableSuggestion = (ctx: TableContext) =>
+  tableGet<{ suggestion: TableSuggestion | null }>("suggestion", ctx).then((r) => r.suggestion);
+export const dismissTableSuggestion = (ctx: TableContext, dishId: string) =>
+  tablePost<{ ok: boolean }>("suggestion/dismiss", ctx, { dish_id: dishId });
+
+/** What in `cart` the kitchen hasn't been sent yet (mirrors app/table/service.py's unplaced). */
+export function unsentLines(cart: CartLine[], ordered: CartLine[]): CartLine[] {
+  const key = (line: CartLine) => `${line.id}|${(line.variant ?? "").trim().toLowerCase()}`;
+  const sent = new Map<string, number>();
+  for (const line of ordered) sent.set(key(line), (sent.get(key(line)) ?? 0) + line.quantity);
+  const fresh: CartLine[] = [];
+  for (const line of cart) {
+    const already = sent.get(key(line)) ?? 0;
+    sent.set(key(line), Math.max(already - line.quantity, 0));
+    if (line.quantity > already) fresh.push({ ...line, quantity: line.quantity - already });
+  }
+  return fresh;
 }

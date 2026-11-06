@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from app import erp
 from app.agent.salesflow import SalesState, dessert_offer, first_order_offer
 from app.currency import format_price
+from app.table.service import unplaced
 
 CartItem = dict
 
@@ -160,12 +161,14 @@ def build_tools(
     price_ok=None,
     checkout_handler=None,
     on_placed=None,
+    placed=None,
 ) -> list:
     """`events`, when given, collects what each action did, so simple turns can be answered in code
     (app/agent/replies.py). `price_ok()` says whether the guest has asked about prices this turn; if it
     returns False the tools hide prices from the model (the waiter only talks money when asked).
     `checkout_handler()`, when given, takes over checkout (phone orders, app/phone/ordering.py).
-    `on_placed()`, when given, is told each time checkout places the order."""
+    `on_placed()`, when given, is told each time checkout places the order. `placed()`, when given,
+    returns what was already sent to the kitchen, so a later checkout sends only what is new."""
 
     def prices() -> bool:
         return True if price_ok is None else bool(price_ok())
@@ -286,9 +289,16 @@ def build_tools(
                 note({"type": "checkout_held"})
                 note(offer.event)
                 return f"Order not placed yet. {offer.hint}"
-        total = _cart_total(cart)
-        summary = ", ".join(f"{line['quantity']}x {_line_label(line)}" for line in cart)
-        erp.record_order(session_id, persona, list(cart), total, restaurant_id=restaurant_id, table_no=table_no)
+        lines = unplaced(cart, placed()) if placed is not None else list(cart)
+        if not lines:
+            note({"type": "problem"})
+            return "Everything in the cart is already with the kitchen. Nothing new to place."
+        total = _cart_total(lines)
+        summary = ", ".join(f"{line['quantity']}x {_line_label(line)}" for line in lines)
+        saved = erp.record_order(session_id, persona, lines, total, restaurant_id=restaurant_id, table_no=table_no)
+        if saved is False:
+            note({"type": "problem"})
+            return "The order couldn't reach the kitchen and was not placed. Ask the guest to try again in a moment."
         note({"type": "checkout"})
         if on_placed:
             on_placed()

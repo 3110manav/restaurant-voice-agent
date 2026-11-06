@@ -120,7 +120,8 @@ class SarthiLLMStream(LLMStream):
 
         asyncio.create_task(
             cart_sync.sync_cart(
-                llm._session_id, llm._persona, agent.cart, agent.service_log, llm._restaurant, llm._table_no
+                llm._session_id, llm._persona, agent.cart, agent.service_log, llm._restaurant, llm._table_no,
+                placed_cart=getattr(agent, "_placed_cart", None),
             )
         )
 

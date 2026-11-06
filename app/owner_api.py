@@ -14,6 +14,7 @@ app/menu/service.py, which re-embeds only what changed and invalidates caches.
 import re
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
@@ -21,6 +22,7 @@ from pydantic import BaseModel
 from app import db
 from app.menu import repository, service
 from app.menu.snapshot import menu_cache
+from app.table import repository as table_repository, service as table_service
 
 router = APIRouter(prefix="/owner", tags=["owner"])
 
@@ -109,6 +111,44 @@ class RestaurantPatch(BaseModel):
     agent_name: str | None = None
     accent_color: str | None = None
     status: str | None = None
+    logo_url: str | None = None
+    theme_mode: str | None = None
+    corner_style: str | None = None
+    heading_style: str | None = None
+    google_review_url: str | None = None
+    upi_id: str | None = None
+    upi_payee_name: str | None = None
+    upi_is_merchant: bool | None = None
+    gst_rate: float | None = None
+    baseline_turn_minutes: int | None = None
+
+
+_CHOICES = {
+    "status": ("draft", "live"),
+    "theme_mode": ("light", "dark"),
+    "corner_style": ("sharp", "soft", "round"),
+    "heading_style": ("modern", "classic", "bold"),
+}
+_UPI_ID = re.compile(r"^[\w.\-]{2,256}@[A-Za-z][A-Za-z0-9]{1,63}$")
+_HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def _check_restaurant_fields(fields: dict) -> None:
+    """422 with a message the owner can act on, before anything is saved."""
+    for key, allowed in _CHOICES.items():
+        if key in fields and fields[key] not in allowed:
+            raise HTTPException(status_code=422, detail=f"{key} must be one of: {', '.join(allowed)}")
+    if fields.get("accent_color") and not _HEX.match(fields["accent_color"]):
+        raise HTTPException(status_code=422, detail="Brand colour must look like #b45309")
+    for key in ("google_review_url", "logo_url"):
+        if fields.get(key) and not fields[key].startswith("https://"):
+            raise HTTPException(status_code=422, detail=f"{key} must start with https://")
+    if fields.get("upi_id") and not _UPI_ID.match(fields["upi_id"]):
+        raise HTTPException(status_code=422, detail="UPI ID must look like name@bank")
+    if "gst_rate" in fields and not 0 <= fields["gst_rate"] <= 28:
+        raise HTTPException(status_code=422, detail="GST must be between 0 and 28%")
+    if "baseline_turn_minutes" in fields and not 1 <= fields["baseline_turn_minutes"] <= 600:
+        raise HTTPException(status_code=422, detail="Table time before Sarthi must be 1 to 600 minutes")
 
 
 def _slugify(text: str) -> str:
@@ -157,8 +197,10 @@ def create_restaurant(body: RestaurantIn, user_id: str = Depends(current_user_id
 def update_restaurant(restaurant_id: str, body: RestaurantPatch, user_id: str = Depends(current_user_id)) -> dict:
     restaurant = _restaurant_for(user_id, restaurant_id, editor=True)
     fields = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None}
-    if fields.get("status") not in (None, "draft", "live"):
-        raise HTTPException(status_code=422, detail="status must be 'draft' or 'live'")
+    for key in ("google_review_url", "upi_id", "upi_payee_name", "logo_url"):
+        if key in fields:
+            fields[key] = fields[key].strip() or None  # an emptied field clears it
+    _check_restaurant_fields(fields)
     updated = repository.update_restaurant(restaurant_id, fields)
     repository.bump_menu_version(restaurant_id)
     menu_cache.invalidate(restaurant["slug"])
@@ -223,3 +265,66 @@ def resolve_request(restaurant_id: str, request_id: str, user_id: str = Depends(
     if updated is None:
         raise HTTPException(status_code=404, detail="Request not found")
     return updated
+
+
+# ------------------------------------------------------------- table QR pilot --
+
+TONIGHT_HOURS = 16  # a dinner service, with room for a late lunch to still show
+
+
+@router.get("/restaurants/{restaurant_id}/tonight")
+def tonight(restaurant_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    """Every table still open, and tonight's average waits (the turn tracker)."""
+    _restaurant_for(user_id, restaurant_id)
+    now = datetime.now(timezone.utc)
+    since = (now - timedelta(hours=TONIGHT_HOURS)).isoformat()
+    return table_service.tonight(table_repository.list_sessions_since(restaurant_id, since), now)
+
+
+def _table_moment(restaurant_id: str, row_id: str, moment: str, extra: dict | None = None) -> dict:
+    now = datetime.now(timezone.utc).isoformat()
+    row = table_repository.set_moment(restaurant_id, row_id, moment, now, extra)
+    if row is None and extra:  # the moment was already recorded; still apply the rest
+        row = table_repository.update_session(restaurant_id, row_id, extra)
+    return {"ok": True, "session": row}
+
+
+@router.post("/restaurants/{restaurant_id}/tables/{row_id}/served")
+def table_served(restaurant_id: str, row_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    _restaurant_for(user_id, restaurant_id)
+    return _table_moment(restaurant_id, row_id, "food_served_at")
+
+
+@router.post("/restaurants/{restaurant_id}/tables/{row_id}/paid")
+def table_paid(restaurant_id: str, row_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    """Staff confirm the money arrived (UPI in the restaurant's app, or cash at the counter)."""
+    _restaurant_for(user_id, restaurant_id)
+    return _table_moment(restaurant_id, row_id, "paid_at", {"status": "closed"})
+
+
+@router.post("/restaurants/{restaurant_id}/tables/{row_id}/close")
+def table_close(restaurant_id: str, row_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    """Clears a table that left without paying through Sarthi (scanned and walked out, say)."""
+    _restaurant_for(user_id, restaurant_id)
+    return {"ok": True, "session": table_repository.update_session(restaurant_id, row_id, {"status": "closed"})}
+
+
+@router.get("/restaurants/{restaurant_id}/customers")
+def customers(restaurant_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    """The restaurant's own customer list (owners and managers only: it holds phone numbers)."""
+    _restaurant_for(user_id, restaurant_id, editor=True)
+    return {"customers": table_repository.list_customers(restaurant_id)}
+
+
+@router.get("/restaurants/{restaurant_id}/report")
+def monthly_report(restaurant_id: str, month: str | None = None, user_id: str = Depends(current_user_id)) -> dict:
+    restaurant = _restaurant_for(user_id, restaurant_id)
+    now = datetime.now(timezone.utc)
+    start, end, label = table_service.month_bounds(month, now)
+    rows = table_repository.list_sessions_since(restaurant_id, start.isoformat(), end.isoformat())
+    orders = table_repository.count_orders_between(restaurant_id, start.isoformat(), end.isoformat())
+    report = table_service.report(
+        rows, orders, table_repository.list_customers(restaurant_id, limit=10000), start, end,
+        restaurant.get("baseline_turn_minutes"),
+    )
+    return {"month": label, **report}

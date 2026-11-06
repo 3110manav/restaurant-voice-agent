@@ -44,6 +44,15 @@ class _Query:
         self.filters.append(lambda row: row.get(column) is not None and row[column] <= value)
         return self
 
+    def gte(self, column, value):
+        self.filters.append(lambda row: row.get(column) is not None and row[column] >= value)
+        return self
+
+    def is_(self, column, value):
+        assert value == "null"
+        self.filters.append(lambda row: row.get(column) is None)
+        return self
+
     def lt(self, column, value):
         self.filters.append(lambda row: row.get(column) is not None and row[column] < value)
         return self

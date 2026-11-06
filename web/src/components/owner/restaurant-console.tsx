@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { OrdersTab, RequestsTab } from "@/components/owner/activity-tabs";
 import { LoginForm } from "@/components/owner/login-form";
 import { MenuEditor } from "@/components/owner/menu-editor";
+import { CustomersTab, ReportTab, TonightTab } from "@/components/owner/pilot-tabs";
 import { SettingsTab } from "@/components/owner/settings-tab";
 import { useOwnerSession } from "@/components/owner/use-owner-session";
 import { buttonVariants } from "@/components/ui/button";
@@ -14,9 +15,12 @@ import { AuthRequiredError, fetchOwnerMenu, type OwnerMenu } from "@/lib/owner-a
 import { cn } from "@/lib/utils";
 
 const TABS = [
+  { key: "tonight", label: "Tonight" },
   { key: "menu", label: "Menu" },
   { key: "orders", label: "Orders" },
   { key: "requests", label: "Table requests" },
+  { key: "customers", label: "Customers" },
+  { key: "report", label: "Monthly report" },
   { key: "settings", label: "Settings & QR" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
@@ -32,7 +36,7 @@ export function RestaurantConsole({ id }: { id: string }) {
 function Console({ id }: { id: string }) {
   const [menu, setMenu] = useState<OwnerMenu | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<TabKey>("menu");
+  const [tab, setTab] = useState<TabKey>("tonight");
 
   const reload = useCallback(async () => {
     try {
@@ -83,7 +87,7 @@ function Console({ id }: { id: string }) {
         </Link>
       </div>
 
-      <div className="flex gap-1 border-b">
+      <div className="flex flex-wrap gap-1 border-b">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -105,8 +109,16 @@ function Console({ id }: { id: string }) {
         ) : (
           <p className="text-sm text-muted-foreground">Only owners and managers can edit the menu.</p>
         ))}
+      {tab === "tonight" && <TonightTab restaurant={restaurant} />}
       {tab === "orders" && <OrdersTab restaurantId={restaurant.id} />}
       {tab === "requests" && <RequestsTab restaurantId={restaurant.id} />}
+      {tab === "customers" &&
+        (canEdit ? (
+          <CustomersTab restaurant={restaurant} />
+        ) : (
+          <p className="text-sm text-muted-foreground">Only owners and managers can see the customer list.</p>
+        ))}
+      {tab === "report" && <ReportTab restaurant={restaurant} />}
       {tab === "settings" &&
         (canEdit ? (
           <SettingsTab restaurant={restaurant} onChanged={reload} />

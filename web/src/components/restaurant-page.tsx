@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { OrderingPage } from "@/components/ordering-page";
-import { PhotoCredits } from "@/components/photo-credits";
-import { Badge } from "@/components/ui/badge";
+import { GuestApp } from "@/components/guest/guest-app";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchRestaurant, type RestaurantInfo } from "@/lib/api";
+import { brandTheme } from "@/lib/brand";
 import { personaForRestaurant } from "@/lib/personas";
 
 /** After a few seconds of loading, says why: on the free tier the first scan after a quiet spell wakes the server. */
@@ -109,26 +108,12 @@ export function RestaurantPage({ slug }: { slug: string }) {
 
   const { info } = state;
   const persona = personaForRestaurant(info);
-  // Tint the whole page with the restaurant's own accent colour.
-  const accent = info.accent_color
-    ? ({ "--primary": info.accent_color, "--primary-foreground": "#ffffff" } as React.CSSProperties)
-    : undefined;
+  // The restaurant's own look: its colour (with readable text on it), background, corners and headings.
+  const theme = brandTheme(info);
 
   return (
-    <div className="flex min-h-screen flex-col" style={accent}>
-      <header className="flex items-center justify-between gap-3 border-b px-4 py-3">
-        <div>
-          <h1 className="text-lg font-semibold">{info.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            {[info.cuisine, info.tagline].filter(Boolean).join(" · ")}
-          </p>
-        </div>
-        {tableNo && <Badge variant="outline">Table {tableNo}</Badge>}
-      </header>
-      <div className="flex flex-1 flex-col">
-        <OrderingPage persona={persona} restaurant={info.slug} tableNo={tableNo} />
-      </div>
-      <PhotoCredits slug={info.slug} />
+    <div className={`min-h-dvh ${theme.className}`} style={theme.style}>
+      <GuestApp info={info} persona={persona} tableNo={tableNo} />
     </div>
   );
 }
