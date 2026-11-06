@@ -7,7 +7,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { restaurantLink, useSiteOrigin } from "@/components/demo/use-site-origin";
 import type { DemoRestaurant } from "@/lib/demo";
 
-/** One demo restaurant on the landing page: open it on this screen, or scan it from a phone. */
+/** One demo store on the landing page: open it on this screen, or scan it from a phone. */
 export function RestaurantCard({ restaurant: r }: { restaurant: DemoRestaurant }) {
   const [origin] = useSiteOrigin();
   const link = restaurantLink(origin, r.slug, r.table);
@@ -36,7 +36,7 @@ export function RestaurantCard({ restaurant: r }: { restaurant: DemoRestaurant }
 
         <div className="rounded-xl bg-muted/60 p-3">
           <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium">
-            <MessageCircle className="size-3.5" /> Try asking Kabir
+            <MessageCircle className="size-3.5" /> Try asking {r.agent}
           </p>
           <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
             {r.tryAsking.map((q) => (
@@ -55,14 +55,14 @@ export function RestaurantCard({ restaurant: r }: { restaurant: DemoRestaurant }
           </div>
           <div className="flex flex-1 flex-col gap-2">
             <p className="text-xs text-muted-foreground">
-              Scan with your phone, as a guest at table {r.table} would.
+              {r.table ? `Scan with your phone, as a guest at table ${r.table} would.` : "Scan with your phone to order as a customer would."}
             </p>
             <Link
-              href={`/r/${r.slug}?table=${r.table}`}
+              href={r.table ? `/r/${r.slug}?table=${r.table}` : `/r/${r.slug}`}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: r.accent }}
             >
-              Open this restaurant <ArrowRight className="size-4" />
+              Open this {r.kind === "restaurant" ? "restaurant" : "store"} <ArrowRight className="size-4" />
             </Link>
           </div>
         </div>

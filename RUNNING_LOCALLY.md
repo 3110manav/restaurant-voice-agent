@@ -47,10 +47,8 @@ npm run dev
 - **Staff Admin View**: [http://localhost:3000/admin](http://localhost:3000/admin)
 
 Once both are running, open **[http://localhost:3000](http://localhost:3000)** in Chrome/Safari to test:
-- 🍕 **Meera** (`/chat/online`): Food delivery ordering
-- 🛒 **Veer** (`/chat/quick_commerce`): Instant grocery shopping
-- 🍽️ **Kabir** (`/chat/waiter`): Dine-in restaurant table service & bill
-- 🛎️ **Ira** (`/chat/hotel`): Hotel room service, housekeeping & front desk
+- 🛒 **Veer** (`/chat/quick-commerce`): Kirana / instant grocery shopping
+- 🍽️ **Kabir** (`/chat/waiter`, or a restaurant at `/r/<slug>?table=5`): Dine-in restaurant table service & bill
 
 ---
 
@@ -79,10 +77,8 @@ cd /Users/work/Desktop/projects/voice-ordering-agent
 source .venv/bin/activate
 
 # Choose any persona:
-python cli.py                  # Meera (Food Delivery)
-python cli.py quick_commerce   # Veer (Grocery)
-python cli.py waiter           # Kabir (Restaurant Waiter)
-python cli.py hotel            # Ira (Hotel Assistant)
+python cli.py                  # Kabir (Restaurant Waiter)
+python cli.py quick_commerce   # Veer (Kirana)
 ```
 
 ### 2. Push-to-Talk Voice in Terminal
@@ -93,9 +89,8 @@ python cli.py hotel            # Ira (Hotel Assistant)
 cd /Users/work/Desktop/projects/voice-ordering-agent
 source .venv/bin/activate
 
-python voice_cli.py            # Meera (Food Delivery)
-python voice_cli.py waiter     # Kabir (Restaurant Waiter)
-python voice_cli.py hotel      # Ira (Hotel Assistant)
+python voice_cli.py                  # Kabir (Restaurant Waiter)
+python voice_cli.py quick_commerce   # Veer (Kirana)
 ```
 
 ---
@@ -104,10 +99,8 @@ python voice_cli.py hotel      # Ira (Hotel Assistant)
 
 | Persona | Sample Test Prompts |
 |---|---|
-| **Meera** (Food) | *"What vegetarian pizzas do you have?"*<br>*"2 Margherita pizza aur ek garlic bread add kar do"*<br>*"What's in my cart?"* / *"Checkout"* |
-| **Veer** (Grocery) | *"Add a Dove shampoo and AA batteries to my cart"*<br>*"Mujhe sar dard ke liye kuch chahiye"*<br>*"View cart"* |
+| **Veer** (Kirana) | *"Add a Dove shampoo and AA batteries to my cart"*<br>*"Mujhe sar dard ke liye kuch chahiye"*<br>*"View cart"* |
 | **Kabir** (Waiter) | *"Can you bring a glass of cold water to table 4?"*<br>*"Bhaiya bill le aao please"*<br>*"This soup is cold, please reheat it"* |
-| **Ira** (Hotel) | *"Can I get fresh towels for room 302?"*<br>*"AC thik se kaam nahi kar raha hai"*<br>*"I'd like to request checkout"* |
 
 ---
 
@@ -129,5 +122,5 @@ curl -s http://localhost:8000/health
 ```bash
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
-  -d '{"session_id": "test1", "persona": "online", "message": "What pastas do you have?"}'
+  -d '{"session_id": "test1", "persona": "quick_commerce", "message": "Do you have shampoo?"}'
 ```

@@ -27,9 +27,9 @@ def test_the_voice_follows_the_language_not_the_script():
 
 
 def test_greetings_and_fixed_lines_exist_in_both_languages():
-    assert lang.greeting("en", "Kabir", "Slice Station") == "Namaste, welcome to Slice Station. I'm Kabir."
+    assert lang.greeting("en", "Kabir", "Slice Station") == "Namaste! Welcome to Slice Station, I'm Kabir. What can I get you?"
     assert lang.greeting("hi", "Kabir", "Slice Station") == "नमस्ते, Slice Station में आपका स्वागत है। मैं कबीर हूँ।"
-    assert lang.greeting("en", "Meera") == "Namaste, I'm Meera."
+    assert lang.greeting("en", "Meera") == "Namaste! I'm Meera. What can I get you?"
     assert set(lang.LINES["en"]) == set(lang.LINES["hi"])
     assert all(lang.has_devanagari(v) for v in lang.LINES["hi"].values())
     assert not any(lang.has_devanagari(v) for v in lang.LINES["en"].values())
@@ -131,16 +131,16 @@ def test_amounts_are_spoken_as_words():
 
 def test_confirmations_carry_no_prices_and_the_bill_carries_the_total():
     added = {"type": "added", "lines": [{"name": "Margherita", "variant": "Large", "quantity": 1}, {"name": "Garlic Bread", "variant": None, "quantity": 2}]}
-    assert replies.compose([added], "en") == "Added one Large Margherita and two Garlic Bread. Anything else?"
-    assert replies.compose([added], "hi") == "1 Large Margherita और 2 Garlic Bread जोड़ दिया गया है। और कुछ?"
-    assert replies.compose([{"type": "bill", "total": 708}], "en") == "Your total comes to seven hundred eight rupees. I'll bring the bill over."
-    assert replies.compose([{"type": "bill", "total": 708}], "hi") == "आपका कुल 708 रुपये हुआ। बिल अभी लाते हैं।"
-    assert replies.compose([{"type": "checkout"}], "en") == "Your order is placed. Thank you!"
+    assert replies.compose([added], "en") == "Done, Large Margherita and two Garlic Bread. Anything else?"
+    assert replies.compose([added], "hi") == "हो गया, Large Margherita और 2 Garlic Bread जोड़ दिया। और कुछ?"
+    assert replies.compose([{"type": "bill", "total": 708}], "en") == "That's seven hundred eight rupees. I'll bring the bill right over."
+    assert replies.compose([{"type": "bill", "total": 708}], "hi") == "कुल 708 रुपये हुआ। बिल अभी लाते हैं।"
+    assert replies.compose([{"type": "checkout"}], "en") == "All set, your order is in. Thanks!"
 
 
 def test_a_held_checkout_is_answered_with_the_dessert_question_only():
     events = [{"type": "checkout_held"}, {"type": "offer", "kind": "dessert", "drinks": [], "sides": [], "desserts": ["Choco Lava Cake", "Phirni"]}]
-    assert replies.compose(events, "en") == "Before I place your order, would you like to end with Choco Lava Cake or Phirni?"
+    assert replies.compose(events, "en") == "Before I place it, would you like Choco Lava Cake or Phirni to finish?"
 
 
 def test_anything_unusual_is_left_to_the_model():
@@ -177,6 +177,7 @@ def test_acknowledgements_skip_small_talk_and_rotate():
 
 
 def test_short_phrases_are_generated_once_and_then_played_from_memory(monkeypatch):
+    pytest.importorskip("livekit.agents")
     monkeypatch.setenv("GROQ_API_KEY", "test")
     monkeypatch.setenv("SARVAM_API_KEY", "test")
     from app.voice import livekit_tts as lt
@@ -196,6 +197,7 @@ def test_short_phrases_are_generated_once_and_then_played_from_memory(monkeypatc
 
 
 def test_the_calls_speech_adapter_builds_and_speaks_short_sentences_immediately(monkeypatch):
+    pytest.importorskip("livekit.agents")
     monkeypatch.setenv("GROQ_API_KEY", "test")
     monkeypatch.setenv("SARVAM_API_KEY", "test")
     from livekit.agents import tts as lk_tts

@@ -44,7 +44,7 @@ import logging
 import threading
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, Form, HTTPException, UploadFile
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -54,7 +54,8 @@ load_dotenv()
 from pathlib import Path  # noqa: E402
 
 from app import erp  # noqa: E402
-from app.agent.graph import AgentBusyError, RestaurantOrderingAgent  # noqa: E402
+from app.agent.graph import ENABLED_PERSONAS, AgentBusyError, RestaurantOrderingAgent, persona_for  # noqa: E402
+from app.customers.session import needs_identification, start_session  # noqa: E402
 from app.agent.tools import add_item_to_cart, remove_item_from_cart_by_id  # noqa: E402
 from app.menu import repository  # noqa: E402
 from app.menu.credits import photo_credits  # noqa: E402
@@ -62,6 +63,7 @@ from app.menu.snapshot import LiveMenu, menu_cache  # noqa: E402
 from app.owner_api import router as owner_router  # noqa: E402
 from app.rag.menu_store import GROCERY_PATH, MenuStore  # noqa: E402
 from app.voice import livekit_tokens  # noqa: E402
+from app.whatsapp.webhook import router as whatsapp_router  # noqa: E402
 from app.voice.stt import transcribe_bytes  # noqa: E402
 from app.voice.tts import synthesize  # noqa: E402
 
@@ -90,13 +92,20 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="Voice Ordering Agent", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.include_router(owner_router)
+app.include_router(whatsapp_router)
 
-# Two catalogs: the food menu (online/waiter/hotel room-service) and a
-# separate grocery catalog for quick_commerce (shampoo, batteries, snacks,
-# etc.) — see app/rag/menu_store.py for why they're kept as two collections.
+# Two catalogs: the food menu (waiter) and a separate grocery catalog for
+# quick_commerce (shampoo, batteries, snacks, etc.) — see
+# app/rag/menu_store.py for why they're kept as two collections.
 food_menu_store = MenuStore()
 grocery_store = MenuStore(data_path=GROCERY_PATH, collection_name="grocery_catalog")
 sessions: dict[str, RestaurantOrderingAgent] = {}
+
+
+def require_enabled(persona: str) -> None:
+    """Hidden agents answer exactly like ones that don't exist."""
+    if persona not in ENABLED_PERSONAS:
+        raise HTTPException(status_code=404, detail=f"No agent '{persona}'")
 
 
 def get_menu_store(persona: str, restaurant: str | None = None):
@@ -122,10 +131,11 @@ def live_restaurant(slug: str) -> dict:
 class ChatRequest(BaseModel):
     session_id: str
     message: str
-    persona: str = "online"
+    persona: str = "waiter"
     restaurant: str | None = None  # a restaurant slug: talk to that restaurant's waiter
     table_no: str | None = None
     language: str = "en"  # the web app's English / हिन्दी toggle: "en" or "hi"
+    phone: str | None = None  # a demo store's "who's calling?" prompt: recognises a returning customer
 
 
 class ChatResponse(BaseModel):
@@ -148,7 +158,7 @@ class MenuResponse(BaseModel):
 
 class CartMutationRequest(BaseModel):
     session_id: str
-    persona: str = "online"
+    persona: str = "waiter"
     item_id: str
     quantity: int = 1
     restaurant: str | None = None
@@ -167,7 +177,7 @@ class SessionStateResponse(BaseModel):
 
 class CartSyncRequest(BaseModel):
     session_id: str
-    persona: str = "online"
+    persona: str = "waiter"
     restaurant: str | None = None
     table_no: str | None = None
     cart: list[dict]
@@ -186,10 +196,11 @@ class AdminRequestsResponse(BaseModel):
 
 class LiveKitTokenRequest(BaseModel):
     session_id: str
-    persona: str = "online"
+    persona: str = "waiter"
     restaurant: str | None = None
     table_no: str | None = None
     language: str = "en"
+    phone: str | None = None
 
 
 class LiveKitTokenResponse(BaseModel):
@@ -205,30 +216,46 @@ def get_or_create_session(
     restaurant: str | None = None,
     table_no: str | None = None,
     language: str | None = None,
+    phone: str | None = None,
 ) -> RestaurantOrderingAgent:
-    agent = _session(session_id, persona, restaurant, table_no)
+    agent = _session(session_id, persona, restaurant, table_no, phone, language or "en")
     if language is not None:
         agent.set_language(language)  # the guest can flip the toggle at any message
     return agent
 
 
 def _session(
-    session_id: str, persona: str, restaurant: str | None = None, table_no: str | None = None
+    session_id: str,
+    persona: str,
+    restaurant: str | None = None,
+    table_no: str | None = None,
+    phone: str | None = None,
+    language: str = "en",
 ) -> RestaurantOrderingAgent:
     if restaurant:
-        # Restaurant mode: always the waiter persona, one cart per (restaurant, guest session).
-        persona = "waiter"
+        # Store mode: the waiter for a restaurant, the store assistant for a kirana or pharmacy;
+        # one cart per (store, guest session). A phone number lets us recognise a returning customer.
+        row = live_restaurant(restaurant)
+        persona = persona_for(row)
         key = f"{restaurant}:{session_id}:{persona}"
-        if key not in sessions:
-            row = live_restaurant(restaurant)
-            sessions[key] = RestaurantOrderingAgent(
-                session_id=key,
-                menu_store=LiveMenu(restaurant),
-                persona=persona,
-                restaurant=row,
-                table_no=table_no,
-            )
+        existing = sessions.get(key)
+        if existing is None or phone:
+            customer = start_session(row, phone, table_no, language)
+            if existing is None or needs_identification(existing.customer, customer):
+                agent = RestaurantOrderingAgent(
+                    session_id=key,
+                    menu_store=LiveMenu(restaurant),
+                    persona=persona,
+                    restaurant=row,
+                    table_no=table_no,
+                    customer=customer,
+                )
+                if existing is not None:  # the guest typed their number after chatting: same cart, now recognised
+                    agent.cart[:] = existing.cart
+                    agent.service_log[:] = existing.service_log
+                sessions[key] = agent
         return sessions[key]
+    require_enabled(persona)
     key = f"{session_id}:{persona}"
     if key not in sessions:
         sessions[key] = RestaurantOrderingAgent(
@@ -253,7 +280,9 @@ def index():
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest) -> ChatResponse:
-    agent = get_or_create_session(req.session_id, req.persona, req.restaurant, req.table_no, req.language)
+    agent = get_or_create_session(
+        req.session_id, req.persona, req.restaurant, req.table_no, req.language, req.phone
+    )
     reply = send_or_busy(agent, req.message)
     return ChatResponse(reply=reply, cart=agent.cart, service_log=agent.service_log)
 
@@ -266,8 +295,9 @@ async def chat_voice(
     restaurant: str | None = None,
     table_no: str | None = None,
     language: str = "en",
+    phone: str | None = Form(None),  # in the form body, not the URL: a phone number does not belong in a query string
 ) -> VoiceChatResponse:
-    agent = get_or_create_session(session_id, persona, restaurant, table_no, language)
+    agent = get_or_create_session(session_id, persona, restaurant, table_no, language, phone)
     persona = agent.persona
 
     audio_bytes = await audio.read()
@@ -293,9 +323,11 @@ async def chat_voice(
 
 
 @app.get("/menu", response_model=MenuResponse)
-def get_menu(persona: str = "online", restaurant: str | None = None) -> MenuResponse:
+def get_menu(persona: str = "waiter", restaurant: str | None = None) -> MenuResponse:
     if restaurant:
         live_restaurant(restaurant)
+    else:
+        require_enabled(persona)
     return MenuResponse(items=get_menu_store(persona, restaurant).menu)
 
 
@@ -303,7 +335,7 @@ def get_menu(persona: str = "online", restaurant: str | None = None) -> MenuResp
 def restaurant_info(slug: str) -> dict:
     """Public details for a restaurant's ordering page (never exposes owner data)."""
     r = live_restaurant(slug)
-    return {k: r.get(k) for k in ("slug", "name", "cuisine", "tagline", "agent_name", "currency", "accent_color", "logo_url")}
+    return {k: r.get(k) for k in ("slug", "name", "cuisine", "tagline", "agent_name", "currency", "accent_color", "logo_url", "business_type", "demo_mode")}
 
 
 @app.get("/restaurants/{slug}/photo-credits")
@@ -332,7 +364,7 @@ def cart_remove(req: CartMutationRequest) -> CartResponse:
 
 
 @app.get("/cart", response_model=SessionStateResponse)
-def get_cart(session_id: str, persona: str = "online", restaurant: str | None = None) -> SessionStateResponse:
+def get_cart(session_id: str, persona: str = "waiter", restaurant: str | None = None) -> SessionStateResponse:
     agent = get_or_create_session(session_id, persona, restaurant)
     return SessionStateResponse(cart=agent.cart, service_log=agent.service_log)
 
@@ -371,8 +403,12 @@ async def livekit_token(req: LiveKitTokenRequest) -> LiveKitTokenResponse:
     persona = "waiter" if req.restaurant else req.persona
     meta = {"language": req.language}
     if req.restaurant:
-        live_restaurant(req.restaurant)  # 404 for unknown/hidden restaurants before we spend a LiveKit call
+        row = live_restaurant(req.restaurant)  # 404 for unknown/hidden restaurants before we spend a LiveKit call
+        persona = persona_for(row)
         meta.update(restaurant=req.restaurant, table_no=req.table_no)
+        if req.phone:
+            meta["phone"] = req.phone
+    require_enabled(persona)  # a hidden agent gets no call token
     metadata = json.dumps(meta)
     room = livekit_tokens.room_name_for(persona, req.session_id)
     await livekit_tokens.ensure_dispatch(room, metadata)

@@ -1,10 +1,8 @@
 """Quick REPL for testing the ordering agent without the API or voice layer.
 
 Usage:
-    python cli.py                  # online persona (Meera)
-    python cli.py quick_commerce   # quick-commerce persona (Veer)
-    python cli.py waiter           # waiter persona (Kabir)
-    python cli.py hotel            # hotel persona (Ira)
+    python cli.py                  # waiter persona (Kabir)
+    python cli.py quick_commerce   # kirana persona (Veer)
 """
 import sys
 
@@ -12,18 +10,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from app.agent.graph import _PERSONAS, RestaurantOrderingAgent  # noqa: E402
-from app.rag.menu_store import MenuStore  # noqa: E402
+from app.agent.graph import ENABLED_PERSONAS, RestaurantOrderingAgent  # noqa: E402
+from app.rag.menu_store import store_for_persona  # noqa: E402
 
 
 def main():
-    persona = sys.argv[1] if len(sys.argv) > 1 else "online"
-    if persona not in _PERSONAS:
-        print(f"Unknown persona {persona!r}. Choose one of: {', '.join(_PERSONAS)}")
+    persona = sys.argv[1] if len(sys.argv) > 1 else "waiter"
+    if persona not in ENABLED_PERSONAS:
+        print(f"Unknown persona {persona!r}. Choose one of: {', '.join(ENABLED_PERSONAS)}")
         return
 
     print(f"Loading menu and building the {persona} agent...")
-    menu_store = MenuStore()
+    menu_store = store_for_persona(persona)
     agent = RestaurantOrderingAgent(session_id=f"cli-{persona}", menu_store=menu_store, persona=persona)
 
     print(f"Ready ({agent.agent_name}, {persona} persona). Type your order like you'd speak it. Ctrl+C to quit.\n")

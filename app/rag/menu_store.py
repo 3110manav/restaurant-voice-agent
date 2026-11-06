@@ -124,3 +124,10 @@ class MenuStore:
             if name_lower in item["name"].lower():
                 return item
         return None
+
+
+def store_for_persona(persona: str) -> MenuStore:
+    """The catalog an agent with no restaurant sells from: groceries for kirana, otherwise the food menu."""
+    if persona == "quick_commerce":
+        return MenuStore(data_path=GROCERY_PATH, collection_name="grocery_catalog")
+    return MenuStore()

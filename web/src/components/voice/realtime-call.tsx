@@ -7,6 +7,7 @@ import { Phone } from "lucide-react";
 import { LanguageToggle } from "@/components/language-toggle";
 import { Button } from "@/components/ui/button";
 import { AgentOrb } from "@/components/voice/agent-orb";
+import { CallerNumberDialog } from "@/components/voice/caller-number-dialog";
 import { RealtimeCallPanel } from "@/components/voice/realtime-call-panel";
 import { useRealtimeCall } from "@/hooks/use-realtime-call";
 import type { Language } from "@/lib/api";
@@ -56,6 +57,7 @@ export function RealtimeCall({
           {isConnecting ? "Connecting…" : `Call ${persona.agentName}`}
         </Button>
         {error && <p className="text-xs text-destructive">{error}</p>}
+        <CallerNumberDialog prompt={call.numberPrompt} agentName={persona.agentName} />
         <button
           type="button"
           onClick={onEnd}

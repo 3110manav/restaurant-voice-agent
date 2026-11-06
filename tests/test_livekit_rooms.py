@@ -13,4 +13,4 @@ def test_parse_room_name_session_id_can_contain_double_underscore():
 
 
 def test_parse_room_name_falls_back_for_unrecognized_room():
-    assert parse_room_name("some-random-playground-room") == ("online", "some-random-playground-room")
+    assert parse_room_name("some-random-playground-room") == ("waiter", "some-random-playground-room")

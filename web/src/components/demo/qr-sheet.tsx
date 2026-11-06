@@ -5,9 +5,9 @@ import { QRCodeSVG } from "qrcode.react";
 
 import { restaurantLink, useSiteOrigin } from "@/components/demo/use-site-origin";
 import { Input } from "@/components/ui/input";
-import { DEMO_RESTAURANTS } from "@/lib/demo";
+import { DEMO_STORES } from "@/lib/demo";
 
-/** A printable page with one table QR per demo restaurant, each opening that restaurant directly. */
+/** A printable page with one QR per demo store, each opening that store directly (restaurants at their table). */
 export function QrSheet() {
   const [origin, setOrigin] = useSiteOrigin();
   const isLocal = /localhost|127\.0\.0\.1/.test(origin);
@@ -19,7 +19,7 @@ export function QrSheet() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Demo QR codes</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Print this page, or keep it on screen. Each code opens that restaurant straight to its table.
+              Print this page, or keep it on screen. Each code opens that store directly; a restaurant opens at its table.
             </p>
           </div>
           <button
@@ -43,7 +43,7 @@ export function QrSheet() {
       </div>
 
       <div className="grid gap-6 sm:grid-cols-3 print:grid-cols-3 print:gap-4">
-        {DEMO_RESTAURANTS.map((r) => {
+        {DEMO_STORES.map((r) => {
           const link = restaurantLink(origin, r.slug, r.table);
           return (
             <section
@@ -54,8 +54,8 @@ export function QrSheet() {
               <h2 className="text-xl font-semibold">{r.name}</h2>
               <p className="-mt-2 text-sm text-neutral-500">{r.cuisine}</p>
               {origin && <QRCodeSVG value={link} size={180} level="M" />}
-              <p className="text-base font-medium">Scan to order · Table {r.table}</p>
-              <p className="text-xs text-neutral-500">Ask Kabir anything, then order by voice or text.</p>
+              <p className="text-base font-medium">Scan to order{r.table ? ` · Table ${r.table}` : ""}</p>
+              <p className="text-xs text-neutral-500">Ask {r.agent} anything, then order by voice or text.</p>
               <p className="text-[10px] break-all text-neutral-400">{link}</p>
             </section>
           );

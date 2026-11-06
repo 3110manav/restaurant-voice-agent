@@ -21,6 +21,7 @@ export function useSiteOrigin(): [string, (value: string) => void] {
   return [override ?? detected, setOverride];
 }
 
-export function restaurantLink(origin: string, slug: string, table: string): string {
-  return `${origin}/r/${slug}?table=${encodeURIComponent(table)}`;
+/** The page a QR code opens: a restaurant at its table, or a store (which has no table). */
+export function restaurantLink(origin: string, slug: string, table?: string): string {
+  return table ? `${origin}/r/${slug}?table=${encodeURIComponent(table)}` : `${origin}/r/${slug}`;
 }

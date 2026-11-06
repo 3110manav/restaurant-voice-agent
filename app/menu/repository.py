@@ -102,16 +102,41 @@ def bump_menu_version(restaurant_id: str) -> int:
 # ---------------------------------------------------------------------- menu --
 
 
+_DISH_SELECT = "*, dish_variants(id, name, price, sort_order)"
+_has_medicine_table: bool | None = None  # learned on first use: migration 002 may not be applied yet
+
+
+def _dish_select() -> str:
+    return _DISH_SELECT + (", medicine_info(*)" if _has_medicine_table is not False else "")
+
+
+def _with_medicine(fn):
+    """Run a dish query that also embeds medicine_info; if that table doesn't exist yet (migration
+    002 not applied), remember it and run the query without, so restaurants keep working."""
+    global _has_medicine_table
+    try:
+        result = fn()
+        if _has_medicine_table is None:
+            _has_medicine_table = True
+        return result
+    except Exception as exc:
+        if _has_medicine_table is False or "medicine_info" not in str(exc):
+            raise
+        logger.warning("medicine_info table not found (apply migration 002); continuing without it")
+        _has_medicine_table = False
+        return fn()
+
+
 @_read
 def load_menu_rows(restaurant_id: str) -> tuple[list[dict], list[dict]]:
     """(categories, dishes) — each dish row carries its variants nested under
-    `dish_variants`."""
+    `dish_variants` (and, for a pharmacy, its `medicine_info`)."""
     categories = (
         _c().table("menu_categories").select("*").eq("restaurant_id", restaurant_id)
         .order("sort_order").execute().data
     )
-    dishes = (
-        _c().table("dishes").select("*, dish_variants(id, name, price, sort_order)")
+    dishes = _with_medicine(
+        lambda: _c().table("dishes").select(_dish_select())
         .eq("restaurant_id", restaurant_id).order("sort_order").execute().data
     )
     return categories, dishes
@@ -119,8 +144,8 @@ def load_menu_rows(restaurant_id: str) -> tuple[list[dict], list[dict]]:
 
 @_read
 def get_dish(restaurant_id: str, dish_id: str) -> dict | None:
-    rows = (
-        _c().table("dishes").select("*, dish_variants(id, name, price, sort_order)")
+    rows = _with_medicine(
+        lambda: _c().table("dishes").select(_dish_select())
         .eq("restaurant_id", restaurant_id).eq("id", dish_id).limit(1).execute().data
     )
     return rows[0] if rows else None
@@ -161,6 +186,13 @@ def update_dish(restaurant_id: str, dish_id: str, fields: dict) -> dict | None:
 
 def delete_dish(restaurant_id: str, dish_id: str) -> None:
     _c().table("dishes").delete().eq("restaurant_id", restaurant_id).eq("id", dish_id).execute()
+
+
+def upsert_medicine(restaurant_id: str, dish_id: str, medicine: dict) -> None:
+    """The pharmacy details of a dish (1:1 with it)."""
+    _c().table("medicine_info").upsert(
+        {"dish_id": dish_id, "restaurant_id": restaurant_id, **medicine}, on_conflict="dish_id"
+    ).execute()
 
 
 def replace_variants(restaurant_id: str, dish_id: str, variants: list[dict]) -> None:

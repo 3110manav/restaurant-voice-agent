@@ -48,6 +48,27 @@ def _clean_variants(variants) -> list[dict]:
     return cleaned
 
 
+MEDICINE_SCHEDULES = {None, "H", "H1"}
+
+
+def _clean_medicine(med: dict) -> dict:
+    out = {
+        "generic_name": (med.get("generic_name") or "").strip() or None,
+        "strength": (med.get("strength") or "").strip() or None,
+        "form": (med.get("form") or "").strip() or None,
+        "rx_required": bool(med.get("rx_required")),
+        "schedule": med.get("schedule") or None,
+        "uses": _clean_list(med.get("uses")),
+        "symptoms": _clean_list(med.get("symptoms")),
+        "precautions": (med.get("precautions") or "").strip(),
+    }
+    if out["schedule"] not in MEDICINE_SCHEDULES:
+        raise MenuValidationError("medicine schedule must be H or H1 (schedule X medicines are not stocked)")
+    if out["schedule"] and not out["rx_required"]:
+        raise MenuValidationError("a scheduled medicine always needs a prescription")
+    return out
+
+
 def validate_dish(payload: dict, partial: bool) -> dict:
     """Return only the known, validated fields of `payload`. With partial=True
     (an update), absent fields are simply left out; otherwise name and a price
@@ -73,10 +94,13 @@ def validate_dish(payload: dict, partial: bool) -> dict:
         if payload["spice_level"] not in SPICE_LEVELS:
             raise MenuValidationError(f"spice level must be one of {sorted(SPICE_LEVELS)}")
         out["spice_level"] = payload["spice_level"]
-    for key in ("is_veg", "is_available"):
-        if key in payload and payload[key] is not None:
-            out[key] = bool(payload[key])
-    for key in ("short_description", "long_description", "image_url", "pos_item_id", "category"):
+    if "is_veg" in payload:  # None is valid: groceries and medicines are neither veg nor non-veg
+        out["is_veg"] = None if payload["is_veg"] is None else bool(payload["is_veg"])
+    if "is_available" in payload and payload["is_available"] is not None:
+        out["is_available"] = bool(payload["is_available"])
+    if "medicine" in payload and payload["medicine"] is not None:
+        out["medicine"] = _clean_medicine(payload["medicine"])
+    for key in ("short_description", "long_description", "image_url", "pos_item_id", "category", "brand"):
         if key in payload and payload[key] is not None:
             out[key] = str(payload[key]).strip()
     for key in ("ingredients", "allergens", "tags"):
@@ -114,6 +138,7 @@ def _write_dish(
     fields = dict(fields)
     category_name = fields.pop("category", None)
     variants = fields.pop("variants", None)
+    medicine = fields.pop("medicine", None)
     row = fields
     if category_name:
         row["category_id"] = categories.ensure(category_name)
@@ -130,6 +155,8 @@ def _write_dish(
             raise LookupError("dish not found")
     if variants is not None:
         repository.replace_variants(restaurant_id, dish_id, variants)
+    if medicine is not None:
+        repository.upsert_medicine(restaurant_id, dish_id, medicine)
     return dish_id
 
 

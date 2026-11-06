@@ -54,7 +54,16 @@ def dish_embedding_text(dish: dict) -> str:
         parts.append(f"Ingredients: {', '.join(dish['ingredients'])}.")
     if dish.get("tags"):
         parts.append(f"Tags: {', '.join(dish['tags'])}.")
-    parts.append("Vegetarian." if dish.get("veg", True) else "Non-vegetarian.")
+    if dish.get("brand"):
+        parts.append(f"Brand: {dish['brand']}.")
+    if dish.get("generic_name"):
+        parts.append(f"Contains {dish['generic_name']}{' ' + dish['strength'] if dish.get('strength') else ''}.")
+    if dish.get("uses"):
+        parts.append(f"Used for: {', '.join(dish['uses'])}.")
+    if dish.get("symptoms"):
+        parts.append(f"Symptoms: {', '.join(dish['symptoms'])}.")
+    if "veg" in dish:
+        parts.append("Vegetarian." if dish["veg"] else "Non-vegetarian.")
     if dish.get("spice_level") and dish["spice_level"] != "none":
         parts.append(f"Spice level: {dish['spice_level']}.")
     return " ".join(parts)

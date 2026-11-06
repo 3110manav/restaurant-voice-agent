@@ -10,10 +10,13 @@ Cart lines are {"id", "name", "price", "quantity"} plus an optional "variant"
 (a size/portion such as "Large" or "Half"); a line's identity is (id, variant),
 so a Regular and a Large of the same pizza are separate lines.
 """
+import random
+
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from app import erp
+from app.customers.session import CustomerSession
 from app.agent.salesflow import SalesState, dessert_offer, first_order_offer
 from app.currency import format_price
 
@@ -27,6 +30,13 @@ class OrderLine(BaseModel):
     name: str = Field(description="item name as said")
     quantity: int = Field(default=1)
     variant: str = Field(default="", description="size or portion, if chosen")
+
+
+_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # no 0/O, 1/I/L: it gets read aloud and typed on a phone
+
+
+def _order_code() -> str:
+    return "".join(random.choices(_CODE_ALPHABET, k=5))
 
 
 def _cart_total(cart: list[CartItem]) -> float:
@@ -53,6 +63,20 @@ def _item_descriptor(item: dict, prices: bool = True) -> str:
     if item.get("is_available") is False:
         bits.append("currently unavailable")
     return ", ".join(bits)
+
+
+def _medicine_note(item: dict) -> str:
+    """For pharmacy items: what it contains and what it is commonly used for, from the catalog only."""
+    if not item.get("generic_name") and not item.get("uses"):
+        return ""
+    bits = []
+    if item.get("generic_name"):
+        bits.append(f"Contains {item['generic_name']}" + (f" {item['strength']}" if item.get("strength") else ""))
+    if item.get("uses"):
+        bits.append("commonly used for " + ", ".join(item["uses"]))
+    if item.get("rx_required"):
+        bits.append("NEEDS A PRESCRIPTION: the pharmacist verifies it before it goes out")
+    return "; ".join(bits)
 
 
 def _line_label(line: dict) -> str:
@@ -109,8 +133,11 @@ def add_item_to_cart(
     line = {"id": item["id"], "name": item["name"], "price": price, "quantity": quantity}
     if chosen_name:
         line["variant"] = chosen_name
+    if item.get("rx_required"):
+        line["rx"] = True  # a prescription medicine: the pharmacist verifies before dispatch
     cart.append(line)
-    return f"Added {quantity} x {_line_label(line)} to the cart."
+    note = " It needs a prescription: tell the customer the pharmacist will verify it before it goes out." if line.get("rx") else ""
+    return f"Added {quantity} x {_line_label(line)} to the cart.{note}"
 
 
 def remove_item_from_cart_by_id(
@@ -158,10 +185,20 @@ def build_tools(
     sales: SalesState | None = None,
     events: list[dict] | None = None,
     price_ok=None,
+    customer: CustomerSession | None = None,
+    say_total: bool = False,
+    on_order=None,
+    shop_whatsapp=None,
 ) -> list:
     """`events`, when given, collects what each action did, so simple turns can be answered in code
     (app/agent/replies.py). `price_ok()` says whether the guest has asked about prices this turn; if it
-    returns False the tools hide prices from the model (the waiter only talks money when asked)."""
+    returns False the tools hide prices from the model (the waiter only talks money when asked).
+    `customer` is the live caller state (see app/customers/session.py): with it, checkout holds until a
+    delivery order has an address, and the tools to save one exist. `say_total` makes stores (not
+    restaurants) tell the total when the order is placed. `on_order(order)` is called once an order is
+    placed, to tell the shop (see app/whatsapp/notify.py). `shop_whatsapp()` says what the closing line may claim
+    about WhatsApp: {"alerted": the shop really will be messaged, "number": its WhatsApp number, "channel": where
+    this conversation is happening}."""
 
     def prices() -> bool:
         return True if price_ok is None else bool(price_ok())
@@ -178,9 +215,12 @@ def build_tools(
         matches = menu_store.search(query)
         if not matches:
             return "No matching items found."
-        lines = [
-            f"- {item['name']} ({_item_descriptor(item, prices())}): {item['description']}" for item in matches
-        ]
+        lines = []
+        for item in matches:
+            line = f"- {item['name']} ({_item_descriptor(item, prices())}): {item['description']}"
+            if _medicine_note(item):
+                line += f" [{_medicine_note(item)}]"
+            lines.append(line)
         return "\n".join(lines)
 
     @tool
@@ -198,6 +238,10 @@ def build_tools(
             lines.append(f"Contains: {', '.join(item['allergens'])}")
         if item.get("brand"):
             lines.append(f"Brand: {item['brand']}")
+        if _medicine_note(item):
+            lines.append(_medicine_note(item) + ".")
+        if item.get("precautions"):
+            lines.append(f"Precaution: {item['precautions']}")
         return "\n".join(lines)
 
     @tool
@@ -220,7 +264,10 @@ def build_tools(
             results.append(message)
             if message.startswith(("Added", "Updated")):
                 added.append(item)
-                lines_added.append({"name": item["name"], "variant": chosen["name"] if chosen else None, "quantity": line.quantity})
+                lines_added.append(
+                    {"name": item["name"], "variant": chosen["name"] if chosen else None, "quantity": line.quantity,
+                     "rx": bool(item.get("rx_required"))}
+                )
             else:
                 problem = True
         if added:
@@ -280,13 +327,115 @@ def build_tools(
                 note({"type": "checkout_held"})
                 note(offer.event)
                 return f"Order not placed yet. {offer.hint}"
+        if customer is not None and customer.awaiting_confirm:
+            # The address was taken this turn: it is read back (in code) and the customer's next message confirms it.
+            note({"type": "checkout_held"})
+            return "Order not placed yet: the customer has not confirmed the address or pickup. Wait for their yes."
+        if customer is not None and customer.rx_path is None and any(line.get("rx") for line in cart):
+            customer.checkout_pending = True
+            note({"type": "checkout_held"})
+            note({"type": "rx_choice_needed"})
+            return (
+                "Order not placed yet: it has a prescription medicine. Ask the customer whether they would like to "
+                "send a photo of the prescription on WhatsApp, or talk to the pharmacist first. Then call "
+                "choose_prescription_path with 'whatsapp' or 'pharmacist'."
+            )
+        if customer is not None and not customer.delivery_ready():
+            customer.checkout_pending = True
+            note({"type": "checkout_held"})
+            note({"type": "details_needed"})
+            return (
+                "Order not placed yet: it needs a delivery address. Ask the customer for their name and full "
+                "delivery address (house or flat, street, area, a landmark), or whether they will pick it up. Then "
+                "call save_delivery_details (or choose_pickup), read the address back once, and wait for them to confirm."
+            )
         total = _cart_total(cart)
         summary = ", ".join(f"{line['quantity']}x {_line_label(line)}" for line in cart)
-        erp.record_order(session_id, persona, list(cart), total, restaurant_id=restaurant_id, table_no=table_no)
-        note({"type": "checkout"})
-        return f"Order placed: {summary}." + (f" Total: {format_price(total)}." if prices() else "") + " Thank you!"
+        extra = customer.order_fields() if customer is not None else {}
+        rx = any(line.get("rx") for line in cart)
+        code = _order_code()
+        extra["short_code"] = code
+        if rx:
+            extra["needs_pharmacist"] = True
+            if customer is not None and customer.rx_path:
+                extra["status"] = "awaiting_prescription" if customer.rx_path == "whatsapp" else "awaiting_pharmacist"
+        row = erp.record_order(
+            session_id, persona, list(cart), total, restaurant_id=restaurant_id, table_no=table_no, extra=extra
+        )
+        address = (customer.current_address() or {}) if customer is not None else {}
+        wa = (shop_whatsapp() if shop_whatsapp is not None and customer is not None else None) or {}
+        note(
+            {"type": "checkout", "total": total, "say_total": say_total, "fulfilment": extra.get("fulfilment"),
+             "area": address.get("area") or None, "rx_path": extra.get("rx_path"), "code": code,
+             "wa_alerted": bool(wa.get("alerted")), "wa_number": wa.get("number"), "wa_channel": wa.get("channel")}
+        )
+        if on_order is not None:
+            on_order(
+                {
+                    "code": code,
+                    "order_id": (row or {}).get("id"),
+                    "lines": [dict(line) for line in cart],
+                    "total": total,
+                    "fulfilment": extra.get("fulfilment"),
+                    "address": address.get("line"),
+                    "customer_name": customer.display_name() if customer is not None else None,
+                    "phone": customer.phone if customer is not None else None,
+                    "phone_verified": bool(customer is not None and customer.phone_verified),
+                    "rx_path": extra.get("rx_path"),
+                }
+            )
+        cart.clear()  # the order is placed: the next one starts from an empty cart
+        if customer is not None:
+            customer.checkout_pending = False
+            customer.rx_path = None
+        told = say_total or prices()
+        return f"Order placed: {summary}." + (f" Total: {format_price(total)}." if told else "") + " Thank you!"
 
     tools = [search_menu, get_item_details, add_to_cart, remove_from_cart, view_cart, checkout]
+
+    if customer is not None:
+
+        @tool
+        def save_delivery_details(name: str, address: str, area: str = "", landmark: str = "", pincode: str = "") -> str:
+            """Save the customer's name and delivery address once they have told you. address is the full
+            address as said (house or flat, street, area); area is just the locality ("Andheri West");
+            landmark and pincode only if given. Never invent a part they did not say."""
+            full = " ".join(address.split())
+            if len(full) < 12 or not any(ch.isalpha() for ch in full):
+                return "That address looks incomplete. Ask for the house or flat number, street and area."
+            digits = "".join(ch for ch in pincode if ch.isdigit())
+            customer.save_details(
+                name.strip() or None,
+                {"line": full, "area": area.strip(), "landmark": landmark.strip(), "pincode": digits if len(digits) == 6 else ""},
+            )
+            note({"type": "details_saved", "name": customer.display_name(), "line": full})
+            return (
+                f"Saved. Read the address back to the customer in one short sentence ({full}) and ask them to confirm "
+                "it. Once they confirm, place the order with checkout; if they correct it, call this again."
+            )
+
+        @tool
+        def choose_pickup() -> str:
+            """The customer will collect the order from the store instead of having it delivered."""
+            customer.choose_pickup()
+            note({"type": "pickup_chosen"})
+            return "Noted: pickup from the store. Place the order with checkout once they confirm."
+
+        @tool
+        def choose_prescription_path(path: str) -> str:
+            """The customer's choice for a prescription medicine: path is "whatsapp" (they will send a photo of
+            the prescription on WhatsApp) or "pharmacist" (they want to talk to the pharmacist first)."""
+            chosen = path.strip().lower()
+            if chosen not in ("whatsapp", "pharmacist"):
+                return "path must be 'whatsapp' or 'pharmacist'. Ask the customer which they prefer."
+            customer.choose_rx_path(chosen)
+            note({"type": "rx_path_chosen", "path": chosen})
+            if customer.checkout_pending:
+                # They had already asked to place the order; this answer was the missing piece, so place it now.
+                return checkout.invoke({})
+            return f"Noted: {chosen}. Place the order with checkout when they are ready."
+
+        tools += [save_delivery_details, choose_pickup, choose_prescription_path]
 
     if restaurant_id is not None:
 

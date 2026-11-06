@@ -1,4 +1,4 @@
-"""Seed the demo restaurants into Supabase (after supabase/migrations/001 is applied).
+"""Seed the demo stores into Supabase (restaurants after migration 001, kirana and pharmacy after 002).
 
     python -m app.seed_restaurants                       # all three, idempotent
     python -m app.seed_restaurants --only slice-station
@@ -19,10 +19,22 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from app.agent import medical  # noqa: E402
 from app.menu import service  # noqa: E402
 
 DATA = Path(__file__).resolve().parent / "data"
 RESTAURANTS_DIR = DATA / "restaurants"
+STORES_DIR = DATA / "stores"
+
+KIRANA = {
+    "slug": "gupta-general-store",
+    "name": "Gupta General Store",
+    "business_type": "kirana",
+    "cuisine": None,
+    "tagline": "Everyday essentials, delivered.",
+    "agent_name": "Shubh",
+    "accent_color": "#1d4ed8",
+}
 
 FINE_DINE = {
     "slug": "saffron-table",
@@ -69,15 +81,45 @@ def fine_dine_spec() -> dict:
 
 def file_spec(path: Path) -> dict:
     spec = json.loads(path.read_text())
+    if "store" in spec:  # store files (kirana, pharmacy) call the row "store"
+        spec["restaurant"] = spec.pop("store")
+    pharmacy = spec.get("restaurant", {}).get("business_type") == "pharmacy"
     for dish in spec["dishes"]:
-        dish["knowledge_status"] = _status(dish.get("long_description", ""))
+        # Medicine text is a draft until a pharmacist approves it in the owner dashboard.
+        dish["knowledge_status"] = "ai_draft" if pharmacy else _status(dish.get("long_description", ""))
     return spec
+
+
+def kirana_spec() -> dict:
+    """The 100-item grocery catalog (app/data/grocery.json) as a store's items."""
+    items = json.loads((DATA / "grocery.json").read_text())
+    categories: list[str] = []
+    dishes = []
+    for item in items:
+        if item["category"] not in categories:
+            categories.append(item["category"])
+        dishes.append(
+            {
+                "category": item["category"],
+                "name": item["name"],
+                "brand": item.get("brand"),
+                "price": item["price"],
+                "is_veg": None,
+                "short_description": item["description"],
+                "knowledge_status": "missing",
+            }
+        )
+    return {"restaurant": KIRANA, "categories": categories, "dishes": dishes}
 
 
 def load_specs() -> dict[str, dict]:
     specs = {FINE_DINE["slug"]: fine_dine_spec()}
     for slug in ("sarson-da-khet", "slice-station"):
         specs[slug] = file_spec(RESTAURANTS_DIR / f"{slug}.json")
+    specs[KIRANA["slug"]] = kirana_spec()
+    for path in sorted(STORES_DIR.glob("*.json")):  # pharmacies, and any other store file
+        spec = file_spec(path)
+        specs[spec["restaurant"]["slug"]] = spec
     return specs
 
 
@@ -105,9 +147,33 @@ def check_spec(slug: str, spec: dict) -> list[str]:
             problems.append(f"{label}: price {dish['price']} != cheapest size {clean['price']}")
         if dish.get("variants") and len(dish["variants"]) < 2:
             problems.append(f"{label}: has only one size")
+        kind = spec.get("restaurant", {}).get("business_type", "restaurant")
         words = len(dish.get("long_description", "").split())
-        if not 30 <= words <= 140:
+        if kind == "restaurant" and not 30 <= words <= 140:
             problems.append(f"{label}: story is {words} words")
+        if kind == "pharmacy":
+            problems += _check_medicine(label, dish)
+    return problems
+
+
+def _check_medicine(label: str, dish: dict) -> list[str]:
+    """Catalog text the agent will repeat must carry no dose, schedule or cure claim, and a prescription
+    medicine must say so. A pharmacist still reviews all of it before real use."""
+    med = dish.get("medicine")
+    if not med:
+        return [f"{label}: a pharmacy item needs a 'medicine' block"]
+    problems = []
+    if med.get("form") != "device" and not med.get("symptoms"):
+        problems.append(f"{label}: no symptoms listed")
+    text = " ".join([dish.get("short_description", ""), dish.get("long_description", ""), med.get("precautions", "")])
+    if medical.has_dosing(text):
+        problems.append(f"{label}: text contains a dose or schedule")
+    if medical.reply_issues(text) and "diagnosis" in medical.reply_issues(text):
+        problems.append(f"{label}: text makes a diagnosis or cure claim")
+    if med.get("rx_required") and "prescription" not in dish.get("long_description", "").lower():
+        problems.append(f"{label}: prescription item that doesn't say a prescription is needed")
+    if med.get("schedule") and not med.get("rx_required"):
+        problems.append(f"{label}: scheduled but not rx_required")
     return problems
 
 
@@ -127,7 +193,11 @@ def find_user_id(email: str) -> str | None:
 def seed(slug: str, spec: dict, owner_email: str | None) -> None:
     from app.menu import repository
 
-    fields = {k: spec["restaurant"][k] for k in ("name", "cuisine", "tagline", "agent_name", "accent_color")}
+    fields = {
+        k: spec["restaurant"].get(k)
+        for k in ("name", "cuisine", "tagline", "agent_name", "accent_color", "business_type")
+        if k != "business_type" or spec["restaurant"].get("business_type")
+    }
     restaurant = repository.get_restaurant_by_slug(slug)
     restaurant = (
         repository.insert_restaurant({"slug": slug, **fields})
