@@ -16,7 +16,8 @@ session's cart/history to resume — reusing the exact same
 RestaurantOrderingAgent, tools, and catalogs as the text and push-to-talk
 paths via SarthiLLM (app/voice/livekit_llm.py). Silero VAD plus LiveKit's
 own turn detection give barge-in (interrupting the agent mid-sentence) for
-free. Speech is all Sarvam, as on phone calls: Saaras for STT, and Bulbul
+free, and background voice cancellation keeps other tables' voices out (see
+room_options in app/voice/livekit_phone.py). Speech is all Sarvam, as on phone calls: Saaras for STT, and Bulbul
 for TTS through SarthiTTS (app/voice/livekit_tts.py). The LLM stays on Groq.
 
 Known limitation: this worker is a separate OS process from the FastAPI
@@ -55,6 +56,7 @@ from app.voice.livekit_phone import (  # noqa: E402
     hang_up_after_goodbye,
     is_phone_room,
     phone_entrypoint,
+    room_options,
 )
 from app.voice.livekit_rooms import parse_room_name  # noqa: E402
 from app.voice.livekit_tokens import AGENT_NAME  # noqa: E402
@@ -140,7 +142,7 @@ async def entrypoint(ctx: JobContext) -> None:
         if timings:
             logger.info("turn timings in ms: %s", timings)
 
-    await session.start(Agent(instructions=agent.system_prompt), room=ctx.room)
+    await session.start(Agent(instructions=agent.system_prompt), room=ctx.room, room_options=room_options(telephony=False))
     # Pre-generate the acknowledgement phrases in the background so they play instantly.
     asyncio.get_running_loop().run_in_executor(None, warm_phrases, persona, language, lang.all_acks(language), True)
     session.say(greeting, allow_interruptions=True)

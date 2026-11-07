@@ -3,4 +3,5 @@
 # requirements.txt so the main API image doesn't carry onnxruntime (silero
 # VAD) and the rest of this stack's extra weight.
 livekit-agents[silero,sarvam]~=1.8
+livekit-plugins-noise-cancellation~=0.3  # background voice cancellation; needs LiveKit Cloud
 httpx  # worker -> main API cart sync, see app/voice/cart_sync.py

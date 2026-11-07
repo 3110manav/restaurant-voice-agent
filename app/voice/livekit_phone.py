@@ -13,11 +13,11 @@ import os
 from collections.abc import Callable
 
 from livekit import rtc
-from livekit.agents import Agent, AgentSession, JobContext
+from livekit.agents import Agent, AgentSession, JobContext, room_io
 from livekit.agents.llm import LLM, ChatChunk, ChatContext, ChoiceDelta, LLMStream
 from livekit.agents.types import DEFAULT_API_CONNECT_OPTIONS
 from livekit.agents.utils import shortuuid
-from livekit.plugins import sarvam, silero
+from livekit.plugins import noise_cancellation, sarvam, silero
 
 from app.agent import language as lang
 from app.phone.call import PhoneCall, open_call
@@ -33,7 +33,11 @@ ATTR_DIALLED = "sip.trunkPhoneNumber"
 STT_MODEL = os.environ.get("SARVAM_STT_MODEL", "saaras:v3")
 # LiveKit's default runs the LLM as soon as a transcript arrives, and again if the speaker carries on.
 # Our "LLM" is the agent, whose tools really change the cart, so it must only run when the turn is over.
-TURN_HANDLING = {"preemptive_generation": {"enabled": False}}
+#
+# Interruptions: by default any voice talking over the agent stops it, which in a busy restaurant means
+# the next table. "adaptive" asks LiveKit's model whether it's really someone cutting in (not a cough,
+# an "mm-hm" or background chatter). LiveKit only turns it on by default in dev, so it's set here.
+TURN_HANDLING = {"preemptive_generation": {"enabled": False}, "interruption": {"mode": "adaptive"}}
 HANG_UP_PAUSE = 1.0  # seconds after the goodbye, so its last words reach the guest's speaker
 _pending: set[asyncio.Task] = set()  # keeps a hang-up from being garbage collected before it runs
 
@@ -44,6 +48,15 @@ PHONE_SAMPLE_RATE = 8000  # all a phone line carries, so asking Sarvam for more 
 def build_stt() -> sarvam.STT:
     """Speech-to-text for every call, phone or browser: Saaras hears Hindi, English and a mix of both."""
     return sarvam.STT(language="unknown", model=STT_MODEL, mode="codemix")
+
+
+def room_options(telephony: bool) -> room_io.RoomOptions:
+    """LiveKit Cloud's background voice cancellation, run on the guest's audio before anything hears it:
+    it keeps the voice nearest the mic and removes other people talking, music and kitchen noise, so the
+    next table's conversation never reaches speech-to-text or turn detection. Phone audio is narrowband,
+    so it gets the model trained for that."""
+    model = noise_cancellation.BVCTelephony() if telephony else noise_cancellation.BVC()
+    return room_io.RoomOptions(audio_input=room_io.AudioInputOptions(noise_cancellation=model))
 
 
 def is_phone_room(room_name: str) -> bool:
@@ -154,7 +167,9 @@ async def phone_entrypoint(ctx: JobContext) -> None:
 
     ctx.add_shutdown_callback(_finish)
 
-    await session.start(Agent(instructions=call.agent.system_prompt), room=ctx.room)
+    await session.start(
+        Agent(instructions=call.agent.system_prompt), room=ctx.room, room_options=room_options(telephony=True)
+    )
     loop.run_in_executor(
         None, warm_phrases, call.persona, None, [*lang.all_acks("hi"), *lang.all_acks("en")], True, PHONE_SAMPLE_RATE
     )

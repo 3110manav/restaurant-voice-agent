@@ -174,6 +174,16 @@ def test_talking_over_the_goodbye_keeps_the_call_open(monkeypatch):
     assert asyncio.run(run(False)).deleted
 
 
+def test_calls_filter_out_background_voices(monkeypatch):
+    _, livekit_phone = _voice_modules(monkeypatch)
+    from livekit.plugins import noise_cancellation
+
+    browser = livekit_phone.room_options(telephony=False).audio_input.noise_cancellation
+    phone = livekit_phone.room_options(telephony=True).audio_input.noise_cancellation
+    assert browser == noise_cancellation.BVC() and phone == noise_cancellation.BVCTelephony()
+    assert livekit_phone.TURN_HANDLING["interruption"]["mode"] == "adaptive"  # chatter doesn't cut the agent off
+
+
 def test_turn_timings_are_read_from_a_conversation_item(monkeypatch):
     _, livekit_phone = _voice_modules(monkeypatch)
     item = SimpleNamespace(role="user", metrics={"transcription_delay": 0.25, "started_speaking_at": 5.0})
