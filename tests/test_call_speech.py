@@ -209,6 +209,7 @@ def test_push_to_talk_hears_through_sarvam(monkeypatch):
 def test_push_to_talk_speaks_through_sarvam(monkeypatch):
     monkeypatch.setenv("GROQ_API_KEY", "test")
     monkeypatch.setenv("SARVAM_API_KEY", "test")
+    monkeypatch.setenv("GOOGLE_API_KEY", "test")  # importing app.main builds the embeddings client
     from fastapi.testclient import TestClient
 
     from app import main
