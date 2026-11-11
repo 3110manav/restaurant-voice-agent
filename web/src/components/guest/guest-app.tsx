@@ -1,27 +1,27 @@
 "use client";
 
-import { Check, ChevronLeft, Mic, Minus, Plus, X } from "lucide-react";
+import { Check, ChevronLeft, Mic, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { ChatPanel } from "@/components/chat/chat-panel";
+import { GuestDesktop } from "@/components/guest/guest-desktop";
+import { Monogram, Stepper, VegMark, isStore, lineKey, lineLabel, placeholderFor, sum, useMenu, welcomeLine } from "@/components/guest/parts";
 import { LanguageToggle } from "@/components/language-toggle";
 import { PhotoCredits } from "@/components/photo-credits";
 import { BillStep, DoneStep } from "@/components/table/table-steps";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CallStrip } from "@/components/voice/call-strip";
+import { CallerNumberDialog } from "@/components/voice/caller-number-dialog";
 import { useChatSession } from "@/hooks/use-chat-session";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useRealtimeCall } from "@/hooks/use-realtime-call";
 import { useTableSession, type TableSession } from "@/hooks/use-table-session";
-import { fetchMenu, type CartLine, type MenuItem, type RestaurantInfo } from "@/lib/api";
+import type { CartLine, MenuItem, RestaurantInfo } from "@/lib/api";
 import type { Persona } from "@/lib/personas";
 import { cn, formatPrice } from "@/lib/utils";
 
 type Screen = "welcome" | "menu" | "order" | "bill" | "done";
-
-const lineKey = (id: string, variant?: string | null) => `${id}|${variant ?? ""}`;
-const lineLabel = (line: { name: string; variant?: string | null }) => (line.variant ? `${line.name} (${line.variant})` : line.name);
-const sum = (lines: CartLine[]) => lines.reduce((total, line) => total + line.price * line.quantity, 0);
 
 /**
  * The guest's side of a restaurant, as designed for the table QR pilot: a welcome card after the
@@ -43,6 +43,8 @@ export function GuestApp({ info, persona, tableNo }: { info: RestaurantInfo; per
   });
   const [screen, setScreen] = useState<Screen>("welcome");
   const [talking, setTalking] = useState(false);
+  const isMobile = useIsMobile();
+  const store = isStore(info);
 
   // A guest coming back to the tab mid-meal skips the welcome card.
   const returning = (table.table?.rounds ?? 0) > 0 || Boolean(table.table?.payment_method);
@@ -52,8 +54,14 @@ export function GuestApp({ info, persona, tableNo }: { info: RestaurantInfo; per
     if (await call.start()) setTalking(false);
   }
 
+  // Phones and tablets keep the one-column flow below; a laptop or desktop gets the whole screen (guest-desktop.tsx).
+  if (!isMobile) {
+    return <GuestDesktop info={info} persona={persona} tableNo={tableNo} session={session} table={table} call={call} />;
+  }
+
   return (
     <div className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col sm:border-x">
+      <CallerNumberDialog prompt={call.numberPrompt} agentName={persona.agentName} />
       {current === "welcome" && (
         <Welcome
           info={info}
@@ -76,6 +84,7 @@ export function GuestApp({ info, persona, tableNo }: { info: RestaurantInfo; per
           tableNo={tableNo}
           cart={session.cart}
           table={table}
+          store={store}
           language={session.language}
           onLanguage={session.setLanguage}
           onAdd={(id, variant) => session.addItemDirect(id, 1, variant)}
@@ -91,6 +100,9 @@ export function GuestApp({ info, persona, tableNo }: { info: RestaurantInfo; per
           persona={persona}
           tableNo={tableNo}
           table={table}
+          cart={session.cart}
+          store={store}
+          onTalk={() => setTalking(true)}
           onAdd={(id, variant) => session.addItemDirect(id, 1, variant)}
           onRemove={(id, variant) => session.removeItemDirect(id, 1, variant)}
           onBack={() => setScreen("menu")}
@@ -123,7 +135,7 @@ export function GuestApp({ info, persona, tableNo }: { info: RestaurantInfo; per
           <ChatPanel
             persona={persona}
             session={session}
-            placeholder={persona.placeholder}
+            placeholder={placeholderFor(info, persona)}
             scrollHeight="45vh"
             onRequestCall={() => void beginCall()}
             callBusy={call.connection !== null || call.isConnecting}
@@ -136,21 +148,6 @@ export function GuestApp({ info, persona, tableNo }: { info: RestaurantInfo; per
 }
 
 // ------------------------------------------------------------------- welcome --
-
-function Monogram({ info, className }: { info: RestaurantInfo; className?: string }) {
-  if (info.logo_url) {
-    // eslint-disable-next-line @next/next/no-img-element -- the owner's logo, any host
-    return <img src={info.logo_url} alt="" className={cn("rounded-[var(--radius)] object-cover", className)} />;
-  }
-  return (
-    <div
-      aria-hidden="true"
-      className={cn("flex items-center justify-center rounded-[var(--radius)] bg-primary font-heading text-primary-foreground", className)}
-    >
-      {info.name.trim().charAt(0).toUpperCase()}
-    </div>
-  );
-}
 
 function Welcome({
   info,
@@ -170,6 +167,7 @@ function Welcome({
   onMenu: () => void;
 }) {
   const hi = language === "hi";
+  const store = isStore(info);
   return (
     <div className="flex min-h-dvh flex-col px-6 pt-5 pb-6">
       <div className="flex justify-end">
@@ -183,11 +181,7 @@ function Welcome({
             {[info.cuisine, tableNo ? `Table ${tableNo}` : null].filter(Boolean).join(" · ")}
           </p>
         </div>
-        <p className="text-lg leading-snug">
-          {hi
-            ? `नमस्ते! मैं ${persona.agentName} हूँ। मेन्यू से ऑर्डर करें, या बस बताइए क्या खाने का मन है।`
-            : `Welcome! I'm ${persona.agentName}, your waiter today. Order from the menu, or just tell me what you feel like eating.`}
-        </p>
+        <p className="text-lg leading-snug">{welcomeLine(info, persona, hi)}</p>
       </div>
       <div className="flex flex-col gap-2.5">
         <Button className="h-14 gap-2 text-base" onClick={onTalk}>
@@ -195,7 +189,7 @@ function Welcome({
           {hi ? `${persona.agentName} से बात करें` : `Talk to ${persona.agentName}`}
         </Button>
         <Button variant="outline" className="h-12 text-base" onClick={onMenu}>
-          {hi ? "मेन्यू देखें" : "See the menu"}
+          {hi ? (store ? "सूची देखें" : "मेन्यू देखें") : store ? "See what's in stock" : "See the menu"}
         </Button>
         <p className="mt-2 text-center text-xs text-muted-foreground">Powered by Sarthi</p>
       </div>
@@ -205,65 +199,15 @@ function Welcome({
 
 // ---------------------------------------------------------------------- menu --
 
-function VegMark({ veg }: { veg: boolean }) {
-  return (
-    <span
-      role="img"
-      aria-label={veg ? "Vegetarian" : "Non-vegetarian"}
-      className={cn(
-        "inline-flex size-3.5 shrink-0 items-center justify-center rounded-[2px] border-[1.5px]",
-        veg ? "border-emerald-600 dark:border-emerald-400" : "border-amber-800 dark:border-amber-400"
-      )}
-    >
-      {veg ? (
-        <span className="size-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400" />
-      ) : (
-        <span className="size-0 border-x-[3.5px] border-b-[6px] border-x-transparent border-b-amber-800 dark:border-b-amber-400" />
-      )}
-    </span>
-  );
-}
-
-function Stepper({
-  quantity,
-  label,
-  onAdd,
-  onRemove,
-  filled = true,
-}: {
-  quantity: number;
-  label: string;
-  onAdd: () => void;
-  onRemove: () => void;
-  filled?: boolean;
-}) {
-  if (quantity === 0) {
-    return (
-      <Button variant="outline" className="h-11 w-20 border-primary text-primary" onClick={onAdd} aria-label={`Add ${label}`}>
-        Add
-      </Button>
-    );
-  }
-  return (
-    <div className={cn("flex h-11 w-24 items-center justify-between rounded-[var(--radius)]", filled ? "bg-primary text-primary-foreground" : "border")}>
-      <button type="button" className="flex h-11 w-9 items-center justify-center" onClick={onRemove} aria-label={`Remove one ${label}`}>
-        <Minus className="size-4" />
-      </button>
-      <span className="text-sm font-semibold">{quantity}</span>
-      <button type="button" className="flex h-11 w-9 items-center justify-center" onClick={onAdd} aria-label={`Add one more ${label}`}>
-        <Plus className="size-4" />
-      </button>
-    </div>
-  );
-}
-
 function DishRow({
   item,
+  store,
   quantityOf,
   onAdd,
   onRemove,
 }: {
   item: MenuItem;
+  store: boolean;
   quantityOf: (id: string, variant?: string) => number;
   onAdd: (id: string, variant?: string) => void;
   onRemove: (id: string, variant?: string) => void;
@@ -278,7 +222,7 @@ function DishRow({
       <div className="flex gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            {item.veg !== undefined && <VegMark veg={item.veg} />}
+            {typeof item.veg === "boolean" && <VegMark veg={item.veg} />}
             <h3 className="font-semibold">{item.name}</h3>
           </div>
           <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
@@ -292,7 +236,7 @@ function DishRow({
               onClick={() => setOpen((v) => !v)}
               className="mt-1 text-xs text-muted-foreground underline underline-offset-4"
             >
-              {open ? "Hide details" : "About this dish"}
+              {open ? "Hide details" : `About this ${store ? "item" : "dish"}`}
             </button>
           )}
         </div>
@@ -340,6 +284,7 @@ function MenuScreen({
   tableNo,
   cart,
   table,
+  store,
   language,
   onLanguage,
   onAdd,
@@ -353,6 +298,7 @@ function MenuScreen({
   tableNo: string | null;
   cart: CartLine[];
   table: TableSession;
+  store: boolean;
   language: "en" | "hi";
   onLanguage: (next: "en" | "hi") => void;
   onAdd: (id: string, variant?: string) => void;
@@ -361,30 +307,17 @@ function MenuScreen({
   onOrder: () => void;
   callLive: boolean;
 }) {
-  const [items, setItems] = useState<MenuItem[] | null>(null);
-  const [failed, setFailed] = useState(false);
+  const { items, failed } = useMenu(persona, info);
   const [category, setCategory] = useState("All");
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchMenu(persona.key, info.slug)
-      .then((menu) => !cancelled && setItems(menu))
-      .catch(() => {
-        if (cancelled) return;
-        setItems([]);
-        setFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [info.slug, persona.key]);
 
   const categories = useMemo(() => ["All", ...Array.from(new Set((items ?? []).map((i) => i.category)))], [items]);
   const shown = useMemo(() => (items ?? []).filter((i) => category === "All" || i.category === category), [category, items]);
   const quantities = useMemo(() => new Map(cart.map((line) => [lineKey(line.id, line.variant), line.quantity])), [cart]);
 
-  const unsentCount = table.unsent.reduce((n, line) => n + line.quantity, 0);
-  const rounds = table.table?.rounds ?? 0;
+  // A store has no kitchen rounds: everything in the cart is still to be placed.
+  const waiting = store ? cart : table.unsent;
+  const unsentCount = waiting.reduce((n, line) => n + line.quantity, 0);
+  const rounds = store ? 0 : (table.table?.rounds ?? 0);
   const dockLabel =
     unsentCount > 0
       ? `${unsentCount} ${unsentCount === 1 ? "item" : "items"} · View order`
@@ -398,7 +331,7 @@ function MenuScreen({
         <Monogram info={info} className="size-10 text-xl" />
         <div className="min-w-0 flex-1">
           <p className="truncate font-heading text-lg leading-tight font-semibold">{info.name}</p>
-          <p className="text-xs text-muted-foreground">{tableNo ? `Table ${tableNo}` : info.cuisine}</p>
+          <p className="text-xs text-muted-foreground">{tableNo ? `Table ${tableNo}` : (info.cuisine ?? info.tagline)}</p>
         </div>
         <LanguageToggle value={language} onChange={onLanguage} />
       </header>
@@ -434,6 +367,7 @@ function MenuScreen({
             <DishRow
               key={item.id}
               item={item}
+              store={store}
               quantityOf={(id, variant) => quantities.get(lineKey(id, variant)) ?? 0}
               onAdd={onAdd}
               onRemove={onRemove}
@@ -456,7 +390,7 @@ function MenuScreen({
           </Button>
           <Button className="h-14 flex-1 justify-between px-4 text-base" onClick={onOrder}>
             <span>{dockLabel}</span>
-            {unsentCount > 0 && <span>{formatPrice(sum(table.unsent))}</span>}
+            {unsentCount > 0 && <span>{formatPrice(sum(waiting))}</span>}
           </Button>
         </div>
       </div>
@@ -470,6 +404,9 @@ function OrderScreen({
   persona,
   tableNo,
   table: t,
+  cart,
+  store,
+  onTalk,
   onAdd,
   onRemove,
   onBack,
@@ -478,13 +415,18 @@ function OrderScreen({
   persona: Persona;
   tableNo: string | null;
   table: TableSession;
+  cart: CartLine[];
+  store: boolean;
+  /** A store's order is placed by talking to the agent, which takes the address and confirms it. */
+  onTalk: () => void;
   onAdd: (id: string, variant?: string) => void;
   onRemove: (id: string, variant?: string) => void;
   onBack: () => void;
   onBill: () => void;
 }) {
-  const rounds = t.table?.rounds ?? 0;
+  const rounds = store ? 0 : (t.table?.rounds ?? 0);
   const ordered = t.table?.ordered ?? [];
+  const unsent = store ? cart : t.unsent;
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -496,16 +438,16 @@ function OrderScreen({
       </header>
 
       <div className="flex flex-1 flex-col gap-5 px-4 pb-6">
-        {!t.active && (
+        {!store && !t.active && (
           <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
             To order from your table, scan the QR code on it.
           </p>
         )}
 
-        {t.unsent.length > 0 && (
+        {unsent.length > 0 && (
           <section className="flex flex-col">
             {rounds > 0 && <h2 className="mb-1 text-sm font-medium text-muted-foreground">Not sent to the kitchen yet</h2>}
-            {t.unsent.map((line) => (
+            {unsent.map((line) => (
               <div key={lineKey(line.id, line.variant)} className="flex items-center gap-3 border-b py-3">
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{lineLabel(line)}</p>
@@ -539,9 +481,9 @@ function OrderScreen({
           </div>
         )}
 
-        {t.unsent.length === 0 && rounds === 0 && (
+        {unsent.length === 0 && rounds === 0 && (
           <p className="py-10 text-center text-muted-foreground">
-            Nothing here yet. Add a dish, or ask {persona.agentName} what to order.
+            Nothing here yet. Add {store ? "an item" : "a dish"}, or ask {persona.agentName} what to {store ? "get" : "order"}.
           </p>
         )}
 
@@ -582,14 +524,20 @@ function OrderScreen({
       </div>
 
       <div className="sticky bottom-0 flex flex-col gap-2 border-t bg-background px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        {t.unsent.length > 0 && (
+        {store && unsent.length > 0 && (
+          <Button className="h-14 justify-between px-4 text-base" onClick={onTalk}>
+            <span>Ask {persona.agentName} to place it</span>
+            <span>{formatPrice(sum(unsent))}</span>
+          </Button>
+        )}
+        {!store && unsent.length > 0 && (
           <Button className="h-14 justify-between px-4 text-base" disabled={t.busy || !t.active} onClick={() => void t.send()}>
             <span>{t.busy ? "Sending…" : "Send to kitchen"}</span>
-            <span>{formatPrice(sum(t.unsent))}</span>
+            <span>{formatPrice(sum(unsent))}</span>
           </Button>
         )}
         {rounds > 0 && (
-          <Button variant={t.unsent.length > 0 ? "outline" : "default"} className="h-12 text-base" onClick={onBill}>
+          <Button variant={unsent.length > 0 ? "outline" : "default"} className="h-12 text-base" onClick={onBill}>
             Get the bill
           </Button>
         )}
