@@ -7,6 +7,7 @@ import { ChatPanel } from "@/components/chat/chat-panel";
 import { Monogram, Stepper, VegMark, agentRole, isStore, lineKey, lineLabel, placeholderFor, sum, useMenu, welcomeLine } from "@/components/guest/parts";
 import { LanguageToggle } from "@/components/language-toggle";
 import { PhotoCredits } from "@/components/photo-credits";
+import { SpeechToggle } from "@/components/speech-toggle";
 import { BillStep, DoneStep } from "@/components/table/table-steps";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,6 +84,7 @@ export function GuestDesktop({
             {[info.cuisine, info.tagline, tableNo ? `Table ${tableNo}` : null].filter(Boolean).join(" · ")}
           </p>
         </div>
+        <SpeechToggle />
         <LanguageToggle value={session.language} onChange={session.setLanguage} />
         <Button className="h-10 gap-2 px-4" onClick={() => void call.start()} disabled={call.connection !== null || call.isConnecting}>
           <Mic className="size-4" />

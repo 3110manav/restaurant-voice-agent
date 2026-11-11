@@ -10,7 +10,12 @@ export const maxDuration = 60;
 export async function GET() {
   try {
     const response = await fetch(`${BACKEND_URL}/health`, { cache: "no-store" });
-    return NextResponse.json({ ok: response.ok }, { status: response.ok ? 200 : 502 });
+    // "speech" and "speech_choice" tell the site which engine is the default and whether to show the Groq / Sarvam switch.
+    const info = response.ok ? await response.json().catch(() => ({})) : {};
+    return NextResponse.json(
+      { ok: response.ok, speech: info.speech ?? null, speech_choice: info.speech_choice === true },
+      { status: response.ok ? 200 : 502 }
+    );
   } catch {
     return NextResponse.json({ ok: false }, { status: 502 });
   }

@@ -1,4 +1,5 @@
 import { getCallerPhone } from "@/lib/caller";
+import { getSpeechChoice } from "@/lib/speech";
 
 export interface CartLine {
   id: string;
@@ -154,11 +155,13 @@ export async function sendVoiceMessage(
   formData.append("audio", audio, "recording.webm");
   const phone = getCallerPhone();
   if (phone) formData.append("phone", phone); // in the body, not the URL
+  const speech = getSpeechChoice();
 
   const params = new URLSearchParams({ session_id: sessionId, persona });
   if (ctx.restaurant) params.set("restaurant", ctx.restaurant);
   if (ctx.tableNo) params.set("table_no", ctx.tableNo);
   if (ctx.language) params.set("language", ctx.language);
+  if (speech) params.set("speech", speech);
   const res = await fetch(`/api/chat/voice?${params.toString()}`, {
     method: "POST",
     body: formData,
@@ -297,6 +300,7 @@ export async function fetchLiveKitToken(
       table_no: ctx.tableNo,
       language: ctx.language,
       phone: getCallerPhone(),
+      speech: getSpeechChoice(),
     }),
   });
   return parseOrThrow(res);

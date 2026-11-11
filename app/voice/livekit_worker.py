@@ -122,8 +122,10 @@ async def entrypoint(ctx: JobContext) -> None:
     meta = json.loads(ctx.job.metadata or "{}")
     restaurant_slug, table_no = meta.get("restaurant"), meta.get("table_no")
     language = lang.normalize(meta.get("language"))
+    speech = meta.get("speech")  # "groq" or "sarvam", settled by the API; absent means this worker's SARTHI_SPEECH
     logger.info(
-        "starting realtime session: persona=%s session_id=%s restaurant=%s", persona, session_id, restaurant_slug
+        "starting realtime session: persona=%s session_id=%s restaurant=%s speech=%s",
+        persona, session_id, restaurant_slug, speech or speech_stack(),
     )
 
     if restaurant_slug:
@@ -161,12 +163,12 @@ async def entrypoint(ctx: JobContext) -> None:
     agent.set_language(language)
 
     session = AgentSession(
-        stt=build_stt(language),
+        stt=build_stt(language, speech),
         llm=SarthiLLM(
             agent, session_id=session_id, persona=persona, restaurant=restaurant_slug, table_no=table_no,
             on_goodbye=lambda: hang_up_after_goodbye(ctx, session),
         ),
-        tts=build_tts(persona, language),
+        tts=build_tts(persona, language, speech=speech),
         vad=silero.VAD.load(),
         turn_handling=TURN_HANDLING,
     )
@@ -181,7 +183,7 @@ async def entrypoint(ctx: JobContext) -> None:
 
     await session.start(Agent(instructions=agent.system_prompt), room=ctx.room, room_options=room_options(telephony=False))
     # Pre-generate the acknowledgement phrases in the background so they play instantly.
-    asyncio.get_running_loop().run_in_executor(None, warm, persona, language, lang.all_acks(language))
+    asyncio.get_running_loop().run_in_executor(None, warm, persona, language, lang.all_acks(language), None, speech)
     session.say(greeting, allow_interruptions=True)
 
 

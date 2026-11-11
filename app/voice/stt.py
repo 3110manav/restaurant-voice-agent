@@ -30,8 +30,11 @@ def _sarvam():
     return SarvamAI(timeout=30.0)  # reads SARVAM_API_KEY from the environment
 
 
-def transcribe_bytes(data: bytes, filename: str = "audio.wav", language: str | None = None) -> str:
-    if uses_sarvam():
+def transcribe_bytes(
+    data: bytes, filename: str = "audio.wav", language: str | None = None, speech: str | None = None
+) -> str:
+    """`speech` is the guest's own pick of stack, honoured only where the deployment allows it (see stack.resolve)."""
+    if uses_sarvam(speech):
         result = _sarvam().speech_to_text.transcribe(
             file=(filename, data), model=SARVAM_MODEL, mode="codemix", language_code="unknown"
         )

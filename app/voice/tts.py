@@ -84,10 +84,10 @@ def _synthesize_english(text: str, voice: str = ENGLISH_DEFAULT_VOICE) -> bytes:
     return response.read()
 
 
-def synthesize(text: str, persona: str = "online", language: str | None = None) -> bytes:
+def synthesize(text: str, persona: str = "online", language: str | None = None, speech: str | None = None) -> bytes:
     """Synthesize speech in the conversation's language (or, if none is given, the language
     the text is written in), using the persona's own voice (see app/voice/voices.py)."""
-    if uses_sarvam() or use_hindi_voice(text, language):
+    if uses_sarvam(speech) or use_hindi_voice(text, language):
         return synthesize_sarvam(text, persona)
     return _synthesize_english(text, voices_for(persona)["en"])
 

@@ -76,7 +76,8 @@ from app.table.state import TableState  # noqa: E402
 from app.table.suggest import next_suggestion  # noqa: E402
 from app.voice import livekit_tokens  # noqa: E402
 from app.whatsapp.webhook import router as whatsapp_router  # noqa: E402
-from app.voice.stack import speech_stack  # noqa: E402
+from app.voice.stack import choice_allowed, speech_stack  # noqa: E402
+from app.voice.stack import resolve as speech_resolve  # noqa: E402
 from app.voice.stt import transcribe_bytes  # noqa: E402
 from app.voice.tts import synthesize  # noqa: E402
 
@@ -249,6 +250,7 @@ class LiveKitTokenRequest(BaseModel):
     table_no: str | None = None
     language: str = "en"
     phone: str | None = None
+    speech: str | None = None  # the guest's Groq / Sarvam pick (see app/voice/stack.py)
 
 
 class LiveKitTokenResponse(BaseModel):
@@ -358,13 +360,14 @@ async def chat_voice(
     restaurant: str | None = None,
     table_no: str | None = None,
     language: str = "en",
+    speech: str | None = None,  # the guest's Groq / Sarvam pick; honoured only if SARTHI_SPEECH_CHOICE allows it
     phone: str | None = Form(None),  # in the form body, not the URL: a phone number does not belong in a query string
 ) -> VoiceChatResponse:
     agent = get_or_create_session(session_id, persona, restaurant, table_no, language, phone)
     persona = agent.persona
 
     audio_bytes = await audio.read()
-    transcript = transcribe_bytes(audio_bytes, filename=audio.filename or "audio.webm", language=agent.language)
+    transcript = transcribe_bytes(audio_bytes, filename=audio.filename or "audio.webm", language=agent.language, speech=speech)
 
     if not transcript:
         return VoiceChatResponse(transcript="", reply="", cart=agent.cart, service_log=agent.service_log)
@@ -372,7 +375,7 @@ async def chat_voice(
     reply = send_or_busy(agent, transcript)
 
     try:
-        reply_audio_b64 = base64.b64encode(synthesize(reply, persona, agent.language)).decode("ascii")
+        reply_audio_b64 = base64.b64encode(synthesize(reply, persona, agent.language, speech)).decode("ascii")
     except Exception:
         reply_audio_b64 = None  # TTS unavailable/blocked — client falls back to text only
 
@@ -594,7 +597,9 @@ async def livekit_token(req: LiveKitTokenRequest) -> LiveKitTokenResponse:
         return LiveKitTokenResponse(configured=False)
 
     persona = "waiter" if req.restaurant else req.persona
-    meta = {"language": req.language}
+    # The worker is a separate process, so the stack for this call travels in the dispatch metadata. It is settled
+    # here, where the choice is allowed or not, so a guest can't ask the worker for more than the deployment permits.
+    meta = {"language": req.language, "speech": speech_resolve(req.speech)}
     if req.restaurant:
         row = live_restaurant(req.restaurant)  # 404 for unknown/hidden restaurants before we spend a LiveKit call
         persona = persona_for(row)
@@ -612,5 +617,6 @@ async def livekit_token(req: LiveKitTokenRequest) -> LiveKitTokenResponse:
 
 @app.get("/health")
 def health():
-    # "speech" says which stack this deployment runs (SARTHI_SPEECH), so two deployments of one codebase can be told apart.
-    return {"status": "ok", "speech": speech_stack()}
+    # "speech" is the stack this deployment runs by default; "speech_choice" says whether the web app may offer a
+    # Groq / Sarvam switch (SARTHI_SPEECH_CHOICE), which the site reads to decide whether to show it.
+    return {"status": "ok", "speech": speech_stack(), "speech_choice": choice_allowed()}

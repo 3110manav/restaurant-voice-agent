@@ -218,12 +218,13 @@ def test_push_to_talk_hears_and_speaks_in_the_conversations_language(monkeypatch
     monkeypatch.setattr(main, "get_or_create_session", lambda *a: guest)
     monkeypatch.setattr(main, "send_or_busy", lambda agent, text: "Sure.")
     heard, spoken = {}, {}
-    monkeypatch.setattr(main, "transcribe_bytes", lambda data, filename, language=None: heard.update(language=language) or "one naan")
-    monkeypatch.setattr(main, "synthesize", lambda text, persona, language=None: spoken.update(language=language) or b"wav:" + text.encode())
+    monkeypatch.setattr(main, "transcribe_bytes", lambda data, filename, language=None, speech=None: heard.update(language=language, speech=speech) or "one naan")
+    monkeypatch.setattr(main, "synthesize", lambda text, persona, language=None, speech=None: spoken.update(language=language, speech=speech) or b"wav:" + text.encode())
 
     response = TestClient(main.app).post(
-        "/chat/voice", params={"session_id": "s", "persona": "waiter"}, files={"audio": ("a.webm", b"x")}
+        "/chat/voice", params={"session_id": "s", "persona": "waiter", "speech": "sarvam"}, files={"audio": ("a.webm", b"x")}
     )
     assert response.status_code == 200
     assert base64.b64decode(response.json()["reply_audio_wav_base64"]) == b"wav:Sure."
-    assert heard == {"language": "en"} and spoken == {"language": "en"}  # both follow the toggle, on either stack
+    # the language toggle and the guest's Groq / Sarvam pick both reach the speech code
+    assert heard == {"language": "en", "speech": "sarvam"} and spoken == {"language": "en", "speech": "sarvam"}

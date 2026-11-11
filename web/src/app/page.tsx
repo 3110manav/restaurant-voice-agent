@@ -1,4 +1,6 @@
 import Link from "next/link";
+
+import { SpeechToggle } from "@/components/speech-toggle";
 import {
   ArrowRight,
   ClipboardList,
@@ -40,6 +42,7 @@ export default function Home() {
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
         <span className="text-lg font-semibold tracking-tight">Sarthi</span>
         <nav className="flex items-center gap-5 text-sm text-muted-foreground">
+          <SpeechToggle />
           <a href="#agents" className="hover:text-foreground">Agents</a>
           <a href="#demo" className="hover:text-foreground">Live demo</a>
           <Link href="/demo" className="hidden hover:text-foreground sm:inline">QR sheet</Link>

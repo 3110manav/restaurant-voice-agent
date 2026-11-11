@@ -492,8 +492,14 @@ speaks changes; the agent, its tools, the stores, WhatsApp, customers and the ow
 
 It covers push-to-talk (`app/voice/stt.py`, `tts.py`), the browser's realtime calls and phone calls
 (`app/voice/livekit_stack.py`). LiveKit carries the audio on both. The LLM is Groq on both (`SARTHI_MODEL`).
-Set the same value on the API and on the voice worker; a mistyped value stops either from starting. To host both
-variants, deploy the same branch twice with different environments (see "Hosting both stacks" below).
+Set the same value on the API and on the voice worker; a mistyped value stops either from starting.
+
+**Choosing in the web app.** With `SARTHI_SPEECH_CHOICE=1` on the API, a Groq / Sarvam switch appears on the landing
+page, the restaurant page and where a call starts. Each guest's pick overrides `SARTHI_SPEECH` for their push-to-talk
+and browser calls: the API settles it and passes it to the worker with the call, so one deployment serves both and the
+choice is in your hands (Sarvam for a demo, Groq for local testing). Leave the flag off on a public site, or anyone
+could use your Sarvam credits. Phone calls have no switch and use `SARTHI_SPEECH`. To host both variants as separate
+deployments instead, see "Hosting both stacks" below.
 
 ### Hosting both stacks
 

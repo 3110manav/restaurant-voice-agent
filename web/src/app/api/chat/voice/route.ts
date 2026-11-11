@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   }
 
   const backendParams = new URLSearchParams({ session_id: sessionId, persona });
-  for (const key of ["restaurant", "table_no", "language"]) {
+  for (const key of ["restaurant", "table_no", "language", "speech"]) {
     const value = searchParams.get(key);
     if (value) backendParams.set(key, value);
   }

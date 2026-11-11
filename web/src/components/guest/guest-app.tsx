@@ -8,6 +8,7 @@ import { GuestDesktop } from "@/components/guest/guest-desktop";
 import { Monogram, Stepper, VegMark, isStore, lineKey, lineLabel, placeholderFor, sum, useMenu, welcomeLine } from "@/components/guest/parts";
 import { LanguageToggle } from "@/components/language-toggle";
 import { PhotoCredits } from "@/components/photo-credits";
+import { SpeechToggle } from "@/components/speech-toggle";
 import { BillStep, DoneStep } from "@/components/table/table-steps";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -131,7 +132,7 @@ export function GuestApp({ info, persona, tableNo }: { info: RestaurantInfo; per
       )}
 
       {talking && (
-        <Overlay title={`Talk to ${persona.agentName}`} onClose={() => setTalking(false)}>
+        <Overlay title={`Talk to ${persona.agentName}`} extra={<SpeechToggle />} onClose={() => setTalking(false)}>
           <ChatPanel
             persona={persona}
             session={session}
@@ -170,7 +171,8 @@ function Welcome({
   const store = isStore(info);
   return (
     <div className="flex min-h-dvh flex-col px-6 pt-5 pb-6">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <SpeechToggle />
         <LanguageToggle value={language} onChange={onLanguage} />
       </div>
       <div className="flex flex-1 flex-col justify-center gap-5">
@@ -551,7 +553,7 @@ function OrderScreen({
 
 // ------------------------------------------------------------------- overlay --
 
-function Overlay({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function Overlay({ title, extra, onClose, children }: { title: string; extra?: React.ReactNode; onClose: () => void; children: React.ReactNode }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -568,6 +570,7 @@ function Overlay({ title, onClose, children }: { title: string; onClose: () => v
       >
         <div className="mb-2 flex items-center justify-between">
           <h2 className="font-heading text-xl font-semibold">{title}</h2>
+          <div className="ml-auto mr-2">{extra}</div>
           <button type="button" onClick={onClose} aria-label="Close" className="flex size-11 items-center justify-center">
             <X className="size-5" />
           </button>
