@@ -341,6 +341,8 @@ def build_tools(
         lines = unplaced(cart, placed()) if placed is not None and not say_total else list(cart)
         if not lines:
             note({"type": "problem"})
+            if not cart:
+                return "The cart is empty, so there is nothing to place. Ask what they would like to order."
             return "Everything in the cart is already with the kitchen. Nothing new to place."
         if customer is not None and customer.awaiting_confirm:
             # The address was taken this turn: it is read back (in code) and the customer's next message confirms it.
