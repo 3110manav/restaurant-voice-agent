@@ -22,7 +22,20 @@ def test_the_three_demos_cover_what_they_are_meant_to_show():
     assert sum(1 for d in specs["slice-station"]["dishes"] if d.get("variants")) >= 10  # sizes
     assert sum(1 for d in specs["sarson-da-khet"]["dishes"] if d.get("variants")) >= 5  # half/full
     for spec in specs.values():
-        assert all(d["long_description"] for d in spec["dishes"])  # every dish can be explained
+        if spec["restaurant"].get("business_type", "restaurant") == "restaurant":
+            assert all(d["long_description"] for d in spec["dishes"])  # every dish can be explained
+
+
+def test_the_store_demos_are_a_kirana_and_a_pharmacy():
+    specs = seed_restaurants.load_specs()
+    kirana, pharmacy = specs["gupta-general-store"], specs["care-plus-medicals"]
+    assert kirana["restaurant"]["business_type"] == "kirana" and len(kirana["dishes"]) == 100
+    assert all(d["is_veg"] is None and d.get("brand") for d in kirana["dishes"])  # groceries are not veg or non-veg
+    assert pharmacy["restaurant"]["business_type"] == "pharmacy"
+    meds = [d for d in pharmacy["dishes"] if d["medicine"]["rx_required"]]
+    assert len(meds) >= 8 and all(d["medicine"]["schedule"] in ("H", "H1") for d in meds)
+    assert all(d["knowledge_status"] == "ai_draft" for d in pharmacy["dishes"])  # until a pharmacist approves
+    assert seed_restaurants.check_spec("care-plus-medicals", pharmacy) == []
 
 
 def test_no_dish_with_egg_is_marked_veg():

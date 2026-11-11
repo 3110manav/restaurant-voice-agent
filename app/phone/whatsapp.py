@@ -20,17 +20,22 @@ class WhatsAppError(Exception):
         self.retryable = retryable
 
 
+def _token() -> str | None:
+    """The same token the rest of the app uses (WHATSAPP_ACCESS_TOKEN); WHATSAPP_TOKEN still works."""
+    return os.environ.get("WHATSAPP_ACCESS_TOKEN") or os.environ.get("WHATSAPP_TOKEN")
+
+
 def is_configured() -> bool:
-    return bool(os.environ.get("WHATSAPP_TOKEN") and os.environ.get("WHATSAPP_PHONE_NUMBER_ID"))
+    return bool(_token() and os.environ.get("WHATSAPP_PHONE_NUMBER_ID"))
 
 
 def _base_url() -> str:
-    version = os.environ.get("WHATSAPP_API_VERSION", "v23.0")
+    version = os.environ.get("WHATSAPP_GRAPH_VERSION") or os.environ.get("WHATSAPP_API_VERSION", "v23.0")
     return f"https://graph.facebook.com/{version}/{os.environ['WHATSAPP_PHONE_NUMBER_ID']}"
 
 
 def _headers() -> dict:
-    return {"Authorization": f"Bearer {os.environ['WHATSAPP_TOKEN']}"}
+    return {"Authorization": f"Bearer {_token()}"}
 
 
 def _checked(response: httpx.Response) -> dict:

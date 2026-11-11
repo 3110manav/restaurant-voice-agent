@@ -88,7 +88,7 @@ def test_saying_goodbye_with_an_unplaced_order_places_it_and_ends_the_call(agent
     reply = agent.send("No")
     assert "Internal check failed" in str(agent.llm_with_tools.seen[1][-1].content)
     assert not agent.has_unplaced_order
-    assert "placed" in reply
+    assert "order is in" in reply
     assert agent.conversation_over("No", reply)
 
 
@@ -125,7 +125,7 @@ def test_a_made_up_price_makes_the_model_look_it_up(agent):
 def test_a_simple_order_is_answered_in_code_without_a_second_model_call(agent):
     agent.llm_with_tools = ScriptedLLM(tool_call("add_to_cart", {"items": [{"name": "Paneer Tikka", "quantity": 1}]}))
     reply = agent.send("one paneer tikka")
-    assert reply == "Added one Paneer Tikka. Would you like Mango Lassi with that?"  # no price, and a drink suggestion
+    assert reply == "Done, Paneer Tikka. Want Mango Lassi with that?"  # no price, and a drink suggestion
     assert len(agent.llm_with_tools.seen) == 1  # the model was called once (to pick the tool), not twice
     assert agent.cart[0]["name"] == "Paneer Tikka"
     state = agent.graph.get_state({"configurable": {"thread_id": "s1"}})
@@ -135,7 +135,7 @@ def test_a_simple_order_is_answered_in_code_without_a_second_model_call(agent):
 def test_the_fast_reply_follows_the_language(agent):
     agent.set_language("hi")
     agent.llm_with_tools = ScriptedLLM(tool_call("add_to_cart", {"items": [{"name": "Paneer Tikka", "quantity": 2}]}))
-    assert agent.send("दो पनीर टिक्का") == "2 Paneer Tikka जोड़ दिया गया है। साथ में Mango Lassi लेंगे?"
+    assert agent.send("दो पनीर टिक्का") == "हो गया, 2 Paneer Tikka जोड़ दिया। साथ में Mango Lassi लेंगे?"
 
 
 def test_a_true_model_reply_passes_and_is_made_speakable(agent):
@@ -164,7 +164,7 @@ def test_a_second_request_in_the_same_message_is_not_dropped(agent):
     )
     reply = agent.send("add a paneer tikka and bring some water")
     assert len(agent.llm_with_tools.seen) == 2  # the model was called again for the water, then the shortcut covered both
-    assert reply.startswith("Added one Paneer Tikka.") and "Sure, water is on its way." in reply
+    assert reply.startswith("Done, Paneer Tikka.") and "Sure, water is on its way." in reply
 
 
 def test_the_cross_sell_hint_reaches_the_model_when_it_writes_the_reply(agent):
@@ -209,7 +209,7 @@ def test_placing_the_order_does_not_announce_the_total(agent):
     agent.send("paneer tikka and a mango lassi")
     agent.llm_with_tools = ScriptedLLM(tool_call("checkout", {}))
     reply = agent.send("that's all, place the order")
-    assert "rupees" not in reply and "₹" not in reply and "placed" in reply
+    assert "rupees" not in reply and "₹" not in reply and "your order is in" in reply
 
 
 def test_prompt_injection_never_reaches_the_model(agent):

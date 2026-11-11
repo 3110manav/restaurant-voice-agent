@@ -1,7 +1,6 @@
 """HTTP routes for phone ordering.
 
-GET/POST /whatsapp/webhook  Meta's webhook: the owner's button taps and delivery reports. Every POST
-                            must carry a valid signature (WHATSAPP_APP_SECRET).
+(The WhatsApp webhook, including the owner's button taps and delivery reports, is app/whatsapp/webhook.py.)
 GET /pay/{token}            The customer's pay page, opened from WhatsApp on the phone they'd pay from,
                             where they can't scan their own screen. Shows no personal details.
 GET /pay/{token}/qr.png     That order's QR.
@@ -10,51 +9,18 @@ GET /admin/calls            The test view's data. Holds customers' numbers and a
 """
 import hmac
 import html
-import json
 import logging
 import os
 
-from fastapi import APIRouter, Header, HTTPException, Request, Response
+from fastapi import APIRouter, Header, HTTPException, Response
 from fastapi.responses import HTMLResponse
 
 from app.currency import format_price
-from app.phone import actions, repository, upi, whatsapp
+from app.phone import repository, upi, whatsapp
 
 logger = logging.getLogger("sarthi.phone.router")
 
 router = APIRouter()
-
-
-@router.get("/whatsapp/webhook")
-def verify_webhook(request: Request) -> Response:
-    """Meta calls this once, when the webhook is set up, to check it's ours."""
-    params = request.query_params
-    expected = os.environ.get("WHATSAPP_VERIFY_TOKEN")
-    given = params.get("hub.verify_token") or ""
-    if params.get("hub.mode") == "subscribe" and expected and hmac.compare_digest(given, expected):
-        return Response(content=params.get("hub.challenge", ""), media_type="text/plain")
-    raise HTTPException(status_code=403, detail="Verification failed")
-
-
-@router.post("/whatsapp/webhook")
-async def receive_webhook(request: Request, x_hub_signature_256: str | None = Header(default=None)) -> dict:
-    raw = await request.body()
-    if not whatsapp.signature_is_valid(raw, x_hub_signature_256):
-        raise HTTPException(status_code=403, detail="Bad signature")
-    payload = json.loads(raw)
-    # Always answer 200 once it's verified: Meta retries anything else, which would repeat good events
-    # along with the one that failed.
-    for tap in whatsapp.button_taps(payload):
-        try:
-            actions.handle_button(tap["sender"], tap["button_id"])
-        except Exception:
-            logger.exception("couldn't handle a button tap")
-    for update in whatsapp.delivery_updates(payload):
-        try:
-            repository.update_delivery(update["wa_message_id"], update["status"], update["error"])
-        except Exception:
-            logger.exception("couldn't record a delivery report")
-    return {"status": "ok"}
 
 
 def _payable_order(token: str) -> tuple[dict, dict]:

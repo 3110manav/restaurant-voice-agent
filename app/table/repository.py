@@ -6,6 +6,7 @@ which guest-side writes are best effort. Every call returns empty results when S
 configured, so a local run without a database still serves the guest flow.
 """
 from app import db
+from app.customers.phone import normalize_phone
 
 
 def _c():
@@ -79,6 +80,9 @@ def save_customer(restaurant_id: str, phone: str, name: str | None, offers_opt_i
     client = _c()
     if client is None:
         return None
+    # The customers table is shared with the phone and chat agents (app/customers), which key a person by their
+    # international number, so the same person is one row however they were first seen.
+    phone = normalize_phone(phone) or phone
     rows = (
         client.table("customers").select("*")
         .eq("restaurant_id", restaurant_id).eq("phone", phone).limit(1).execute().data
@@ -125,9 +129,12 @@ def list_sessions_for_phone(restaurant_id: str, phone: str, limit: int = 20) -> 
     client = _c()
     if client is None:
         return []
+    e164 = normalize_phone(phone)
+    # A table session keeps the number as typed at the bill (ten digits); a customer row keeps +91...
+    forms = {phone, e164, e164[3:] if e164 and e164.startswith("+91") else None} - {None}
     return (
         client.table("table_sessions").select("*")
-        .eq("restaurant_id", restaurant_id).eq("guest_phone", phone)
+        .eq("restaurant_id", restaurant_id).in_("guest_phone", sorted(forms))
         .order("seated_at", desc=True).limit(limit).execute().data
     )
 

@@ -1,4 +1,4 @@
-"""Only kirana (quick_commerce) and the waiter are live; the other agents are refused everywhere."""
+"""Only kirana (quick_commerce), the waiter and the store assistant (Shubh, Sehat) are live; the rest are refused."""
 import importlib
 import sys
 from types import SimpleNamespace
@@ -29,8 +29,8 @@ def client(monkeypatch):
     sys.modules.pop("app.main", None)
 
 
-def test_only_kirana_and_the_waiter_are_enabled():
-    assert set(ENABLED_PERSONAS) == {"quick_commerce", "waiter"}
+def test_only_kirana_the_waiter_and_the_store_assistant_are_enabled():
+    assert set(ENABLED_PERSONAS) == {"quick_commerce", "waiter", "store"}
     assert HIDDEN == ["hotel", "online"]
 
 

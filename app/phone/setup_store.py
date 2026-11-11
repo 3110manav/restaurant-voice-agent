@@ -29,10 +29,13 @@ def add(args: argparse.Namespace) -> None:
     owner = numbers.whatsapp_number(args.owner)
     if not owner:
         raise SystemExit("--owner must be a mobile number that has WhatsApp")
-    if args.type == "kirana" and not args.catalog:
-        raise SystemExit("A kirana needs --catalog")
-    if args.type == "restaurant" and not args.restaurant:
-        raise SystemExit("A restaurant needs --restaurant, the slug of its menu")
+    if args.type == "kirana" and not (args.catalog or args.restaurant):
+        raise SystemExit("A kirana needs --catalog (a file) or --restaurant (the slug of its items in the database)")
+    if args.type in ("restaurant", "pharmacy") and not args.restaurant:
+        raise SystemExit("A restaurant or pharmacy needs --restaurant, the slug of its menu or medicines")
+    database_store = args.type in ("kirana", "pharmacy") and bool(args.restaurant)
+    if not database_store and not (args.upi and args.payee):
+        raise SystemExit("--upi and --payee are needed: the customer's bill carries a UPI QR")
     fields = {
         "slug": args.slug,
         "name": args.name,
@@ -66,11 +69,11 @@ def main() -> None:
     add_parser = commands.add_parser("add")
     add_parser.add_argument("--slug", required=True)
     add_parser.add_argument("--name", required=True)
-    add_parser.add_argument("--type", required=True, choices=["kirana", "restaurant"])
+    add_parser.add_argument("--type", required=True, choices=["kirana", "restaurant", "pharmacy"])
     add_parser.add_argument("--agent", required=True)
     add_parser.add_argument("--owner", required=True)
-    add_parser.add_argument("--upi", required=True)
-    add_parser.add_argument("--payee", required=True)
+    add_parser.add_argument("--upi", help="the store's UPI ID; not needed for a store whose items are in the database")
+    add_parser.add_argument("--payee")
     add_parser.add_argument("--merchant", action="store_true")
     add_parser.add_argument("--catalog")
     add_parser.add_argument("--restaurant")

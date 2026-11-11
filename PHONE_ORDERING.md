@@ -62,7 +62,7 @@ See the result on the web app at `/admin/calls`, using your `ADMIN_API_KEY`.
 
 1. Create a Meta developer app with the WhatsApp product. Its free test number can message up to 5
    approved numbers, so add the customer's and the owner's.
-2. Set `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID`. The app's temporary token lasts about a day; a
+2. Set `WHATSAPP_ACCESS_TOKEN` (`WHATSAPP_TOKEN` still works) and `WHATSAPP_PHONE_NUMBER_ID`. The app's temporary token lasts about a day; a
    system user token doesn't expire.
 3. Point the webhook at `https://<your API>/whatsapp/webhook`, with `WHATSAPP_VERIFY_TOKEN` as its verify
    token, set `WHATSAPP_APP_SECRET`, and subscribe to `messages`.

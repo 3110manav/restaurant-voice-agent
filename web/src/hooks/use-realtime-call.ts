@@ -3,11 +3,23 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { fetchLiveKitToken, type Language } from "@/lib/api";
+import { callerDecided, callerPromptEnabled, setCallerPhone } from "@/lib/caller";
 import type { Persona } from "@/lib/personas";
 
 export interface CallConnection {
   url: string;
   token: string;
+}
+
+/** The "who's calling?" prompt a demo store shows before a call starts (see CallerNumberDialog). */
+export interface NumberPrompt {
+  open: boolean;
+  /** Continue the call as this number (already validated and normalised). */
+  submit: (number: string) => void;
+  /** Continue the call without a number. */
+  skip: () => void;
+  /** Close the prompt and do not start the call. */
+  cancel: () => void;
 }
 
 /**
@@ -34,6 +46,25 @@ export function useRealtimeCall({
   const [connection, setConnection] = useState<CallConnection | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState<((proceed: boolean) => void) | null>(null);
+
+  const numberPrompt: NumberPrompt = {
+    open: waiting !== null,
+    submit: (number) => {
+      setCallerPhone(number);
+      waiting?.(true);
+      setWaiting(null);
+    },
+    skip: () => {
+      setCallerPhone(null);
+      waiting?.(true);
+      setWaiting(null);
+    },
+    cancel: () => {
+      waiting?.(false);
+      setWaiting(null);
+    },
+  };
 
   useEffect(() => {
     if (!connection || !onCartSync) return;
@@ -44,6 +75,11 @@ export function useRealtimeCall({
   /** Starts the call; resolves true once there is a connection to join. */
   const start = useCallback(async (): Promise<boolean> => {
     if (!sessionId) return false;
+    // A demo store asks who is calling, once per browser tab, before the call begins.
+    if (callerPromptEnabled() && !callerDecided()) {
+      const proceed = await new Promise<boolean>((resolve) => setWaiting(() => resolve));
+      if (!proceed) return false;
+    }
     setIsConnecting(true);
     setError(null);
     try {
@@ -74,7 +110,7 @@ export function useRealtimeCall({
 
   const clearError = useCallback(() => setError(null), []);
 
-  return { connection, isConnecting, error, start, end, fail, clearError };
+  return { connection, isConnecting, error, start, end, fail, clearError, numberPrompt };
 }
 
 export type RealtimeCall = ReturnType<typeof useRealtimeCall>;

@@ -52,6 +52,12 @@ def test_ambiguous_returns_none_but_offers_candidates(menu):
     assert {d["name"] for d in menu.candidates("margherita")} == {"Margherita Classic", "Double Cheese Margherita"}
 
 
+def test_fuzzy_match_with_several_close_candidates_does_not_crash(menu):
+    # Two or more fuzzy hits used to compare a dish name with a number and raise TypeError.
+    result = menu.find_by_name("margarita pizza")  # close to two Margherita dishes: ambiguous -> None, not a crash
+    assert result is None or isinstance(result, dict)
+
+
 def test_fuzzy_match_survives_a_transcription_error(menu):
     assert menu.find_by_name("buter chiken")["id"] == "1"
     assert menu.find_by_name("garlic nan")["id"] == "2"
@@ -162,7 +168,8 @@ def test_checkout_records_the_restaurant_and_table(menu, monkeypatch):
     tools["add_to_cart"].invoke({"items": [{"name": "Margherita Classic", "quantity": 1, "variant": "Large"}]})
     out = tools["checkout"].invoke({})
     assert "Margherita Classic (Large)" in out
-    assert recorded["kw"] == {"restaurant_id": "r1", "table_no": "7"}
+    assert {k: v for k, v in recorded["kw"].items() if k != "extra"} == {"restaurant_id": "r1", "table_no": "7"}
+    assert set(recorded["kw"]["extra"]) == {"short_code"} and len(recorded["kw"]["extra"]["short_code"]) == 5
     assert recorded["args"][2][0]["variant"] == "Large"
 
 
@@ -206,7 +213,7 @@ def test_menu_cache_reloads_only_when_the_version_changes(monkeypatch):
     state = {"version": 1, "loads": 0}
 
     def restaurant(slug):
-        return {"id": "r1", "slug": slug, "name": "R", "menu_version": state["version"]}
+        return {"id": "r1", "slug": slug, "name": "R", "menu_version": state["version"], "demo_mode": state.get("demo", False)}
 
     def load(_):
         state["loads"] += 1
@@ -217,7 +224,7 @@ def test_menu_cache_reloads_only_when_the_version_changes(monkeypatch):
 
     monkeypatch.setattr(repository, "get_restaurant_by_slug", restaurant)
     monkeypatch.setattr(repository, "load_menu_rows", load)
-    monkeypatch.setattr(repository, "get_menu_version", lambda _: state["version"])
+    monkeypatch.setattr(repository, "get_restaurant", lambda _id: restaurant("r"))
 
     cache = MenuCache(version_check_seconds=0)  # check the version on every get
     assert cache.get("r").menu[0]["name"] == "Dish v1"
@@ -226,6 +233,10 @@ def test_menu_cache_reloads_only_when_the_version_changes(monkeypatch):
     state["version"] = 2  # an owner edit elsewhere bumps the version
     assert cache.get("r").menu[0]["name"] == "Dish v2"
     assert state["loads"] == 2
+    # A store's own settings changed directly in the database (the menu version did not): picked up too.
+    state["demo"] = True
+    assert cache.get("r").restaurant["demo_mode"] is True
+    assert state["loads"] == 3
 
 
 def test_menu_cache_unknown_restaurant_is_none(monkeypatch):

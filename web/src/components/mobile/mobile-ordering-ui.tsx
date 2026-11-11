@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { AgentOrb } from "@/components/voice/agent-orb";
 import { CallStrip } from "@/components/voice/call-strip";
 import type { ChatSession } from "@/hooks/use-chat-session";
+import { CallerNumberDialog } from "@/components/voice/caller-number-dialog";
 import { useRealtimeCall } from "@/hooks/use-realtime-call";
 import type { CartLine } from "@/lib/api";
 import type { Persona } from "@/lib/personas";
@@ -70,6 +71,7 @@ export function MobileOrderingUI({ persona, session }: { persona: Persona; sessi
 
   return (
     <>
+      <CallerNumberDialog prompt={call.numberPrompt} agentName={persona.agentName} />
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col gap-2 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
         <div className="pointer-events-auto flex flex-col gap-2">
           {call.error && !live && (

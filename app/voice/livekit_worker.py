@@ -46,7 +46,8 @@ from livekit.agents import Agent, AgentServer, AgentSession, JobContext  # noqa:
 from livekit.plugins import silero  # noqa: E402
 
 from app.agent import language as lang  # noqa: E402
-from app.agent.graph import ENABLED_PERSONAS, RestaurantOrderingAgent  # noqa: E402
+from app.agent.graph import ENABLED_PERSONAS, RestaurantOrderingAgent, persona_for  # noqa: E402
+from app.customers.session import start_session  # noqa: E402
 from app.menu.snapshot import LiveMenu, menu_cache  # noqa: E402
 from app.voice.livekit_llm import SarthiLLM  # noqa: E402
 from app.voice.livekit_phone import (  # noqa: E402
@@ -76,6 +77,32 @@ def _menu_store_for(persona: str):
     return store_for_persona(persona)
 
 
+def _log_turn_metrics(event) -> None:
+    """One short line per stage of every turn, so a real call shows where its time goes:
+    eou = the pause LiveKit waits to be sure the caller finished (plus the speech-to-text upload),
+    llm = time until the agent's reply is ready, tts = time until the first audio of a sentence exists."""
+    m = event.metrics
+    kind = type(m).__name__
+    if kind == "EOUMetrics":
+        logger.info("latency eou_delay=%.2fs transcription_delay=%.2fs", m.end_of_utterance_delay, m.transcription_delay)
+    elif kind == "LLMMetrics":
+        logger.info("latency llm_ttft=%.2fs", m.ttft)
+    elif kind == "TTSMetrics":
+        logger.info("latency tts_ttfb=%.2fs audio=%.1fs", m.ttfb, m.audio_duration)
+    elif kind == "STTMetrics":
+        logger.info("latency stt_audio=%.1fs", m.audio_duration)
+
+
+def _caller_phone(ctx: JobContext, meta: dict) -> tuple[str | None, bool]:
+    """(number, verified). A real phone call carries its caller ID as a SIP attribute: verified. A number in the
+    dispatch metadata came from the web page the call was started on: not verified (see start_session)."""
+    for participant in ctx.room.remote_participants.values():
+        number = (participant.attributes or {}).get("sip.phoneNumber")
+        if number:
+            return number, True
+    return meta.get("phone"), False
+
+
 server = AgentServer()
 
 
@@ -102,7 +129,10 @@ async def entrypoint(ctx: JobContext) -> None:
         if menu is None:
             logger.error("restaurant %r not found; ending call", restaurant_slug)
             return
-        persona = "waiter"
+        persona = persona_for(menu.restaurant)
+        # Who is calling: the web demo passes a number in the metadata; a real phone call carries the
+        # caller ID as a SIP attribute on the caller's participant.
+        caller, verified = _caller_phone(ctx, meta)
         agent = RestaurantOrderingAgent(
             session_id=f"livekit:{restaurant_slug}:{session_id}",
             menu_store=LiveMenu(restaurant_slug),
@@ -110,8 +140,11 @@ async def entrypoint(ctx: JobContext) -> None:
             restaurant=menu.restaurant,
             table_no=table_no,
             live_call=True,
+            customer=start_session(menu.restaurant, caller, table_no, language, verified=verified),
         )
-        greeting = lang.greeting(language, agent.agent_name, menu.restaurant["name"])
+        agent.channel = "voice"
+        agent.set_language(language)
+        greeting = agent.opening_line(menu.restaurant["name"])
     else:
         if persona not in ENABLED_PERSONAS:
             logger.error("persona %r is not enabled; ending call", persona)
@@ -135,6 +168,8 @@ async def entrypoint(ctx: JobContext) -> None:
         vad=silero.VAD.load(),
         turn_handling=TURN_HANDLING,
     )
+
+    session.on("metrics_collected", _log_turn_metrics)
 
     @session.on("conversation_item_added")
     def _on_item(event) -> None:

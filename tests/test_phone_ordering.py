@@ -16,6 +16,7 @@ from app.phone import actions, numbers, outbox, repository, upi, whatsapp
 from app.phone.catalog import StoreCatalog
 from app.phone.ordering import PhoneOrder
 from app.phone.router import router
+from app.whatsapp.webhook import router as whatsapp_router
 from tests.fake_supabase import FakeSupabase
 
 OWNER = "919000000001"
@@ -53,6 +54,7 @@ def store(fake):
 def sent(monkeypatch):
     """WhatsApp is configured, and everything sent is recorded instead."""
     log = []
+    monkeypatch.delenv("WHATSAPP_ACCESS_TOKEN", raising=False)
     monkeypatch.setenv("WHATSAPP_TOKEN", "token")
     monkeypatch.setenv("WHATSAPP_PHONE_NUMBER_ID", "12345")
     monkeypatch.setattr(whatsapp, "send_text", lambda to, text: log.append((to, "text", text)) or f"wa-{len(log)}")
@@ -319,6 +321,7 @@ def http(fake, monkeypatch):
     monkeypatch.setenv("ADMIN_API_KEY", "admin-key")
     app = FastAPI()
     app.include_router(router)
+    app.include_router(whatsapp_router)  # the one webhook, shared with the stores that chat on WhatsApp
     return TestClient(app)
 
 
@@ -361,14 +364,15 @@ def test_webhook_acts_on_a_signed_tap(fake, store, http):
 def test_webhook_refuses_a_forged_tap(fake, store, http, headers):
     order = placed_order(store, fake)
     raw = json.dumps(_button_payload(f"paid:{order['id']}")).encode()
-    assert http.post("/whatsapp/webhook", content=raw, headers=headers).status_code == 403
+    assert http.post("/whatsapp/webhook", content=raw, headers=headers).status_code == 401
     assert fake.tables["orders"][0]["payment_status"] == "unpaid"
 
 
 def test_webhook_refuses_everything_without_a_secret(fake, store, http, monkeypatch):
     raw, headers = _signed({"entry": []})
     monkeypatch.delenv("WHATSAPP_APP_SECRET")
-    assert http.post("/whatsapp/webhook", content=raw, headers=headers).status_code == 403
+    monkeypatch.delenv("WHATSAPP_ALLOW_UNSIGNED", raising=False)
+    assert http.post("/whatsapp/webhook", content=raw, headers=headers).status_code == 503
 
 
 def test_webhook_records_a_failed_delivery(fake, store, sent, http):
@@ -487,6 +491,7 @@ def test_whatsapp_errors_say_whether_a_retry_can_help(monkeypatch):
 
 
 def test_the_requests_sent_to_whatsapp(monkeypatch):
+    monkeypatch.delenv("WHATSAPP_ACCESS_TOKEN", raising=False)
     monkeypatch.setenv("WHATSAPP_TOKEN", "t")
     monkeypatch.setenv("WHATSAPP_PHONE_NUMBER_ID", "555")
     requests = []

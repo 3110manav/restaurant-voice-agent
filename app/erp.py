@@ -23,6 +23,9 @@ logger = logging.getLogger("sarthi.erp")
 _client = db.get_client()
 _PRIVATE_ORDER_FIELDS = {"customer_phone", "address", "pay_token"}
 
+# Order columns added by migration 003 (the status values it lists are free text and need no column).
+_MIGRATION_003_COLUMNS = {"short_code", "rx_path"}
+
 
 def is_configured() -> bool:
     return _client is not None
@@ -47,25 +50,34 @@ def record_order(
     total: float,
     restaurant_id: str | None = None,
     table_no: str | None = None,
-) -> bool:
-    """Saves an order. False means the save failed, so the order did not reach the kitchen: the
-    caller tells the guest instead of claiming it was placed. True also when there is no database."""
+    extra: dict | None = None,
+) -> dict | bool | None:
+    """Saves an order and returns the saved row. None means there is no database (nothing to save); False
+    means the save failed, so the order did not reach the kitchen: the caller tells the guest instead of
+    claiming it was placed. `extra` carries the customer columns (customer_id, caller_phone, fulfilment,
+    address_snapshot, needs_pharmacist, short_code, rx_path, status; migrations 002 and 003 of the
+    stores branch). If the database doesn't have them yet the order is still saved without them: an order
+    must never be lost to a missing column."""
     if _client is None:
-        return True
-    try:
-        _client.table("orders").insert(
-            {
-                "session_id": session_id,
-                "persona": persona,
-                "items": items,
-                "total": total,
-                **_tenant_fields(restaurant_id, table_no),
-            }
-        ).execute()
-        return True
-    except Exception:
-        logger.exception("couldn't save an order for session %s", session_id)
-        return False
+        return None
+    row = {
+        "session_id": session_id,
+        "persona": persona,
+        "items": items,
+        "total": total,
+        **_tenant_fields(restaurant_id, table_no),
+    }
+    # Newest columns first, then fewer: an order must be saved even if a migration hasn't been applied yet.
+    attempts = [{**row, **(extra or {})}]
+    if extra:
+        attempts.append({**row, **{k: v for k, v in extra.items() if k not in _MIGRATION_003_COLUMNS}})
+        attempts.append(row)
+    for position, attempt in enumerate(attempts):
+        try:
+            return _client.table("orders").insert(attempt).execute().data[0]
+        except Exception:
+            logger.warning("order insert failed (attempt %d of %d)", position + 1, len(attempts), exc_info=position == len(attempts) - 1)
+    return False
 
 
 def record_request(

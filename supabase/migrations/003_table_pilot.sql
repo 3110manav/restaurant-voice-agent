@@ -66,6 +66,12 @@ create table if not exists customers (
   last_visit_at  timestamptz not null default now(),
   unique (restaurant_id, phone)
 );
+-- 002_stores_customers.sql (the kirana and pharmacy stores) creates this same table, keyed the same way, for the
+-- phone and chat agents. Where it already exists, these add what the pilot's list needs on top of it.
+alter table customers add column if not exists offers_opt_in boolean not null default false;
+alter table customers add column if not exists visits        int         not null default 1;
+alter table customers add column if not exists first_seen_at timestamptz not null default now();
+alter table customers add column if not exists last_visit_at timestamptz not null default now();
 create index if not exists customers_restaurant_idx on customers (restaurant_id, last_visit_at desc);
 
 -- -------------------------------------------------------------------- RLS ----

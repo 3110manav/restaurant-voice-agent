@@ -41,7 +41,7 @@ def _norm(text: str) -> str:
 
 def dish_from_row(row: dict, category_names: dict[str, str]) -> dict:
     variants = sorted(row.get("dish_variants") or [], key=lambda v: v.get("sort_order", 0))
-    return {
+    dish = {
         "id": row["id"],
         "name": row["name"],
         "category": category_names.get(row.get("category_id"), "Menu"),
@@ -59,6 +59,25 @@ def dish_from_row(row: dict, category_names: dict[str, str]) -> dict:
         "knowledge_status": row.get("knowledge_status", "missing"),
         "sort_order": row.get("sort_order", 0),
     }
+    if row["is_veg"] is None:
+        del dish["veg"]  # groceries and medicines are not veg or non-veg
+    if row.get("brand"):
+        dish["brand"] = row["brand"]
+    medicine = row.get("medicine_info")
+    if isinstance(medicine, list):  # PostgREST nests a 1:1 relation as an object, but be safe
+        medicine = medicine[0] if medicine else None
+    if medicine:
+        dish.update(
+            rx_required=bool(medicine.get("rx_required")),
+            schedule=medicine.get("schedule"),
+            generic_name=medicine.get("generic_name"),
+            strength=medicine.get("strength"),
+            form=medicine.get("form"),
+            uses=medicine.get("uses") or [],
+            symptoms=medicine.get("symptoms") or [],
+            precautions=medicine.get("precautions") or "",
+        )
+    return dish
 
 
 class RestaurantMenu:
@@ -109,8 +128,9 @@ class RestaurantMenu:
         found = process.extract(q, self._norm_names, scorer=fuzz.WRatio, limit=2, score_cutoff=FUZZY_CUTOFF)
         if not found:
             return None
-        top_score, _, top_idx = found[0]
-        if len(found) == 1 or top_score >= 92 or top_score - found[1][0] >= 6:
+        # rapidfuzz yields (choice, score, index)
+        _, top_score, top_idx = found[0]
+        if len(found) == 1 or top_score >= 92 or top_score - found[1][1] >= 6:
             return self.menu[top_idx]
         return None
 
@@ -134,7 +154,11 @@ class RestaurantMenu:
             if not d["is_available"]:
                 continue
             haystack = _norm(
-                " ".join([d["name"], d["category"], d["description"], " ".join(d["ingredients"]), " ".join(d["tags"])])
+                " ".join(
+                    [d["name"], d["category"], d["description"], " ".join(d["ingredients"]), " ".join(d["tags"]),
+                     d.get("brand") or "", d.get("generic_name") or "", " ".join(d.get("uses", [])),
+                     " ".join(d.get("symptoms", []))]
+                )
             )
             score = sum(1 for t in tokens if t in haystack)
             if score:
@@ -155,8 +179,11 @@ class MenuCache:
         if entry and now - entry[1] < self._ttl:
             return entry[0]
         if entry:
-            current = repository.get_menu_version(entry[0].restaurant["id"])
-            if current == entry[0].version:
+            # One cheap read of the store's row. It changes when the menu is edited (menu_version) and also
+            # when the store's own settings change (its agent name, status, demo_mode...), even if that was
+            # done directly in the database, so neither needs a restart to take effect.
+            current = repository.get_restaurant(entry[0].restaurant["id"])
+            if current == entry[0].restaurant:
                 self._entries[slug] = (entry[0], now)
                 return entry[0]
         return self._load(slug)

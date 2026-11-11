@@ -224,7 +224,7 @@ def api(monkeypatch, fake_db):
     monkeypatch.delitem(sys.modules, "app.main", raising=False)
     main = importlib.import_module("app.main")
     agents = {}
-    monkeypatch.setattr(main, "_session", lambda sid, persona, restaurant=None, table_no=None:
+    monkeypatch.setattr(main, "_session", lambda sid, persona, restaurant=None, table_no=None, phone=None, language="en":
                         agents.setdefault(f"{restaurant}:{sid}:waiter", StubAgent(f"{restaurant}:{sid}:waiter")))
     monkeypatch.setattr(main, "live_restaurant", lambda slug: RESTAURANT)
     monkeypatch.setattr(main, "LiveMenu", StubLiveMenu)
@@ -293,7 +293,7 @@ def test_pay_checks_the_number_and_feedback_reaches_the_owner(api, fake_db):
     assert http.post("/table/pay", json={**TABLE, "method": "cash"}).status_code == 422
     assert http.post("/table/pay", json={**TABLE, "method": "upi", "phone": "12345"}).status_code == 422
     ok = http.post("/table/pay", json={**TABLE, "method": "upi", "phone": "+91 98123 45678", "offers_opt_in": True})
-    assert ok.status_code == 200 and fake_db.tables["customers"][0]["phone"] == "9812345678"
+    assert ok.status_code == 200 and fake_db.tables["customers"][0]["phone"] == "+919812345678"  # one row per person, in the form the store agents use
     out = http.post("/table/feedback", json={**TABLE, "rating": 2, "message": "Naan was cold"}).json()
     assert out["review_url"] == "https://g.page/r/x"  # everyone is offered the Google link
     assert sent[-1][0] == "request" and sent[-1][1][2] == "complaint"

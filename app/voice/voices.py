@@ -17,6 +17,7 @@ PERSONA_VOICES: dict[str, dict[str, str]] = {
     "quick_commerce": {"en": "austin", "hi": SARVAM_HINDI_VOICE, "mixed": SARVAM_MIXED_VOICE},  # Veer
     "waiter": {"en": "daniel", "hi": SARVAM_HINDI_VOICE, "mixed": SARVAM_MIXED_VOICE},          # Kabir
     "hotel": {"en": "diana", "hi": SARVAM_HINDI_VOICE, "mixed": SARVAM_MIXED_VOICE},            # Ira
+    "store": {"en": "troy", "hi": SARVAM_HINDI_VOICE, "mixed": SARVAM_MIXED_VOICE},          # Shubh and Sehat (kirana, pharmacy)
 }
 
 DEFAULT_PERSONA = "online"
