@@ -480,6 +480,41 @@ unauthenticated for now (see **Known limitations** below); the `/admin/*`
 backend routes it calls are read/update-only and report `configured: false`
 with an empty list rather than erroring when Supabase isn't set up.
 
+## Speech stacks (Groq or Sarvam)
+
+One codebase runs two ways, chosen by a single environment variable, `SARTHI_SPEECH`. Only who hears and who
+speaks changes; the agent, its tools, the stores, WhatsApp, customers and the owner pages are identical.
+
+| `SARTHI_SPEECH` | Hears | Speaks | Needs |
+|---|---|---|---|
+| `groq` (default) | Groq Whisper | English: Groq Orpheus. Hindi: Sarvam Bulbul | `GROQ_API_KEY` (free tier) |
+| `sarvam` | Sarvam Saaras (Hindi, English and a mix, no language to pick) | Sarvam Bulbul for everything | `SARVAM_API_KEY` |
+
+It covers push-to-talk (`app/voice/stt.py`, `tts.py`), the browser's realtime calls and phone calls
+(`app/voice/livekit_stack.py`). LiveKit carries the audio on both. The LLM is Groq on both (`SARTHI_MODEL`).
+Set the same value on the API and on the voice worker; a mistyped value stops either from starting. To host both
+variants, deploy the same branch twice with different environments (see "Hosting both stacks" below).
+
+### Hosting both stacks
+
+Deploy the same branch twice, each with its own environment. There is nothing to keep in sync, because the code is the same.
+
+| | Groq deployment | Sarvam deployment |
+|---|---|---|
+| `SARTHI_SPEECH` (API **and** worker) | `groq` | `sarvam` |
+| `SARVAM_API_KEY` | not needed (Hindi speech still uses it) | needed |
+| API (Render) | its own service | its own service |
+| Voice worker (LiveKit Cloud) | `LIVEKIT_AGENT_NAME=sarthi-voice` | `LIVEKIT_AGENT_NAME=sarthi-voice-sarvam` |
+| Worker's `SARTHI_API_BASE_URL` | the Groq API's URL | the Sarvam API's URL |
+| Web (Vercel) `BACKEND_URL` | the Groq API's URL | the Sarvam API's URL |
+
+- `GET /health` on each API says which stack it runs: `{"status": "ok", "speech": "sarvam"}`.
+- Both can share one Supabase project: the stores, customers and orders are the same either way.
+- **A WhatsApp number's webhook points at one URL**, so inbound messages (customer chats, `CONFIRM` / `REJECT`,
+  prescription photos) reach one deployment only. Alerts the other deployment sends still go out. To give each its
+  own inbound chat, give each its own WhatsApp number.
+- A phone number's LiveKit dispatch rule names one agent (`deploy/sip/dispatch-rule.json`), so each number runs on one stack.
+
 ## Realtime voice (LiveKit)
 
 Alongside push-to-talk (click the mic, speak, click again to send), every

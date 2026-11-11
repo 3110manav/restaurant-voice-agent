@@ -191,7 +191,7 @@ def test_turn_timings_are_read_from_a_conversation_item(monkeypatch):
 
 
 def test_push_to_talk_hears_through_sarvam(monkeypatch):
-    monkeypatch.setenv("SARVAM_API_KEY", "test")
+    monkeypatch.setenv("SARTHI_SPEECH", "sarvam")
     from app.voice import stt
 
     calls = {}
@@ -200,13 +200,13 @@ def test_push_to_talk_hears_through_sarvam(monkeypatch):
         calls.update(kwargs)
         return SimpleNamespace(transcript=" दो नान ")
 
-    monkeypatch.setattr(stt._client.speech_to_text, "transcribe", transcribe)
+    monkeypatch.setattr(stt, "_sarvam", lambda: SimpleNamespace(speech_to_text=SimpleNamespace(transcribe=transcribe)))
     assert stt.transcribe_bytes(b"audio", filename="clip.webm") == "दो नान"
     assert calls["file"] == ("clip.webm", b"audio")
     assert (calls["model"], calls["mode"], calls["language_code"]) == ("saaras:v3", "codemix", "unknown")
 
 
-def test_push_to_talk_speaks_through_sarvam(monkeypatch):
+def test_push_to_talk_hears_and_speaks_in_the_conversations_language(monkeypatch):
     monkeypatch.setenv("GROQ_API_KEY", "test")
     monkeypatch.setenv("SARVAM_API_KEY", "test")
     monkeypatch.setenv("GOOGLE_API_KEY", "test")  # importing app.main builds the embeddings client
@@ -217,11 +217,13 @@ def test_push_to_talk_speaks_through_sarvam(monkeypatch):
     guest = SimpleNamespace(persona="waiter", language="en", cart=[], service_log=[])
     monkeypatch.setattr(main, "get_or_create_session", lambda *a: guest)
     monkeypatch.setattr(main, "send_or_busy", lambda agent, text: "Sure.")
-    monkeypatch.setattr(main, "transcribe_bytes", lambda data, filename: "one naan")
-    monkeypatch.setattr(main, "synthesize_sarvam", lambda text, persona: b"wav:" + text.encode())
+    heard, spoken = {}, {}
+    monkeypatch.setattr(main, "transcribe_bytes", lambda data, filename, language=None: heard.update(language=language) or "one naan")
+    monkeypatch.setattr(main, "synthesize", lambda text, persona, language=None: spoken.update(language=language) or b"wav:" + text.encode())
 
     response = TestClient(main.app).post(
         "/chat/voice", params={"session_id": "s", "persona": "waiter"}, files={"audio": ("a.webm", b"x")}
     )
     assert response.status_code == 200
     assert base64.b64decode(response.json()["reply_audio_wav_base64"]) == b"wav:Sure."
+    assert heard == {"language": "en"} and spoken == {"language": "en"}  # both follow the toggle, on either stack

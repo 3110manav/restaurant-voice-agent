@@ -1,5 +1,7 @@
-"""Text-to-speech: Sarvam AI's Bulbul v4 Flash for calls and push-to-talk. The legacy voice CLI still
-reads English through Groq's Orpheus.
+"""Text-to-speech, on the stack chosen by SARTHI_SPEECH (app/voice/stack.py).
+
+  groq    English through Groq's Orpheus, Hindi through Sarvam's Bulbul.
+  sarvam  everything through Sarvam's Bulbul v4 Flash, which speaks Hindi and Indian English.
 
 `synthesize()` picks the voice from the conversation's language when the caller knows it
 (the web app's English / हिन्दी toggle), and otherwise from the script of the text. Orpheus (English) requires a one-time terms
@@ -12,16 +14,27 @@ synthesize() and ships the bytes to a client, so it should never need a
 system audio library that's only relevant to the local CLIs.
 """
 import base64
+import functools
 import re
 
-from groq import Groq
-from sarvamai import SarvamAI
-
 from app.agent.language import has_devanagari, use_hindi_voice
+from app.voice.stack import uses_sarvam
 from app.voice.voices import voices_for
 
-_groq_client = Groq(timeout=30.0, max_retries=1)
-_sarvam_client = SarvamAI(timeout=30.0)  # reads SARVAM_API_KEY from the environment
+
+# Built on first use, so a deployment needs only the key of the stack it runs.
+@functools.cache
+def _groq_client():
+    from groq import Groq
+
+    return Groq(timeout=30.0, max_retries=1)
+
+
+@functools.cache
+def _sarvam_client():
+    from sarvamai import SarvamAI
+
+    return SarvamAI(timeout=30.0)  # reads SARVAM_API_KEY from the environment
 
 ENGLISH_MODEL = "canopylabs/orpheus-v1-english"
 ENGLISH_DEFAULT_VOICE = "hannah"
@@ -62,7 +75,7 @@ def sarvam_request(text: str, persona: str = "online", sample_rate: int | None =
 
 
 def _synthesize_english(text: str, voice: str = ENGLISH_DEFAULT_VOICE) -> bytes:
-    response = _groq_client.audio.speech.create(
+    response = _groq_client().audio.speech.create(
         model=ENGLISH_MODEL,
         voice=voice,
         input=text,
@@ -74,14 +87,14 @@ def _synthesize_english(text: str, voice: str = ENGLISH_DEFAULT_VOICE) -> bytes:
 def synthesize(text: str, persona: str = "online", language: str | None = None) -> bytes:
     """Synthesize speech in the conversation's language (or, if none is given, the language
     the text is written in), using the persona's own voice (see app/voice/voices.py)."""
-    if use_hindi_voice(text, language):
+    if uses_sarvam() or use_hindi_voice(text, language):
         return synthesize_sarvam(text, persona)
     return _synthesize_english(text, voices_for(persona)["en"])
 
 
 def synthesize_sarvam(text: str, persona: str = "online", sample_rate: int | None = None) -> bytes:
     """The whole clip in one go. Live calls stream instead (app/voice/livekit_tts.py) so speech starts sooner."""
-    result = _sarvam_client.text_to_speech.convert(**sarvam_request(text, persona, sample_rate))
+    result = _sarvam_client().text_to_speech.convert(**sarvam_request(text, persona, sample_rate))
     return base64.b64decode(result.audios[0])
 
 

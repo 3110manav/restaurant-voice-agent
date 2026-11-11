@@ -2,14 +2,13 @@
 (deploy/sip/) puts it in a room named "call-...", and the worker comes here.
 
 The caller is a SIP participant whose attributes say who called and which number they dialled, and the
-dialled number picks the store. Speech is all Sarvam: Saaras hears code-mixed Hindi and English (and
-detects which), and Bulbul speaks both. What happens in the call lives in app/phone/call.py.
+dialled number picks the store. Who hears and speaks follows SARTHI_SPEECH (app/voice/stack.py): Sarvam's
+Saaras hears code-mixed Hindi and English and Bulbul speaks both, or Groq's Whisper and Orpheus. What happens in the call lives in app/phone/call.py.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from collections.abc import Callable
 
 from livekit import rtc
@@ -17,20 +16,18 @@ from livekit.agents import Agent, AgentSession, JobContext, room_io
 from livekit.agents.llm import LLM, ChatChunk, ChatContext, ChoiceDelta, LLMStream
 from livekit.agents.types import DEFAULT_API_CONNECT_OPTIONS
 from livekit.agents.utils import shortuuid
-from livekit.plugins import noise_cancellation, sarvam, silero
+from livekit.plugins import noise_cancellation, silero
 
 from app.agent import language as lang
 from app.phone.call import PhoneCall, open_call
 from app.voice.livekit_llm import _last_user_text
-from app.voice.livekit_tts import build_speech, warm_phrases
+from app.voice.livekit_stack import build_stt, build_tts, warm
 
 logger = logging.getLogger("sarthi.livekit_phone")
 
 ROOM_PREFIX = "call-"
 ATTR_CALLER = "sip.phoneNumber"
 ATTR_DIALLED = "sip.trunkPhoneNumber"
-# saaras:v4 is the plugin's default; v3 is what we've priced, so moving is a deliberate test.
-STT_MODEL = os.environ.get("SARVAM_STT_MODEL", "saaras:v3")
 # LiveKit's default runs the LLM as soon as a transcript arrives, and again if the speaker carries on.
 # Our "LLM" is the agent, whose tools really change the cart, so it must only run when the turn is over.
 #
@@ -43,11 +40,6 @@ _pending: set[asyncio.Task] = set()  # keeps a hang-up from being garbage collec
 
 
 PHONE_SAMPLE_RATE = 8000  # all a phone line carries, so asking Sarvam for more only adds transfer time
-
-
-def build_stt() -> sarvam.STT:
-    """Speech-to-text for every call, phone or browser: Saaras hears Hindi, English and a mix of both."""
-    return sarvam.STT(language="unknown", model=STT_MODEL, mode="codemix")
 
 
 def room_options(telephony: bool) -> room_io.RoomOptions:
@@ -148,10 +140,10 @@ async def phone_entrypoint(ctx: JobContext) -> None:
         return
 
     session = AgentSession(
-        stt=build_stt(),
+        stt=build_stt(None),
         llm=PhoneLLM(call, on_goodbye=lambda: hang_up_after_goodbye(ctx, session)),
         # language=None: Hindi or English is read from each sentence's script, since a call can switch.
-        tts=build_speech(call.persona, None, sarvam_only=True, sample_rate=PHONE_SAMPLE_RATE),
+        tts=build_tts(call.persona, None, sample_rate=PHONE_SAMPLE_RATE),
         vad=silero.VAD.load(),
         turn_handling=TURN_HANDLING,
     )
@@ -171,6 +163,6 @@ async def phone_entrypoint(ctx: JobContext) -> None:
         Agent(instructions=call.agent.system_prompt), room=ctx.room, room_options=room_options(telephony=True)
     )
     loop.run_in_executor(
-        None, warm_phrases, call.persona, None, [*lang.all_acks("hi"), *lang.all_acks("en")], True, PHONE_SAMPLE_RATE
+        None, warm, call.persona, None, [*lang.all_acks("hi"), *lang.all_acks("en")], PHONE_SAMPLE_RATE
     )
     session.say(call.greeting, allow_interruptions=True)

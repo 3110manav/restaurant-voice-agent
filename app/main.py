@@ -76,12 +76,14 @@ from app.table.state import TableState  # noqa: E402
 from app.table.suggest import next_suggestion  # noqa: E402
 from app.voice import livekit_tokens  # noqa: E402
 from app.whatsapp.webhook import router as whatsapp_router  # noqa: E402
+from app.voice.stack import speech_stack  # noqa: E402
 from app.voice.stt import transcribe_bytes  # noqa: E402
-from app.voice.tts import synthesize_sarvam  # noqa: E402
+from app.voice.tts import synthesize  # noqa: E402
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 logger = logging.getLogger("sarthi.api")
+logger.info("speech stack: %s", speech_stack())  # rejects a mistyped SARTHI_SPEECH at startup
 
 
 def _warm_menus() -> None:
@@ -362,7 +364,7 @@ async def chat_voice(
     persona = agent.persona
 
     audio_bytes = await audio.read()
-    transcript = transcribe_bytes(audio_bytes, filename=audio.filename or "audio.webm")
+    transcript = transcribe_bytes(audio_bytes, filename=audio.filename or "audio.webm", language=agent.language)
 
     if not transcript:
         return VoiceChatResponse(transcript="", reply="", cart=agent.cart, service_log=agent.service_log)
@@ -370,7 +372,7 @@ async def chat_voice(
     reply = send_or_busy(agent, transcript)
 
     try:
-        reply_audio_b64 = base64.b64encode(synthesize_sarvam(reply, persona)).decode("ascii")
+        reply_audio_b64 = base64.b64encode(synthesize(reply, persona, agent.language)).decode("ascii")
     except Exception:
         reply_audio_b64 = None  # TTS unavailable/blocked — client falls back to text only
 
@@ -610,4 +612,5 @@ async def livekit_token(req: LiveKitTokenRequest) -> LiveKitTokenResponse:
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    # "speech" says which stack this deployment runs (SARTHI_SPEECH), so two deployments of one codebase can be told apart.
+    return {"status": "ok", "speech": speech_stack()}

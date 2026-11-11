@@ -17,8 +17,9 @@ RestaurantOrderingAgent, tools, and catalogs as the text and push-to-talk
 paths via SarthiLLM (app/voice/livekit_llm.py). Silero VAD plus LiveKit's
 own turn detection give barge-in (interrupting the agent mid-sentence) for
 free, and background voice cancellation keeps other tables' voices out (see
-room_options in app/voice/livekit_phone.py). Speech is all Sarvam, as on phone calls: Saaras for STT, and Bulbul
-for TTS through SarthiTTS (app/voice/livekit_tts.py). The LLM stays on Groq.
+room_options in app/voice/livekit_phone.py). Who hears and speaks follows SARTHI_SPEECH (app/voice/stack.py):
+Groq's Whisper and Orpheus, or Sarvam's Saaras and Bulbul, through SarthiTTS (app/voice/livekit_tts.py). The LLM
+is Groq either way.
 
 Known limitation: this worker is a separate OS process from the FastAPI
 app, so a realtime voice session keeps its own fresh in-memory cart rather
@@ -53,7 +54,6 @@ from app.voice.livekit_llm import SarthiLLM  # noqa: E402
 from app.voice.livekit_phone import (  # noqa: E402
     TURN_HANDLING,
     _timings,
-    build_stt,
     hang_up_after_goodbye,
     is_phone_room,
     phone_entrypoint,
@@ -61,9 +61,11 @@ from app.voice.livekit_phone import (  # noqa: E402
 )
 from app.voice.livekit_rooms import parse_room_name  # noqa: E402
 from app.voice.livekit_tokens import AGENT_NAME  # noqa: E402
-from app.voice.livekit_tts import build_speech, warm_phrases  # noqa: E402
+from app.voice.livekit_stack import build_stt, build_tts, warm  # noqa: E402
+from app.voice.stack import speech_stack  # noqa: E402
 
 logger = logging.getLogger("sarthi.livekit_worker")
+logger.info("speech stack: %s", speech_stack())  # also rejects a mistyped SARTHI_SPEECH before any call
 
 @functools.cache
 def _menu_store_for(persona: str):
@@ -159,12 +161,12 @@ async def entrypoint(ctx: JobContext) -> None:
     agent.set_language(language)
 
     session = AgentSession(
-        stt=build_stt(),
+        stt=build_stt(language),
         llm=SarthiLLM(
             agent, session_id=session_id, persona=persona, restaurant=restaurant_slug, table_no=table_no,
             on_goodbye=lambda: hang_up_after_goodbye(ctx, session),
         ),
-        tts=build_speech(persona, language, sarvam_only=True),
+        tts=build_tts(persona, language),
         vad=silero.VAD.load(),
         turn_handling=TURN_HANDLING,
     )
@@ -179,7 +181,7 @@ async def entrypoint(ctx: JobContext) -> None:
 
     await session.start(Agent(instructions=agent.system_prompt), room=ctx.room, room_options=room_options(telephony=False))
     # Pre-generate the acknowledgement phrases in the background so they play instantly.
-    asyncio.get_running_loop().run_in_executor(None, warm_phrases, persona, language, lang.all_acks(language), True)
+    asyncio.get_running_loop().run_in_executor(None, warm, persona, language, lang.all_acks(language))
     session.say(greeting, allow_interruptions=True)
 
 

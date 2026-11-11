@@ -1,6 +1,6 @@
 # What the realtime voice worker imports and nothing else (no web framework, no test tools),
 # so the image builds well inside LiveKit's 10 minute limit.
-livekit-agents[silero,sarvam]~=1.8
+livekit-agents[groq,silero,sarvam]~=1.8
 livekit-plugins-noise-cancellation~=0.3  # background voice cancellation; needs LiveKit Cloud
 langchain-core
 langchain-groq
