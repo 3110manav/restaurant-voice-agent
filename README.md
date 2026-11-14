@@ -628,10 +628,29 @@ Backend (FastAPI) on [Render](https://render.com), frontend (Next.js) on
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (public by design — the *publishable* key, never the secret one) | ✅ | | |
 | `GROQ_API_KEY` | | ✅ | ✅ |
 | `GOOGLE_API_KEY` (Gemini embeddings, used for every menu search) | | ✅ | ✅ |
-| `SARVAM_API_KEY` (Hindi TTS) | | ✅ | ✅ |
+| `SARVAM_API_KEY` (Hindi speech, and everything when `SARTHI_SPEECH=sarvam`) | | ✅ | ✅ |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (the `sb_secret_…` key) | | ✅ | ✅ (checkout/requests are written from the worker too) |
 | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | | ✅ (mints call tokens) | ✅ |
 | `SARTHI_API_BASE_URL` — the Render API's URL (cart sync, defaults to `http://localhost:8000`) | | | ✅ |
+| `NEXT_PUBLIC_SITE_URL` — the site's public address (the QR codes on the landing page and `/demo` point at it) | ✅ | | |
+| `SARTHI_SPEECH` — `groq` (default) or `sarvam`: who hears and speaks (see "Speech stacks"). **Must match on the API and the worker** | | ✅ | ✅ |
+| `SARTHI_SPEECH_CHOICE` — `1` shows the Groq / Sarvam switch in the web app. Leave unset on a public site (it would let anyone use your Sarvam credits) | | ✅ | |
+| `WHATSAPP_ACCESS_TOKEN` — a permanent system-user token (the temporary one lasts 24 hours) | | ✅ | ✅ (a voice order alerts the shop) |
+| `WHATSAPP_PHONE_NUMBER_ID` — the sending number's Meta ID (phone-order flow) | | ✅ | ✅ |
+| `WHATSAPP_APP_SECRET` — Meta app, Settings, Basic; verifies each webhook really came from Meta | | ✅ | |
+| `WHATSAPP_VERIFY_TOKEN` — any random string you choose; paste the same one into Meta when registering the webhook | | ✅ | |
+| `WHATSAPP_GRAPH_VERSION` — the Graph API version, for example `v25.0` | | ✅ | ✅ |
+| `PUBLIC_BASE_URL` — the Render API's URL, used in customers' pay links | | ✅ | ✅ |
+| `ADMIN_API_KEY` — any random string; without it `/admin/calls` returns 503 | | ✅ | |
+
+Never set `WHATSAPP_ALLOW_UNSIGNED` on a deployment: it turns webhook signature checks off.
+Generate the random strings with `openssl rand -hex 24`.
+
+**After the API is deployed, register the WhatsApp webhook** (Meta checks it immediately, so the API must already be
+running with `WHATSAPP_VERIFY_TOKEN` and `WHATSAPP_APP_SECRET` set): in the Meta app open WhatsApp, Configuration,
+Webhook, Edit. Callback URL `https://<your-api>/whatsapp/webhook`, verify token the same string as
+`WHATSAPP_VERIFY_TOKEN`, then **Verify and save** and subscribe to the `messages` field. Then send a WhatsApp message
+to the number to try the inbound path (see "WhatsApp").
 
 The worker is a separate long-running process (`python -m app.voice.livekit_worker start`,
 deps in `requirements-livekit.txt` for local use). Restaurant calls read their menus from Supabase;
