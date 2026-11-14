@@ -1,16 +1,23 @@
-"""Which TTS voice each persona speaks with, so an agent's voice matches its
-name's gender. Pure data (no API clients) so it's testable without keys.
+"""Which TTS voice each persona speaks with. Pure data (no API clients) so
+it's testable without keys.
 
-English voices are Groq Orpheus's (autumn/diana/hannah are female,
-austin/daniel/troy male); Hindi voices are Sarvam Bulbul v3 speakers.
+Every agent speaks as Shubh on Sarvam Bulbul v4 Flash, whose voice IDs are
+persona_language_style. "hi" reads purely Hindi sentences; "mixed" reads
+everything with Latin letters, since Hindi replies keep dish names in English
+and English replies are full of Indian dish names. "en" voices are Groq
+Orpheus's (autumn/diana/hannah are female, austin/daniel/troy male), which
+only the legacy voice CLI still uses.
 """
 
+SARVAM_HINDI_VOICE = "shubh_hi_customer"
+SARVAM_MIXED_VOICE = "shubh_enhi_banking"
+
 PERSONA_VOICES: dict[str, dict[str, str]] = {
-    "online": {"en": "hannah", "hi": "priya"},          # Meera, female
-    "quick_commerce": {"en": "austin", "hi": "rohan"},  # Veer, male
-    "waiter": {"en": "daniel", "hi": "kabir"},          # Kabir, male
-    "hotel": {"en": "diana", "hi": "ritu"},             # Ira, female
-    "store": {"en": "troy", "hi": "rohan"},             # Shubh and Sehat (kirana, pharmacy), male
+    "online": {"en": "hannah", "hi": SARVAM_HINDI_VOICE, "mixed": SARVAM_MIXED_VOICE},          # Meera
+    "quick_commerce": {"en": "austin", "hi": SARVAM_HINDI_VOICE, "mixed": SARVAM_MIXED_VOICE},  # Veer
+    "waiter": {"en": "daniel", "hi": SARVAM_HINDI_VOICE, "mixed": SARVAM_MIXED_VOICE},          # Kabir
+    "hotel": {"en": "diana", "hi": SARVAM_HINDI_VOICE, "mixed": SARVAM_MIXED_VOICE},            # Ira
+    "store": {"en": "troy", "hi": SARVAM_HINDI_VOICE, "mixed": SARVAM_MIXED_VOICE},          # Shubh and Sehat (kirana, pharmacy)
 }
 
 DEFAULT_PERSONA = "online"

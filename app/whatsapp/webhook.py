@@ -21,6 +21,9 @@ from fastapi.responses import PlainTextResponse
 
 from app.customers.phone import normalize_phone
 from app.menu import repository
+from app.phone import actions as phone_actions
+from app.phone import repository as phone_repository
+from app.phone import whatsapp as phone_whatsapp
 from app.whatsapp import channels, client, inbound
 
 logger = logging.getLogger("sarthi.whatsapp")
@@ -62,7 +65,21 @@ async def receive(request: Request, background: BackgroundTasks) -> dict:
 
 def process_payload(payload: dict) -> None:
     """Handle every message in one webhook delivery. Never raises: Meta must always get its 200 and a
-    bad message must not stop the others."""
+    bad message must not stop the others.
+
+    Two kinds of store share this one webhook: the stores whose number is in `store_channels` (customers chat
+    with the agent, staff reply CONFIRM / REJECT) and phone-ordering stores (app/phone), whose owners tap the
+    buttons on an order message and whose delivery reports update the message outbox."""
+    for tap in phone_whatsapp.button_taps(payload):
+        try:
+            phone_actions.handle_button(tap["sender"], tap["button_id"])
+        except Exception:
+            logger.exception("couldn't handle a button tap")
+    for update in phone_whatsapp.delivery_updates(payload):
+        try:
+            phone_repository.update_delivery(update["wa_message_id"], update["status"], update["error"])
+        except Exception:
+            logger.exception("couldn't record a delivery report")
     for entry in payload.get("entry", []):
         for change in entry.get("changes", []):
             value = change.get("value", {})
@@ -89,6 +106,8 @@ def process_message(phone_number_id: str | None, message: dict) -> None:
     if phone is None:
         return
     kind = message.get("type", "text")
+    if kind == "interactive":
+        return  # a button tap: handled above, with the phone-ordering stores
     media_id = (message.get(kind) or {}).get("id") if kind in ("image", "document") else None
     text = (message.get("text") or {}).get("body", "") if kind == "text" else (message.get(kind) or {}).get("caption", "")
     logged = f"media:{media_id}|{text}" if media_id else text

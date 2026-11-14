@@ -51,6 +51,6 @@ def test_without_migration_002_the_bare_order_is_still_saved(monkeypatch):
     assert row is not None and "customer_id" not in saved[0] and saved[0]["total"] == 10.0
 
 
-def test_an_order_that_cannot_be_saved_returns_none_without_raising(monkeypatch):
+def test_an_order_that_cannot_be_saved_returns_false_without_raising(monkeypatch):
     row, saved = place(monkeypatch, {"session_id"})
-    assert row is None and saved == []
+    assert row is False and saved == []

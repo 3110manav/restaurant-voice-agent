@@ -16,3 +16,4 @@ supabase
 livekit-api
 rapidfuzz
 Pillow
+qrcode[pil]

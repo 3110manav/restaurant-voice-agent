@@ -62,9 +62,9 @@ RestaurantOrderingAgent — app/agent/graph.py
         ▼  (checkout + service requests only, best-effort)
 Supabase — orders, requests tables (app/erp.py, optional)
 
-Voice path (orthogonal to the above): mic audio -> STT (Whisper via Groq)
--> agent -> TTS (Orpheus/Groq for English, Sarvam AI's Bulbul for Hindi)
--> spoken reply. Push-to-talk today; see Roadmap for realtime/barge-in.
+Voice path (orthogonal to the above): mic audio -> STT (Sarvam AI's Saaras)
+-> agent -> TTS (Sarvam AI's Bulbul v4 Flash) -> spoken reply. Push-to-talk
+and realtime calls both.
 ```
 
 Why the frontend proxies through its own API routes instead of calling the
@@ -116,13 +116,13 @@ adding a third catalog later is a one-line call, not a new class.
 - `app/erp.py` — optional, best-effort writes of finalized orders and
   service/front-desk requests to Supabase (see **Supabase (optional)**
   below). A no-op with no project configured.
-- `app/voice/stt.py` / `app/voice/tts.py` — speech-to-text via Groq-hosted
-  Whisper; text-to-speech auto-routed by script (Groq's Orpheus for
-  English, Sarvam AI's Bulbul for Hindi).
-- `app/voice/voices.py` — which voice each persona speaks with, so the voice
-  matches the agent's gender: Meera and Ira are female (Orpheus `hannah` /
-  `diana`, Bulbul `priya` / `ritu`), Veer and Kabir are male (Orpheus `austin`
-  / `daniel`, Bulbul `rohan` / `kabir`).
+- `app/voice/stt.py` / `app/voice/tts.py` — speech-to-text via Sarvam's
+  Saaras; text-to-speech via Sarvam's Bulbul v4 Flash, with numbers grouped
+  the Indian way (`1,280`) for it.
+- `app/voice/voices.py` — which voice each persona speaks with: Shubh for
+  every agent, `shubh_hi_customer` for purely Hindi sentences and
+  `shubh_enhi_banking` for anything with Latin letters. Only the legacy voice
+  CLI still uses the Orpheus voices (`hannah`, `austin`, `daniel`, `diana`).
 - `app/voice/recorder.py` — push-to-talk mic recording, CLI only.
 - `app/voice/livekit_worker.py` + `livekit_llm.py` + `livekit_tts.py` +
   `livekit_rooms.py` — the realtime/interruptible voice worker (see
@@ -238,8 +238,8 @@ Try things like:
 
 Everything above also works in Hindi, or mixed Hindi/English, for both
 text and voice — spoken replies too: the agent replies in whichever
-language you used, and `app/voice/tts.py` routes Hindi text to Sarvam AI
-and English text to Groq's Orpheus automatically.
+language you used, and `app/voice/tts.py` picks the Bulbul voice from each
+sentence's script.
 
 In the web app, voice is push-to-talk: click the mic, speak, click again
 (or the stop icon) to send. It needs HTTPS or `localhost` for mic access —
@@ -388,10 +388,10 @@ Tools add their own limits: at most 20 of one item per line.
 
 **Language.** English / हिन्दी is an explicit toggle in the chat panel (and before a call starts), not
 a guess. The choice is sent with every message and call and drives everything at once: the agent gets a
-`LANGUAGE:` line at the end of every model call (never stored in the history), Whisper is told which
-language to expect, a reply in the wrong script is regenerated (English must contain no Devanagari; Hindi
-must be mostly Devanagari, with prices as digits plus रुपये), and the voice follows the setting (Orpheus
-for English, Sarvam for Hindi) instead of the script. A call's language is fixed when it starts. See
+`LANGUAGE:` line at the end of every model call (never stored in the history), and a reply in the wrong
+script is regenerated (English must contain no Devanagari; Hindi must be mostly Devanagari; prices are
+digits plus "rupees" or रुपये). Speech-to-text hears either language whatever the setting. A call's
+language is fixed when it starts. See
 `app/agent/language.py`.
 
 **Conversation.** Kabir does not open with the cuisines or sections. A vague "I'm hungry"
@@ -480,6 +480,47 @@ unauthenticated for now (see **Known limitations** below); the `/admin/*`
 backend routes it calls are read/update-only and report `configured: false`
 with an empty list rather than erroring when Supabase isn't set up.
 
+## Speech stacks (Groq or Sarvam)
+
+One codebase runs two ways, chosen by a single environment variable, `SARTHI_SPEECH`. Only who hears and who
+speaks changes; the agent, its tools, the stores, WhatsApp, customers and the owner pages are identical.
+
+| `SARTHI_SPEECH` | Hears | Speaks | Needs |
+|---|---|---|---|
+| `groq` (default) | Groq Whisper | English: Groq Orpheus. Hindi: Sarvam Bulbul | `GROQ_API_KEY` (free tier) |
+| `sarvam` | Sarvam Saaras (Hindi, English and a mix, no language to pick) | Sarvam Bulbul for everything | `SARVAM_API_KEY` |
+
+It covers push-to-talk (`app/voice/stt.py`, `tts.py`), the browser's realtime calls and phone calls
+(`app/voice/livekit_stack.py`). LiveKit carries the audio on both. The LLM is Groq on both (`SARTHI_MODEL`).
+Set the same value on the API and on the voice worker; a mistyped value stops either from starting.
+
+**Choosing in the web app.** With `SARTHI_SPEECH_CHOICE=1` on the API, a Groq / Sarvam switch appears on the landing
+page, the restaurant page and where a call starts. Each guest's pick overrides `SARTHI_SPEECH` for their push-to-talk
+and browser calls: the API settles it and passes it to the worker with the call, so one deployment serves both and the
+choice is in your hands (Sarvam for a demo, Groq for local testing). Leave the flag off on a public site, or anyone
+could use your Sarvam credits. Phone calls have no switch and use `SARTHI_SPEECH`. To host both variants as separate
+deployments instead, see "Hosting both stacks" below.
+
+### Hosting both stacks
+
+Deploy the same branch twice, each with its own environment. There is nothing to keep in sync, because the code is the same.
+
+| | Groq deployment | Sarvam deployment |
+|---|---|---|
+| `SARTHI_SPEECH` (API **and** worker) | `groq` | `sarvam` |
+| `SARVAM_API_KEY` | not needed (Hindi speech still uses it) | needed |
+| API (Render) | its own service | its own service |
+| Voice worker (LiveKit Cloud) | `LIVEKIT_AGENT_NAME=sarthi-voice` | `LIVEKIT_AGENT_NAME=sarthi-voice-sarvam` |
+| Worker's `SARTHI_API_BASE_URL` | the Groq API's URL | the Sarvam API's URL |
+| Web (Vercel) `BACKEND_URL` | the Groq API's URL | the Sarvam API's URL |
+
+- `GET /health` on each API says which stack it runs: `{"status": "ok", "speech": "sarvam"}`.
+- Both can share one Supabase project: the stores, customers and orders are the same either way.
+- **A WhatsApp number's webhook points at one URL**, so inbound messages (customer chats, `CONFIRM` / `REJECT`,
+  prescription photos) reach one deployment only. Alerts the other deployment sends still go out. To give each its
+  own inbound chat, give each its own WhatsApp number.
+- A phone number's LiveKit dispatch rule names one agent (`deploy/sip/dispatch-rule.json`), so each number runs on one stack.
+
 ## Realtime voice (LiveKit)
 
 Alongside push-to-talk (click the mic, speak, click again to send), every
@@ -493,12 +534,13 @@ to end against a real LiveKit Cloud project, not just in isolation.
   LiveKit's `llm.LLM` interface. It doesn't replay LiveKit's chat history
   into the agent — the agent's own LangGraph `MemorySaver` already tracks
   that — it just forwards the latest utterance to `agent.send()`.
-- `app/voice/livekit_tts.py` — adapts `app/voice/tts.py`'s existing
-  English/Hindi routing (Groq Orpheus / Sarvam Bulbul) to LiveKit's
-  `tts.TTS` interface, instead of a second TTS integration.
-- `app/voice/livekit_worker.py` — the worker entrypoint: Groq Whisper for
-  STT (same model the push-to-talk path uses), Silero VAD for turn
-  detection/barge-in, the two adapters above for the brain and the voice.
+- `app/voice/livekit_tts.py` — adapts `app/voice/tts.py` to LiveKit's
+  `tts.TTS` interface. Calls stream Bulbul v4 Flash sentence by sentence, in
+  Hindi and Indian English, so speech starts before a sentence is finished.
+- `app/voice/livekit_worker.py` — the worker entrypoint: Sarvam Saaras for
+  STT, Silero VAD for turn detection/barge-in, the two adapters above for
+  the brain (Groq) and the voice (Sarvam). Push-to-talk speaks through
+  Sarvam too.
   Reads which persona and session to resume from the room name
   (`sarthi__{persona}__{session_id}`, see `app/voice/livekit_rooms.py`,
   unit tested). Runs as its own long-lived process, separate from
@@ -586,10 +628,29 @@ Backend (FastAPI) on [Render](https://render.com), frontend (Next.js) on
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (public by design — the *publishable* key, never the secret one) | ✅ | | |
 | `GROQ_API_KEY` | | ✅ | ✅ |
 | `GOOGLE_API_KEY` (Gemini embeddings, used for every menu search) | | ✅ | ✅ |
-| `SARVAM_API_KEY` (Hindi TTS) | | ✅ | ✅ |
+| `SARVAM_API_KEY` (Hindi speech, and everything when `SARTHI_SPEECH=sarvam`) | | ✅ | ✅ |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (the `sb_secret_…` key) | | ✅ | ✅ (checkout/requests are written from the worker too) |
 | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | | ✅ (mints call tokens) | ✅ |
 | `SARTHI_API_BASE_URL` — the Render API's URL (cart sync, defaults to `http://localhost:8000`) | | | ✅ |
+| `NEXT_PUBLIC_SITE_URL` — the site's public address (the QR codes on the landing page and `/demo` point at it) | ✅ | | |
+| `SARTHI_SPEECH` — `groq` (default) or `sarvam`: who hears and speaks (see "Speech stacks"). **Must match on the API and the worker** | | ✅ | ✅ |
+| `SARTHI_SPEECH_CHOICE` — `1` shows the Groq / Sarvam switch in the web app. Leave unset on a public site (it would let anyone use your Sarvam credits) | | ✅ | |
+| `WHATSAPP_ACCESS_TOKEN` — a permanent system-user token (the temporary one lasts 24 hours) | | ✅ | ✅ (a voice order alerts the shop) |
+| `WHATSAPP_PHONE_NUMBER_ID` — the sending number's Meta ID (phone-order flow) | | ✅ | ✅ |
+| `WHATSAPP_APP_SECRET` — Meta app, Settings, Basic; verifies each webhook really came from Meta | | ✅ | |
+| `WHATSAPP_VERIFY_TOKEN` — any random string you choose; paste the same one into Meta when registering the webhook | | ✅ | |
+| `WHATSAPP_GRAPH_VERSION` — the Graph API version, for example `v25.0` | | ✅ | ✅ |
+| `PUBLIC_BASE_URL` — the Render API's URL, used in customers' pay links | | ✅ | ✅ |
+| `ADMIN_API_KEY` — any random string; without it `/admin/calls` returns 503 | | ✅ | |
+
+Never set `WHATSAPP_ALLOW_UNSIGNED` on a deployment: it turns webhook signature checks off.
+Generate the random strings with `openssl rand -hex 24`.
+
+**After the API is deployed, register the WhatsApp webhook** (Meta checks it immediately, so the API must already be
+running with `WHATSAPP_VERIFY_TOKEN` and `WHATSAPP_APP_SECRET` set): in the Meta app open WhatsApp, Configuration,
+Webhook, Edit. Callback URL `https://<your-api>/whatsapp/webhook`, verify token the same string as
+`WHATSAPP_VERIFY_TOKEN`, then **Verify and save** and subscribe to the `messages` field. Then send a WhatsApp message
+to the number to try the inbound path (see "WhatsApp").
 
 The worker is a separate long-running process (`python -m app.voice.livekit_worker start`,
 deps in `requirements-livekit.txt` for local use). Restaurant calls read their menus from Supabase;
@@ -742,9 +803,9 @@ voice pipeline are exercised manually via the CLIs and web app.
 ## Roadmap
 
 1. ✅ **Text-only agent** — tool calling, cart state, RAG over the menu.
-2. ✅ **Speech-to-text** — mic input via Whisper (Groq).
-3. ✅ **Text-to-speech** — Orpheus (Groq) for English, Sarvam AI's Bulbul
-   for Hindi, routed automatically by script.
+2. ✅ **Speech-to-text** — mic input via Sarvam AI's Saaras.
+3. ✅ **Text-to-speech** — Sarvam AI's Bulbul v4 Flash, with the voice
+   chosen automatically by script.
 4. ✅ **Two personas → four personas** — Meera, Veer, Kabir, Ira,
    all under the Sarthi brand, sharing one engine.
 5. ✅ **Hindi voice output**, alongside the Hindi STT/understanding that

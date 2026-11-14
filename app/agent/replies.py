@@ -107,7 +107,11 @@ def _spoken_name(name: str) -> str:
 
 def _label(line: dict) -> str:
     name = _spoken_name(line["name"])
-    return f"{line['variant']} {name}" if line.get("variant") else name
+    variant = line.get("variant")
+    if not variant:
+        return name
+    # "Large Margherita", but "Sugar 1 kg": "1 1 kg Sugar" would be hard to follow when spoken.
+    return f"{name} {variant}" if variant[0].isdigit() else f"{variant} {name}"
 
 
 def _join(parts: list[str], language: str) -> str:
@@ -256,8 +260,8 @@ def compose(events: list[dict], language: str) -> str | None:
         elif kind == "bill":
             total = e.get("total")
             if total:
-                amount = f"{round(total)} रुपये" if hi else f"{number_words(total)} rupees"
-                parts.append(f"कुल {amount} हुआ। बिल अभी लाते हैं।" if hi else f"That's {amount}. I'll bring the bill right over.")
+                amount = f"{round(total)} रुपये" if hi else f"{round(total)} rupees"
+                parts.append(f"आपका कुल {amount} हुआ। बिल अभी लाते हैं।" if hi else f"Your total comes to {amount}. I'll bring the bill over.")
             else:
                 parts.append("बिल अभी लाते हैं।" if hi else "I'll bring the bill right over.")
         elif kind == "item_request":
