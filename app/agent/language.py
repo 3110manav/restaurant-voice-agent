@@ -51,10 +51,29 @@ def use_hindi_voice(text: str, language: str | None) -> bool:
     return has_devanagari(text)
 
 
+# Hindi written in Latin letters, the way speech-to-text can hear a mixed sentence.
+_ROMAN_HINDI = {
+    "aap", "aur", "bas", "bhaiya", "bhai", "bhej", "bhejo", "bhejiye", "chahiye", "dena", "dijiye", "ghar", "haan", "hai", "hain",
+    "kar", "karenge", "karo", "karunga", "kitna", "kya", "lena", "lenge", "lunga", "mera", "mere", "mujhe", "nahi", "nahin",
+    "theek", "thik", "wala", "wali",
+}
+
+
+def caller_language(text: str, current: str) -> str:
+    """A phone caller has no language toggle, so each thing they say can move the call to Hindi or
+    English. A short reply like "yes" or a brand name leaves the language as it is."""
+    if devanagari_share(text) >= 0.25:
+        return "hi"
+    words = re.findall(r"[a-z']+", text.lower())
+    if any(word in _ROMAN_HINDI for word in words):
+        return "hi"
+    return "en" if len(words) >= 3 else normalize(current)
+
+
 _DIRECTIVES = {
     "en": (
         "LANGUAGE: English. Reply only in English, in Latin letters, even if the guest writes Hindi "
-        "words or Devanagari. Say prices in words followed by 'rupees'."
+        "words or Devanagari. Write prices as digits followed by 'rupees', for example 560 rupees."
     ),
     "hi": (
         "LANGUAGE: Hindi. Reply only in simple, everyday spoken Hindi written in Devanagari, the way a "
@@ -94,6 +113,12 @@ def greeting_known(language: str, agent_name: str, store_name: str | None, custo
     return f"Welcome back{who}! I'm {agent_name}. The same as last time, or something new today?"
 
 
+def phone_greeting(agent_name: str, store_name: str) -> str:
+    """Spoken as soon as the call connects. Says it's an AI, so nobody is misled about who they called."""
+    name = AGENT_NAMES_HI.get(agent_name, agent_name)
+    return f"नमस्ते, {store_name} में आपका स्वागत है। मैं {name} हूँ, यहाँ का ए आई असिस्टेंट। बताइए, क्या चाहिए?"
+
+
 # Fixed lines for when the model isn't asked (or its reply was rejected twice). Gender-neutral Hindi.
 LINES = {
     "en": {
@@ -106,6 +131,7 @@ LINES = {
         "amount": "Let me double check that price for you. Which dish did you mean?",
         "dump": "What are you in the mood for? Something light, or something filling?",
         "default": "Sorry, could you say that once more?",
+        "phone_callback": "Sorry, I'm having trouble right now. The store will call you back shortly.",
         "emergency": "That sounds serious. Please call one one two, or go to the nearest hospital right now. I'm letting our pharmacist know.",
         "pharmacist": "For that, our pharmacist is the right person to ask. I'll leave them a note and they'll get back to you. Shall I add anything to your order meanwhile?",
         "details": "Sure! Can I have your name and delivery address? Or will you pick it up?",
@@ -124,6 +150,7 @@ LINES = {
         "amount": "ज़रा क़ीमत दोबारा देख लेते हैं। आप किस डिश की बात कर रहे हैं?",
         "dump": "आज क्या खाने का मन है? कुछ हल्का, या भरपेट?",
         "default": "माफ़ कीजिए, क्या आप फिर से कह सकते हैं?",
+        "phone_callback": "माफ़ कीजिए, अभी थोड़ी दिक्कत आ रही है। दुकान से आपको जल्द ही फ़ोन आएगा।",
         "emergency": "यह गंभीर लग रहा है। कृपया अभी एक एक दो पर कॉल कीजिए, या सबसे पास के अस्पताल जाइए। हमारे फार्मासिस्ट को अभी बता देते हैं।",
         "pharmacist": "इसके बारे में हमारे फार्मासिस्ट ही सही सलाह दे पाएँगे। हम उन्हें नोट छोड़ देते हैं, वे आपसे बात करेंगे। तब तक ऑर्डर में कुछ जोड़ दें?",
         "details": "ऑर्डर देने से पहले, क्या हम आपका नाम और पूरा डिलीवरी पता ले लें? या आप खुद आकर ले लेंगे?",
@@ -154,6 +181,28 @@ _SMALL_TALK = re.compile(
     re.I,
 )
 _QUESTION = re.compile(r"^\s*(what|which|how|is|are|do|does|can|could|tell|क्या|कौन|कैसे|कितना)\b|\?\s*$", re.I)
+
+
+# The whole of what the guest said has to be a closing, so "thanks, and some water" keeps the call going.
+_GUEST_DONE = re.compile(
+    r"^\s*(?:(?:ok(?:ay)?|alright|great|good|perfect|fine|no|nope|thanks?(?: a lot| so much| very much)?|"
+    r"thank you(?: so much| very much)?|no thanks|bye(?: bye)?|good ?bye|good night|that'?s (?:all|it|everything)|"
+    r"that is (?:all|it|everything)|nothing (?:else|more)|i'?m (?:good|done)|we'?re (?:good|done)|done|"
+    r"dhanyawa?d|shukriya|bas|theek hai|nahi|aur kuch nahi|"
+    r"धन्यवाद|शुक्रिया|थैंक ?यू|थैंक्स|बाय|बस|इतना ही|ठीक है|नहीं|और कुछ नहीं|अलविदा)[\s,.!?।]*)+$",
+    re.I,
+)
+_FAREWELL = re.compile(
+    r"\benjoy your\b|\bhave a (?:\w+ )?(?:day|evening|night|meal|one)\b|\bgood ?bye\b|\bbye\b|\btake care\b|\bsee you\b|"
+    r"\bthanks? (?:you )?for (?:calling|ordering|your order|visiting)\b|"
+    r"आनंद ल|मज़ा ल|मज़े ल|शुभ हो|अलविदा|फिर मिलेंगे|धन्यवाद|शुक्रिया",
+    re.I,
+)
+
+
+def is_goodbye(guest_text: str, reply: str) -> bool:
+    """The guest has wrapped up and the reply says goodbye without asking anything, so a call can end."""
+    return bool(_GUEST_DONE.match(guest_text)) and "?" not in reply and bool(_FAREWELL.search(reply))
 
 
 def all_acks(language: str) -> list[str]:

@@ -1,5 +1,6 @@
 """The English / Hindi setting: what each part of the pipeline does with it."""
 import pytest
+
 from langchain_core.messages import AIMessage, SystemMessage
 
 import app.erp as erp
@@ -133,8 +134,8 @@ def test_confirmations_carry_no_prices_and_the_bill_carries_the_total():
     added = {"type": "added", "lines": [{"name": "Margherita", "variant": "Large", "quantity": 1}, {"name": "Garlic Bread", "variant": None, "quantity": 2}]}
     assert replies.compose([added], "en") == "Done, Large Margherita and two Garlic Bread. Anything else?"
     assert replies.compose([added], "hi") == "हो गया, Large Margherita और 2 Garlic Bread जोड़ दिया। और कुछ?"
-    assert replies.compose([{"type": "bill", "total": 708}], "en") == "That's seven hundred eight rupees. I'll bring the bill right over."
-    assert replies.compose([{"type": "bill", "total": 708}], "hi") == "कुल 708 रुपये हुआ। बिल अभी लाते हैं।"
+    assert replies.compose([{"type": "bill", "total": 708}], "en") == "Your total comes to 708 rupees. I'll bring the bill over."
+    assert replies.compose([{"type": "bill", "total": 708}], "hi") == "आपका कुल 708 रुपये हुआ। बिल अभी लाते हैं।"
     assert replies.compose([{"type": "checkout"}], "en") == "All set, your order is in. Thanks!"
 
 
@@ -207,3 +208,21 @@ def test_the_calls_speech_adapter_builds_and_speaks_short_sentences_immediately(
     speech = lt.build_speech("waiter", "hi")
     assert isinstance(speech, lk_tts.StreamAdapter)
     assert isinstance(speech._wrapped_tts, lt.SarthiTTS) and speech._wrapped_tts._language == "hi"
+
+
+@pytest.mark.parametrize(
+    "guest, reply, over",
+    [
+        ("Thank you.", "You're welcome! Enjoy your meal.", True),
+        ("Thanks, bye!", "Have a great day!", True),
+        ("No, that's all, thank you.", "Goodbye, enjoy your food!", True),
+        ("धन्यवाद", "खाने का आनंद लीजिए।", True),
+        ("Thank you.", "You're welcome! Anything else?", False),  # still asking
+        ("Thank you.", "You're welcome!", False),  # no goodbye yet
+        ("Thanks, and some water please.", "Water is on its way, enjoy your meal.", False),  # still asking for things
+        ("Is it spicy?", "Not at all, enjoy your meal.", False),
+        ("No onions.", "Sure, enjoy your meal.", False),
+    ],
+)
+def test_goodbye_needs_both_the_guest_and_the_reply_to_be_finished(guest, reply, over):
+    assert lang.is_goodbye(guest, reply) is over

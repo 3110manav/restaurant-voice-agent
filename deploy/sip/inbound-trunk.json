@@ -1,0 +1,7 @@
+{
+  "trunk": {
+    "name": "Exotel test number",
+    "numbers": ["+91XXXXXXXXXX"],
+    "krisp_enabled": false
+  }
+}

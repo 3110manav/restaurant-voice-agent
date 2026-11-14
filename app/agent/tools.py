@@ -19,6 +19,7 @@ from app import erp
 from app.customers.session import CustomerSession
 from app.agent.salesflow import SalesState, dessert_offer, first_order_offer
 from app.currency import format_price
+from app.table.service import unplaced
 
 CartItem = dict
 
@@ -185,6 +186,9 @@ def build_tools(
     sales: SalesState | None = None,
     events: list[dict] | None = None,
     price_ok=None,
+    checkout_handler=None,
+    on_placed=None,
+    placed=None,
     customer: CustomerSession | None = None,
     say_total: bool = False,
     on_order=None,
@@ -193,12 +197,15 @@ def build_tools(
     """`events`, when given, collects what each action did, so simple turns can be answered in code
     (app/agent/replies.py). `price_ok()` says whether the guest has asked about prices this turn; if it
     returns False the tools hide prices from the model (the waiter only talks money when asked).
+    `checkout_handler()`, when given, takes over checkout (phone orders, app/phone/ordering.py).
+    `on_placed()`, when given, is told each time checkout places the order. `placed()`, when given,
+    returns what was already sent to the kitchen, so a later checkout sends only what is new.
     `customer` is the live caller state (see app/customers/session.py): with it, checkout holds until a
-    delivery order has an address, and the tools to save one exist. `say_total` makes stores (not
-    restaurants) tell the total when the order is placed. `on_order(order)` is called once an order is
-    placed, to tell the shop (see app/whatsapp/notify.py). `shop_whatsapp()` says what the closing line may claim
-    about WhatsApp: {"alerted": the shop really will be messaged, "number": its WhatsApp number, "channel": where
-    this conversation is happening}."""
+    delivery order has an address, and the tools to save one exist. `say_total` marks a store (not a
+    restaurant): it tells the total when the order is placed and starts the next order from an empty cart.
+    `on_order(order)` is called once an order is placed, to tell the shop (see app/whatsapp/notify.py).
+    `shop_whatsapp()` says what the closing line may claim about WhatsApp: {"alerted": the shop really will
+    be messaged, "number": its WhatsApp number, "channel": where this conversation is happening}."""
 
     def prices() -> bool:
         return True if price_ok is None else bool(price_ok())
@@ -318,6 +325,8 @@ def build_tools(
     @tool
     def checkout() -> str:
         """Finalize the order. Only call this after the customer explicitly confirms they're done ordering."""
+        if checkout_handler is not None:
+            return checkout_handler()
         if not cart:
             note({"type": "problem"})
             return "Can't check out — the cart is empty."
@@ -327,11 +336,19 @@ def build_tools(
                 note({"type": "checkout_held"})
                 note(offer.event)
                 return f"Order not placed yet. {offer.hint}"
+        # A restaurant's cart keeps what the kitchen already has, so only what is new is sent. A store's order
+        # is the whole cart, and the cart starts again empty afterwards.
+        lines = unplaced(cart, placed()) if placed is not None and not say_total else list(cart)
+        if not lines:
+            note({"type": "problem"})
+            if not cart:
+                return "The cart is empty, so there is nothing to place. Ask what they would like to order."
+            return "Everything in the cart is already with the kitchen. Nothing new to place."
         if customer is not None and customer.awaiting_confirm:
             # The address was taken this turn: it is read back (in code) and the customer's next message confirms it.
             note({"type": "checkout_held"})
             return "Order not placed yet: the customer has not confirmed the address or pickup. Wait for their yes."
-        if customer is not None and customer.rx_path is None and any(line.get("rx") for line in cart):
+        if customer is not None and customer.rx_path is None and any(line.get("rx") for line in lines):
             customer.checkout_pending = True
             note({"type": "checkout_held"})
             note({"type": "rx_choice_needed"})
@@ -349,10 +366,10 @@ def build_tools(
                 "delivery address (house or flat, street, area, a landmark), or whether they will pick it up. Then "
                 "call save_delivery_details (or choose_pickup), read the address back once, and wait for them to confirm."
             )
-        total = _cart_total(cart)
-        summary = ", ".join(f"{line['quantity']}x {_line_label(line)}" for line in cart)
+        total = _cart_total(lines)
+        summary = ", ".join(f"{line['quantity']}x {_line_label(line)}" for line in lines)
         extra = customer.order_fields() if customer is not None else {}
-        rx = any(line.get("rx") for line in cart)
+        rx = any(line.get("rx") for line in lines)
         code = _order_code()
         extra["short_code"] = code
         if rx:
@@ -360,8 +377,11 @@ def build_tools(
             if customer is not None and customer.rx_path:
                 extra["status"] = "awaiting_prescription" if customer.rx_path == "whatsapp" else "awaiting_pharmacist"
         row = erp.record_order(
-            session_id, persona, list(cart), total, restaurant_id=restaurant_id, table_no=table_no, extra=extra
+            session_id, persona, list(lines), total, restaurant_id=restaurant_id, table_no=table_no, extra=extra
         )
+        if row is False:
+            note({"type": "problem"})
+            return "The order couldn't reach the kitchen and was not placed. Ask the guest to try again in a moment."
         address = (customer.current_address() or {}) if customer is not None else {}
         wa = (shop_whatsapp() if shop_whatsapp is not None and customer is not None else None) or {}
         note(
@@ -374,7 +394,7 @@ def build_tools(
                 {
                     "code": code,
                     "order_id": (row or {}).get("id"),
-                    "lines": [dict(line) for line in cart],
+                    "lines": [dict(line) for line in lines],
                     "total": total,
                     "fulfilment": extra.get("fulfilment"),
                     "address": address.get("line"),
@@ -384,10 +404,13 @@ def build_tools(
                     "rx_path": extra.get("rx_path"),
                 }
             )
-        cart.clear()  # the order is placed: the next one starts from an empty cart
+        if say_total:
+            cart.clear()  # the order is placed: the next one starts from an empty cart
         if customer is not None:
             customer.checkout_pending = False
             customer.rx_path = None
+        if on_placed:
+            on_placed()
         told = say_total or prices()
         return f"Order placed: {summary}." + (f" Total: {format_price(total)}." if told else "") + " Thank you!"
 

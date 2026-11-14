@@ -26,6 +26,7 @@ async def sync_cart(
     service_log: list[dict],
     restaurant: str | None = None,
     table_no: str | None = None,
+    placed_cart: list[dict] | None = None,
 ) -> None:
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
@@ -38,6 +39,8 @@ async def sync_cart(
                     "table_no": table_no,
                     "cart": cart,
                     "service_log": service_log,
+                    # What the call already placed, so the table page doesn't send it again.
+                    "placed_cart": placed_cart,
                 },
             )
     except Exception:

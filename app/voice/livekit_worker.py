@@ -16,9 +16,10 @@ session's cart/history to resume — reusing the exact same
 RestaurantOrderingAgent, tools, and catalogs as the text and push-to-talk
 paths via SarthiLLM (app/voice/livekit_llm.py). Silero VAD plus LiveKit's
 own turn detection give barge-in (interrupting the agent mid-sentence) for
-free; Groq's Whisper handles STT, the same model the push-to-talk path uses.
-TTS is SarthiTTS (app/voice/livekit_tts.py), wrapping the existing
-English/Hindi routing rather than a second TTS integration.
+free, and background voice cancellation keeps other tables' voices out (see
+room_options in app/voice/livekit_phone.py). Who hears and speaks follows SARTHI_SPEECH (app/voice/stack.py):
+Groq's Whisper and Orpheus, or Sarvam's Saaras and Bulbul, through SarthiTTS (app/voice/livekit_tts.py). The LLM
+is Groq either way.
 
 Known limitation: this worker is a separate OS process from the FastAPI
 app, so a realtime voice session keeps its own fresh in-memory cart rather
@@ -43,18 +44,28 @@ load_dotenv()
 
 from livekit import agents  # noqa: E402
 from livekit.agents import Agent, AgentServer, AgentSession, JobContext  # noqa: E402
-from livekit.plugins import groq, silero  # noqa: E402
+from livekit.plugins import silero  # noqa: E402
 
 from app.agent import language as lang  # noqa: E402
 from app.agent.graph import ENABLED_PERSONAS, RestaurantOrderingAgent, persona_for  # noqa: E402
 from app.customers.session import start_session  # noqa: E402
 from app.menu.snapshot import LiveMenu, menu_cache  # noqa: E402
 from app.voice.livekit_llm import SarthiLLM  # noqa: E402
+from app.voice.livekit_phone import (  # noqa: E402
+    TURN_HANDLING,
+    _timings,
+    hang_up_after_goodbye,
+    is_phone_room,
+    phone_entrypoint,
+    room_options,
+)
 from app.voice.livekit_rooms import parse_room_name  # noqa: E402
 from app.voice.livekit_tokens import AGENT_NAME  # noqa: E402
-from app.voice.livekit_tts import build_speech, warm_phrases  # noqa: E402
+from app.voice.livekit_stack import build_stt, build_tts, warm  # noqa: E402
+from app.voice.stack import speech_stack  # noqa: E402
 
 logger = logging.getLogger("sarthi.livekit_worker")
+logger.info("speech stack: %s", speech_stack())  # also rejects a mistyped SARTHI_SPEECH before any call
 
 @functools.cache
 def _menu_store_for(persona: str):
@@ -101,14 +112,20 @@ server = AgentServer()
 async def entrypoint(ctx: JobContext) -> None:
     await ctx.connect()
 
+    if is_phone_room(ctx.room.name):
+        await phone_entrypoint(ctx)
+        return
+
     persona, session_id = parse_room_name(ctx.room.name)
     # The web app tells us which restaurant (and table) this call is for through the
     # dispatch metadata; without it this is a kirana (or standalone waiter) call.
     meta = json.loads(ctx.job.metadata or "{}")
     restaurant_slug, table_no = meta.get("restaurant"), meta.get("table_no")
     language = lang.normalize(meta.get("language"))
+    speech = meta.get("speech")  # "groq" or "sarvam", settled by the API; absent means this worker's SARTHI_SPEECH
     logger.info(
-        "starting realtime session: persona=%s session_id=%s restaurant=%s", persona, session_id, restaurant_slug
+        "starting realtime session: persona=%s session_id=%s restaurant=%s speech=%s",
+        persona, session_id, restaurant_slug, speech or speech_stack(),
     )
 
     if restaurant_slug:
@@ -126,6 +143,7 @@ async def entrypoint(ctx: JobContext) -> None:
             persona=persona,
             restaurant=menu.restaurant,
             table_no=table_no,
+            live_call=True,
             customer=start_session(menu.restaurant, caller, table_no, language, verified=verified),
         )
         agent.channel = "voice"
@@ -139,22 +157,33 @@ async def entrypoint(ctx: JobContext) -> None:
         if store is None:
             logger.error("persona %r needs the local menu index, which this worker doesn't have; ending call", persona)
             return
-        agent = RestaurantOrderingAgent(session_id=f"livekit:{session_id}", menu_store=store, persona=persona)
+        agent = RestaurantOrderingAgent(session_id=f"livekit:{session_id}", menu_store=store, persona=persona, live_call=True)
         greeting = lang.greeting(language, agent.agent_name)
 
     agent.set_language(language)
 
     session = AgentSession(
-        stt=groq.STT(model="whisper-large-v3-turbo", language=language),
-        llm=SarthiLLM(agent, session_id=session_id, persona=persona, restaurant=restaurant_slug, table_no=table_no),
-        tts=build_speech(persona, language),
+        stt=build_stt(language, speech),
+        llm=SarthiLLM(
+            agent, session_id=session_id, persona=persona, restaurant=restaurant_slug, table_no=table_no,
+            on_goodbye=lambda: hang_up_after_goodbye(ctx, session),
+        ),
+        tts=build_tts(persona, language, speech=speech),
         vad=silero.VAD.load(),
+        turn_handling=TURN_HANDLING,
     )
 
     session.on("metrics_collected", _log_turn_metrics)
-    await session.start(Agent(instructions=agent.system_prompt), room=ctx.room)
+
+    @session.on("conversation_item_added")
+    def _on_item(event) -> None:
+        timings = _timings(event.item)
+        if timings:
+            logger.info("turn timings in ms: %s", timings)
+
+    await session.start(Agent(instructions=agent.system_prompt), room=ctx.room, room_options=room_options(telephony=False))
     # Pre-generate the acknowledgement phrases in the background so they play instantly.
-    asyncio.get_running_loop().run_in_executor(None, warm_phrases, persona, language, lang.all_acks(language))
+    asyncio.get_running_loop().run_in_executor(None, warm, persona, language, lang.all_acks(language), None, speech)
     session.say(greeting, allow_interruptions=True)
 
 

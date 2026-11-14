@@ -21,6 +21,7 @@ from app import db
 logger = logging.getLogger("sarthi.erp")
 
 _client = db.get_client()
+_PRIVATE_ORDER_FIELDS = {"customer_phone", "address", "pay_token"}
 
 # Order columns added by migration 003 (the status values it lists are free text and need no column).
 _MIGRATION_003_COLUMNS = {"short_code", "rx_path"}
@@ -50,11 +51,13 @@ def record_order(
     restaurant_id: str | None = None,
     table_no: str | None = None,
     extra: dict | None = None,
-) -> dict | None:
-    """Returns the saved row (or None). `extra` carries the customer columns (customer_id, caller_phone,
-    fulfilment, address_snapshot, needs_pharmacist, short_code, rx_path, status; migrations 002 and 003).
-    If the database doesn't have them yet the order is still saved without them: an order must never be
-    lost to a missing column."""
+) -> dict | bool | None:
+    """Saves an order and returns the saved row. None means there is no database (nothing to save); False
+    means the save failed, so the order did not reach the kitchen: the caller tells the guest instead of
+    claiming it was placed. `extra` carries the customer columns (customer_id, caller_phone, fulfilment,
+    address_snapshot, needs_pharmacist, short_code, rx_path, status; migrations 002 and 003 of the
+    stores branch). If the database doesn't have them yet the order is still saved without them: an order
+    must never be lost to a missing column."""
     if _client is None:
         return None
     row = {
@@ -74,7 +77,7 @@ def record_order(
             return _client.table("orders").insert(attempt).execute().data[0]
         except Exception:
             logger.warning("order insert failed (attempt %d of %d)", position + 1, len(attempts), exc_info=position == len(attempts) - 1)
-    return None
+    return False
 
 
 def record_request(
@@ -113,7 +116,8 @@ def list_orders(limit: int = 100) -> list[dict]:
     if _client is None:
         return []
     result = _client.table("orders").select("*").order("created_at", desc=True).limit(limit).execute()
-    return result.data
+    # This view has no login, so it never carries a phone customer's details or pay link.
+    return [{k: v for k, v in row.items() if k not in _PRIVATE_ORDER_FIELDS} for row in result.data]
 
 
 def list_requests(limit: int = 100) -> list[dict]:

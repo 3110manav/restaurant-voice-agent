@@ -134,6 +134,16 @@ def dessert_offer(state: SalesState, menu: list[dict], menu_by_id, cart: list[di
     return Offer("dessert", desserts=[d["name"] for d in desserts])
 
 
+def pick(menu: list[dict], menu_by_id, cart: list[dict], role: str, limit: int = 1) -> list[dict]:
+    """Dishes of one role to suggest for this cart, by the same rules as the waiter's offers:
+    available, not in the cart, veg-only when the cart is, cooling first when it is spicy. Used by
+    the table page's suggestion card (app/table/suggest.py)."""
+    in_cart = _cart_dishes(cart, menu_by_id)
+    veg_only = bool(in_cart) and all(d.get("veg") for d in in_cart)
+    spicy = any((d.get("spice_level") or "").lower() in _SPICY for d in in_cart)
+    return _ranked(menu, role, {d["id"] for d in in_cart}, veg_only, spicy, limit)
+
+
 def first_order_hint(state, menu, menu_by_id, cart, added) -> str | None:
     offer = first_order_offer(state, menu, menu_by_id, cart, added)
     return offer.hint if offer else None
