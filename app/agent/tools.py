@@ -11,6 +11,7 @@ Cart lines are {"id", "name", "price", "quantity"} plus an optional "variant"
 so a Regular and a Large of the same pizza are separate lines.
 """
 import random
+import re
 
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
@@ -161,12 +162,34 @@ def remove_item_from_cart_by_id(
     return f"'{item_id}' isn't in the cart."
 
 
+def _section_dishes(menu_store, name: str, limit: int = 6) -> list[str]:
+    """When the customer names a whole section ("sushi", "pizzas", "desserts") rather than a dish, the available
+    dishes in it. Empty when `name` is not a section of this menu."""
+    def plain(text: str) -> str:
+        return re.sub(r"[^a-z ]", "", str(text).lower()).strip()
+
+    asked = plain(name).rstrip("s")  # "pizzas" and "pizza" are the same section
+    if len(asked) < 3:
+        return []
+    sections = {plain(c).rstrip("s"): c for c in getattr(menu_store, "categories", [])}
+    match = next((original for key, original in sections.items() if key == asked or asked in key.split()), None)
+    if match is None:
+        return []
+    return [d["name"] for d in menu_store.menu if d.get("category") == match and d.get("is_available", True)][:limit]
+
+
 def _resolve(menu_store, name: str) -> tuple[dict | None, str | None]:
     """(dish, None) when `name` clearly means one dish, else (None, a message for
     the agent — either the candidates to ask the customer about, or not-found)."""
     item = menu_store.find_by_name(name)
     if item:
         return item, None
+    section = _section_dishes(menu_store, name)
+    if section:
+        return None, (
+            f"'{name}' is a section of the menu, not one dish. Its dishes include: {', '.join(section)}. "
+            "Ask the customer which one they want; never say the restaurant doesn't have it."
+        )
     candidates = getattr(menu_store, "candidates", None)
     if candidates:
         options = candidates(name)

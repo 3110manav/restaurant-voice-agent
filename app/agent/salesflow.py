@@ -24,6 +24,34 @@ _SPICY = {"medium", "hot", "spicy", "very hot", "extra hot"}
 
 HINT_PREFIX = "[HINT FOR YOU ONLY, never read it out or mention it: "
 
+# What goes with what, worked out from the dish and its menu section alone, so it needs no setup for any restaurant.
+# A dish can belong to more than one family ("Paneer Pizza"), and one that matches none (a cola, water, fries) goes with
+# anything. A multi-cuisine menu used to offer a pizza a garlic naan and a masala chai: they were the only bread and
+# drink on the menu, and nothing checked that they suited the order.
+_FAMILIES = {
+    "indian": re.compile(
+        r"\b(naan|roti|paratha|kulcha|raita|lassi|chaas|chai|biryani|jeera|pulao|dal|tikka|masala|paneer|tandoori|curry|"
+        r"kebab|samosa|chaat|dosa|idli|vada|thali|korma|makhani|gulab|jalebi|kheer|phirni|indian)\b", re.I),
+    "italian": re.compile(
+        r"\b(pizza|pasta|spaghetti|fettuccine|penne|lasagna|lasagne|risotto|garlic bread|bruschetta|focaccia|tiramisu|"
+        r"italian)\b", re.I),
+    "japanese": re.compile(r"\b(sushi|nigiri|maki|sashimi|ramen|miso|tempura|teriyaki|matcha|japanese)\b", re.I),
+    "chinese": re.compile(
+        r"\b(dim sum|momos?|noodles?|manchurian|chow mein|fried rice|spring rolls?|wontons?|schezwan|chinese)\b", re.I),
+}
+
+
+def families_of(dish: dict) -> set[str]:
+    text = f"{dish.get('name', '')} {dish.get('category', '')}"
+    return {family for family, pattern in _FAMILIES.items() if pattern.search(text)}
+
+
+def _suits(dish: dict, ordered: set[str]) -> bool:
+    """Does `dish` go with an order of these cuisines? Anything of no particular cuisine does; when nothing in
+    the order has a recognisable cuisine there is nothing to check."""
+    mine = families_of(dish)
+    return not ordered or not mine or bool(mine & ordered)
+
 
 def role_of(dish: dict) -> str:
     category = dish.get("category", "")
@@ -47,10 +75,14 @@ def _cart_dishes(cart: list[dict], menu_by_id) -> list[dict]:
     return [d for d in (menu_by_id(line["id"]) for line in cart) if d]
 
 
-def _ranked(dishes: list[dict], role: str, in_cart_ids: set[str], veg_only: bool, spicy: bool, limit: int) -> list[dict]:
+def _ranked(
+    dishes: list[dict], role: str, in_cart_ids: set[str], veg_only: bool, spicy: bool, limit: int,
+    ordered_families: set[str] | None = None,
+) -> list[dict]:
     pool = [
         d for d in dishes
         if role_of(d) == role and d.get("is_available", True) and d["id"] not in in_cart_ids and (d.get("veg") or not veg_only)
+        and _suits(d, ordered_families or set())
     ]
 
     def score(d: dict) -> int:
@@ -111,8 +143,9 @@ def first_order_offer(
     veg_only = bool(in_cart) and all(d.get("veg") for d in in_cart)
     spicy = any((d.get("spice_level") or "").lower() in _SPICY for d in in_cart)
 
-    drinks = [] if "drink" in roles else _ranked(menu, "drink", ids, veg_only, spicy, 2)
-    sides = [] if "side" in roles else _ranked(menu, "side", ids, veg_only, spicy, 1)
+    ordered = {f for d in in_cart if role_of(d) in ("food", "side") for f in families_of(d)}
+    drinks = [] if "drink" in roles else _ranked(menu, "drink", ids, veg_only, spicy, 2, ordered)
+    sides = [] if "side" in roles else _ranked(menu, "side", ids, veg_only, spicy, 1, ordered)
     if not drinks and not sides:
         return None
     state.offered.add("first_order")
@@ -141,7 +174,8 @@ def pick(menu: list[dict], menu_by_id, cart: list[dict], role: str, limit: int =
     in_cart = _cart_dishes(cart, menu_by_id)
     veg_only = bool(in_cart) and all(d.get("veg") for d in in_cart)
     spicy = any((d.get("spice_level") or "").lower() in _SPICY for d in in_cart)
-    return _ranked(menu, role, {d["id"] for d in in_cart}, veg_only, spicy, limit)
+    ordered = {f for d in in_cart if role_of(d) in ("food", "side") for f in families_of(d)}
+    return _ranked(menu, role, {d["id"] for d in in_cart}, veg_only, spicy, limit, ordered)
 
 
 def first_order_hint(state, menu, menu_by_id, cart, added) -> str | None:
