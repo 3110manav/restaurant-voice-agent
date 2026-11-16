@@ -63,6 +63,11 @@ class PhoneOrder:
         self.cart: list[dict] = []
         self.spoken: str | None = None  # this turn's reply, when these rules decided what to say
 
+    @property
+    def takes_upi(self) -> bool:
+        """Whether the bill carries a UPI QR. A store without a UPI ID is paid on delivery or at pickup."""
+        return bool(self.store.get("upi_id") and self.store.get("upi_payee_name"))
+
     def start_turn(self, language: str) -> None:
         self.language = language
         self.turn += 1
@@ -149,14 +154,15 @@ class PhoneOrder:
             f"{line['quantity']} {line['name']}" + (f" {line['variant']}" if line.get("variant") else "")
             for line in self.cart
         )
+        bill_hi, bill_en = ("बिल और पेमेंट QR", "bill and payment QR") if self.takes_upi else ("बिल", "bill")
         if self.order_type == "delivery":
             where_hi, where_en = f"{self.address} पर डिलीवरी", f"Delivery to {self.address}"
         else:
             where_hi, where_en = "दुकान से पिकअप", "Pickup from the store"
         self._say(
-            f"आपका ऑर्डर: {items}। कुल {total} रुपये। {where_hi}। बिल और पेमेंट QR व्हाट्सएप पर {ending} वाले नंबर पर आएगा। ऑर्डर पक्का कर दूँ?",
+            f"आपका ऑर्डर: {items}। कुल {total} रुपये। {where_hi}। {bill_hi} व्हाट्सएप पर {ending} वाले नंबर पर आएगा। ऑर्डर पक्का कर दूँ?",
             f"Your order: {items}. Total {total} rupees. {where_en}. "
-            f"The bill and payment QR will come on WhatsApp to the number ending {ending}. Shall I place the order?",
+            f"The {bill_en} will come on WhatsApp to the number ending {ending}. Shall I place the order?",
         )
         return f"Read back to the customer: {self.spoken} Only call checkout after they say yes in their next message."
 
@@ -190,13 +196,15 @@ class PhoneOrder:
             "payment_ref": _payment_ref(),
             "pay_token": secrets.token_urlsafe(16),
         }
-        uri = upi.payment_uri(self.store, order["total"], order["payment_ref"])
+        uri = upi.payment_uri(self.store, order["total"], order["payment_ref"]) if self.takes_upi else None
         outgoing = [
             {"recipient": self.store["owner_whatsapp"], "kind": "owner_order", "body": messages.owner_order(order)},
             {
                 "recipient": self.whatsapp,
                 "kind": "customer_bill",
-                "body": messages.customer_bill(order, self.store, uri, pay_link(order["pay_token"]), self.language),
+                "body": messages.customer_bill(
+                    order, self.store, uri, pay_link(order["pay_token"]) if uri else None, self.language
+                ),
             },
         ]
         return order, outgoing
@@ -223,10 +231,16 @@ class PhoneOrder:
             return "The order could NOT be saved because of a system problem. The store will call them back."
         self.order_id = order["id"]
         outbox.flush_in_background()
-        self._say(
-            "ऑर्डर पक्का हो गया। बिल और पेमेंट QR व्हाट्सएप पर भेज दिया है। धन्यवाद!",
-            "Your order is placed. The bill and payment QR are on WhatsApp. Thank you!",
-        )
+        if self.takes_upi:
+            self._say(
+                "ऑर्डर पक्का हो गया। बिल और पेमेंट QR व्हाट्सएप पर भेज दिया है। धन्यवाद!",
+                "Your order is placed. The bill and payment QR are on WhatsApp. Thank you!",
+            )
+        else:
+            self._say(
+                "ऑर्डर पक्का हो गया। बिल व्हाट्सएप पर भेज दिया है, भुगतान डिलीवरी या पिकअप पर। धन्यवाद!",
+                "Your order is placed. The bill is on WhatsApp, and you pay on delivery or at pickup. Thank you!",
+            )
         return f"Order placed: {order['payment_ref']}. Total: {format_price(order['total'])}."
 
     def request_callback(self, reason: str) -> str:
