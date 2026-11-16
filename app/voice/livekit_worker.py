@@ -166,7 +166,7 @@ async def entrypoint(ctx: JobContext) -> None:
         stt=build_stt(language, speech),
         llm=SarthiLLM(
             agent, session_id=session_id, persona=persona, restaurant=restaurant_slug, table_no=table_no,
-            on_goodbye=lambda: hang_up_after_goodbye(ctx, session),
+            on_goodbye=lambda: hang_up_after_goodbye(ctx, session), speech=speech,
         ),
         tts=build_tts(persona, language, speech=speech),
         vad=silero.VAD.load(),

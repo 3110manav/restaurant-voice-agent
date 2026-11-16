@@ -642,6 +642,8 @@ Backend (FastAPI) on [Render](https://render.com), frontend (Next.js) on
 | `WHATSAPP_GRAPH_VERSION` — the Graph API version, for example `v25.0` | | ✅ | ✅ |
 | `PUBLIC_BASE_URL` — the Render API's URL, used in customers' pay links | | ✅ | ✅ |
 | `ADMIN_API_KEY` — any random string; without it `/admin/calls` returns 503 | | ✅ | |
+| `SARTHI_LOG_TURNS` — `1` logs each spoken turn (heard, answered, stack) while debugging; off by default | | ✅ | ✅ |
+| `SARTHI_HISTORY_TURNS`, `SARTHI_MAX_RETRY_WAIT` — optional tuning of the history each model call carries (default 6) and the rate-limit wait on calls (default 6 s) | | ✅ | ✅ |
 
 Never set `WHATSAPP_ALLOW_UNSIGNED` on a deployment: it turns webhook signature checks off.
 Generate the random strings with `openssl rand -hex 24`.

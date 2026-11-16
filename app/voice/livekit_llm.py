@@ -29,6 +29,8 @@ from livekit.agents.utils import shortuuid
 
 from app.agent import language as lang
 from app.agent.graph import AgentBusyError, RestaurantOrderingAgent
+from app.voice import turnlog
+from app.voice.stack import speech_stack
 from app.voice import cart_sync
 
 logger = logging.getLogger("sarthi.livekit_llm")
@@ -57,9 +59,11 @@ class SarthiLLM(LLM):
         restaurant: str | None = None,
         table_no: str | None = None,
         on_goodbye: Callable[[], None] | None = None,
+        speech: str | None = None,
     ) -> None:
         super().__init__()
         self._on_goodbye = on_goodbye
+        self._speech = speech or speech_stack()  # "groq" or "sarvam", for the turn log
         self._agent = agent
         self._session_id = session_id
         self._persona = persona
@@ -110,13 +114,16 @@ class SarthiLLMStream(LLMStream):
         started = time.monotonic()
         try:
             reply = await loop.run_in_executor(None, agent.send, user_text)
-        except AgentBusyError:
+        except AgentBusyError as exc:
+            logger.warning("busy turn, the model is rate limited: %s", str(exc)[:300])  # always, not only when logging turns
             reply = lang.line(agent.language, "busy")
         except Exception:  # a timed out model call, say: the guest must not be left in silence
             logger.exception("agent failed on this turn")
             reply = lang.line(agent.language, "default")
         # The session's own LLM timing stops at the acknowledgement, so this is the real thinking time.
-        logger.info("agent took %d ms", (time.monotonic() - started) * 1000)
+        elapsed_ms = (time.monotonic() - started) * 1000
+        logger.info("agent took %d ms", elapsed_ms)
+        turnlog.log_turn("browser-call", llm._speech, agent.language, user_text, reply, elapsed_ms, llm._session_id)
 
         asyncio.create_task(
             cart_sync.sync_cart(

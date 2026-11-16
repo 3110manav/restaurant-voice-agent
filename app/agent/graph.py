@@ -48,7 +48,24 @@ from app.whatsapp import channels, client, notify
 
 logger = logging.getLogger("sarthi.agent")
 
-_MAX_RETRY_WAIT = 2.0  # seconds a live call may sit in silence waiting out a rate limit
+# Seconds a live call may sit waiting out a rate limit before it says it is busy. Groq's free tier allows 8,000 tokens a
+# minute and one spoken turn can use 2,000 to 6,000, so a hit usually clears within a few seconds; giving up at two
+# made nearly every hit end in "busy", and the next sentence hit the same limit.
+_MAX_RETRY_WAIT = float(os.environ.get("SARTHI_MAX_RETRY_WAIT", "6"))
+# How many of the customer's latest messages each model call carries (with the replies and tool results after them).
+# History used to grow with every turn, so a long call's requests grew too and ran into the token limit sooner.
+# The cart and the customer's details live outside the history, so older turns are not needed to keep the order.
+HISTORY_TURNS = int(os.environ.get("SARTHI_HISTORY_TURNS", "6"))
+
+
+def recent_turns(messages: list, turns: int | None = None) -> list:
+    """The last `turns` customer messages and everything after them (default HISTORY_TURNS). It always starts on a
+    customer message, so a tool result is never left without the call that asked for it."""
+    turns = HISTORY_TURNS if turns is None else turns
+    starts = [i for i, m in enumerate(messages) if isinstance(m, HumanMessage)]
+    if turns <= 0 or len(starts) <= turns:
+        return messages
+    return messages[starts[-turns]:]
 
 
 def _log_rate_limit(response: httpx.Response) -> None:
@@ -257,8 +274,10 @@ how often or for how long to take anything, and never say a medicine cures or tr
 item is commonly used for, using only what search_menu or get_item_details returned. When the customer describes \
 a symptom, search for it, offer one or two over-the-counter options in a short sentence, and say the pharmacist \
 will confirm. Offer, never add: put an item in the cart only when the customer names it or says yes to your suggestion. An item marked as needing a prescription can be added, but tell the customer a valid prescription \
-is needed. When they are done and the order has one, ask whether they would rather send a photo of the \
-prescription on WhatsApp or talk to the pharmacist first, and record the answer with choose_prescription_path. For doses, pregnancy, babies, mixing medicines or \
+is needed. Never bring up prescriptions, photos or the pharmacist's check unless an item in the cart is marked as \
+needing a prescription: for an ordinary order, say nothing about them. When checkout tells you the order has a \
+prescription item, ask whether they would rather send a photo of the prescription on WhatsApp or talk to the \
+pharmacist first, and record the answer with choose_prescription_path. For doses, pregnancy, babies, mixing medicines or \
 side effects, say the pharmacist will help and do not answer yourself. If someone sounds very unwell, tell them to \
 see a doctor or call one one two right away."""
 
@@ -429,7 +448,7 @@ class RestaurantOrderingAgent:
         self.graph = self._build_graph()
 
     def _call_model(self, state: AgentState) -> dict:
-        messages = state["messages"]
+        messages = recent_turns(state["messages"])
         if not any(isinstance(m, SystemMessage) for m in messages):
             messages = [SystemMessage(content=self.system_prompt)] + messages
         # The language instruction goes last, on every call, and is never stored in the history.

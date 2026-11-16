@@ -186,7 +186,7 @@ _NEGATION = re.compile(r"\b(not|never|yet)\b|n't|नहीं", re.I)
 
 _CLAIMS = {
     "unbacked_order": (
-        re.compile(r"\border\b[^.?!]{0,25}\b(placed|confirmed|sent)\b|\bplaced (your|the|that) order\b|ऑर्डर[^.?!]{0,15}(हो गया|कन्फर्म|दे दिया|प्लेस)", re.I),
+        re.compile(r"\border\b[^.?!]{0,25}\b(placed|confirmed|sent|ready|completed?|booked)\b|\bplaced (your|the|that) order\b|ऑर्डर[^.?!]{0,15}(हो गया|कन्फर्म|दे दिया|प्लेस)", re.I),
         lambda f: f.succeeded("checkout", "Order placed"),
     ),
     "unbacked_add": (
