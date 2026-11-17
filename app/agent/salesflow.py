@@ -28,10 +28,13 @@ HINT_PREFIX = "[HINT FOR YOU ONLY, never read it out or mention it: "
 # A dish can belong to more than one family ("Paneer Pizza"), and one that matches none (a cola, water, fries) goes with
 # anything. A multi-cuisine menu used to offer a pizza a garlic naan and a masala chai: they were the only bread and
 # drink on the menu, and nothing checked that they suited the order.
+# "pan_indian" things (lassi, chai) go with any Indian food; the north and the south do not share their breads.
 _FAMILIES = {
-    "indian": re.compile(
-        r"\b(naan|roti|paratha|kulcha|raita|lassi|chaas|chai|biryani|jeera|pulao|dal|tikka|masala|paneer|tandoori|curry|"
-        r"kebab|samosa|chaat|dosa|idli|vada|thali|korma|makhani|gulab|jalebi|kheer|phirni|indian)\b", re.I),
+    "north_indian": re.compile(
+        r"\b(naan|roti|paratha|kulcha|biryani|jeera|pulao|dal|tikka|paneer|tandoori|curry|kebab|samosa|chaat|thali|"
+        r"korma|makhani|masala|north indian)\b", re.I),
+    "south_indian": re.compile(r"\b(dosa|dosai|idli|idly|vada|uttapam|uttappam|sambar|rasam|podi|appam|south indian)\b", re.I),
+    "pan_indian": re.compile(r"\b(lassi|chaas|chai|raita|gulab|jalebi|kheer|phirni)\b", re.I),
     "italian": re.compile(
         r"\b(pizza|pasta|spaghetti|fettuccine|penne|lasagna|lasagne|risotto|garlic bread|bruschetta|focaccia|tiramisu|"
         r"italian)\b", re.I),
@@ -43,14 +46,26 @@ _FAMILIES = {
 
 def families_of(dish: dict) -> set[str]:
     text = f"{dish.get('name', '')} {dish.get('category', '')}"
-    return {family for family, pattern in _FAMILIES.items() if pattern.search(text)}
+    found = {family for family, pattern in _FAMILIES.items() if pattern.search(text)}
+    # "Masala Dosa" matches both regions by its words; the dish's own section settles it ("South Indian").
+    if {"north_indian", "south_indian"} <= found:
+        found.discard("north_indian" if _FAMILIES["south_indian"].search(dish.get("category", "")) else "south_indian")
+    return found
 
 
 def _suits(dish: dict, ordered: set[str]) -> bool:
-    """Does `dish` go with an order of these cuisines? Anything of no particular cuisine does; when nothing in
-    the order has a recognisable cuisine there is nothing to check."""
+    """Does `dish` go with an order of these cuisines? Anything of no particular cuisine does, and so does a pan-Indian
+    item (lassi, chai) with any Indian order. When nothing in the order has a recognisable cuisine there is nothing
+    to check."""
     mine = families_of(dish)
-    return not ordered or not mine or bool(mine & ordered)
+    if not ordered or not mine:
+        return True
+    indian_order = ordered & {"north_indian", "south_indian", "pan_indian"}
+    if "pan_indian" in mine and indian_order:
+        return True
+    if "pan_indian" in ordered and mine & {"north_indian", "south_indian", "pan_indian"}:
+        return True
+    return bool(mine & ordered)
 
 
 def role_of(dish: dict) -> str:

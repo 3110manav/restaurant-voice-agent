@@ -99,7 +99,7 @@ export function useChatSession(persona: Persona, ctx: RestaurantContext = {}) {
       setIsSending(true);
       try {
         const response = await sendChatMessage(sessionId, persona.key, trimmed, { restaurant, tableNo, language });
-        setMessages((prev) => [...prev, { role: "agent", text: response.reply }]);
+        if (response.reply) setMessages((prev) => [...prev, { role: "agent", text: response.reply }]);
         setCart(response.cart);
         setServiceLog(response.service_log);
       } catch (err) {

@@ -28,6 +28,7 @@ from livekit.agents.types import DEFAULT_API_CONNECT_OPTIONS, NOT_GIVEN, NotGive
 from livekit.agents.utils import shortuuid
 
 from app.agent import language as lang
+from app.agent import guardrails
 from app.agent.graph import AgentBusyError, RestaurantOrderingAgent
 from app.voice import turnlog
 from app.voice.stack import speech_stack
@@ -104,8 +105,10 @@ class SarthiLLMStream(LLMStream):
         agent = llm._agent
         loop = asyncio.get_running_loop()
 
-        # Say "Sure." (audio is cached) straight away, while the model works on the real answer.
-        ack = lang.pick_ack(user_text, agent.language, llm._acks)
+        # Say "Sure." (audio is cached) straight away, while the model works on the real answer. Not for hesitation
+        # sounds or a bare "okay", which get no answer at all.
+        quiet = guardrails.is_noise(user_text) or guardrails.is_bare_ack(user_text)
+        ack = None if quiet else lang.pick_ack(user_text, agent.language, llm._acks)
         if ack:
             llm._acks += 1
             self._event_ch.send_nowait(
@@ -124,6 +127,8 @@ class SarthiLLMStream(LLMStream):
         elapsed_ms = (time.monotonic() - started) * 1000
         logger.info("agent took %d ms", elapsed_ms)
         turnlog.log_turn("browser-call", llm._speech, agent.language, user_text, reply, elapsed_ms, llm._session_id)
+        if not reply:
+            return  # silence is the right answer to a hesitation sound
 
         asyncio.create_task(
             cart_sync.sync_cart(
