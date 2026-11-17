@@ -21,27 +21,21 @@ export const sum = (lines: CartLine[]) => lines.reduce((total, line) => total + 
 export const isStore = (info: RestaurantInfo) => info.business_type === "kirana" || info.business_type === "pharmacy";
 
 /** How the agent introduces itself, by the kind of place it works for. */
-export function agentRole(info: RestaurantInfo, hi: boolean): string {
-  if (info.business_type === "pharmacy") return hi ? "फ़ार्मेसी असिस्टेंट" : "pharmacy assistant";
-  if (info.business_type === "kirana") return hi ? "दुकान असिस्टेंट" : "store assistant";
-  return hi ? "वेटर" : "waiter";
+export function agentRole(info: RestaurantInfo): string {
+  if (info.business_type === "pharmacy") return "pharmacy assistant";
+  if (info.business_type === "kirana") return "store assistant";
+  return "waiter";
 }
 
-export function welcomeLine(info: RestaurantInfo, persona: Persona, hi: boolean): string {
+export function welcomeLine(info: RestaurantInfo, persona: Persona): string {
   const name = persona.agentName;
   if (info.business_type === "pharmacy") {
-    return hi
-      ? `नमस्ते! मैं ${name} हूँ, आपकी फ़ार्मेसी असिस्टेंट। जो दवा या सामान चाहिए, बताइए या सूची से चुनिए।`
-      : `Hello! I'm ${name}, your pharmacy assistant. Tell me what you need, or pick from the list. Your pharmacist confirms every order.`;
+    return `Hello! I'm ${name}, your pharmacy assistant. Tell me what you need, in Hindi, English or both, or pick from the list. Your pharmacist confirms every order.`;
   }
   if (info.business_type === "kirana") {
-    return hi
-      ? `नमस्ते! मैं ${name} हूँ। जो सामान चाहिए बताइए, या सूची से चुनिए, हम घर तक पहुँचा देंगे।`
-      : `Hello! I'm ${name}. Tell me what you need, or pick from the list, and we'll bring it to your door.`;
+    return `Hello! I'm ${name}. Tell me what you need, in Hindi, English or both, or pick from the list, and we'll bring it to your door.`;
   }
-  return hi
-    ? `नमस्ते! मैं ${name} हूँ। मेन्यू से ऑर्डर करें, या बस बताइए क्या खाने का मन है।`
-    : `Welcome! I'm ${name}, your waiter today. Order from the menu, or just tell me what you feel like eating.`;
+  return `Welcome! I'm ${name}, your waiter today. Order from the menu, or just tell me what you feel like eating, in Hindi, English or both.`;
 }
 
 /** An example of what to type, for the kind of place it is. */

@@ -105,7 +105,7 @@ function Transcript({ restaurantId, sessionId }: { restaurantId: string; session
             <p className="text-center text-xs text-muted-foreground">
               {when(t.created_at)} · {CHANNEL[t.channel] ?? t.channel}
               {t.speech ? ` · ${t.speech === "sarvam" ? "Sarvam" : "Groq"} voice` : ""}
-              {t.language ? ` · ${t.language === "hi" ? "Hindi" : "English"}` : ""}
+              {t.language ? ` · ${t.language === "hi" ? "Hindi" : t.language === "hinglish" ? "Hinglish" : "English"}` : ""}
               {t.latency_ms ? ` · replied in ${(t.latency_ms / 1000).toFixed(1)}s` : ""}
             </p>
             <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-3.5 py-2 text-sm text-primary-foreground">

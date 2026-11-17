@@ -4,7 +4,6 @@ import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
 import { MediaDeviceFailure } from "livekit-client";
 import { Phone } from "lucide-react";
 
-import { LanguageToggle } from "@/components/language-toggle";
 import { Button } from "@/components/ui/button";
 import { AgentOrb } from "@/components/voice/agent-orb";
 import { CallerNumberDialog } from "@/components/voice/caller-number-dialog";
@@ -27,7 +26,6 @@ export function RealtimeCall({
   restaurant,
   tableNo,
   language,
-  onLanguageChange,
   onEnd,
   onCartSync,
 }: {
@@ -36,9 +34,8 @@ export function RealtimeCall({
   /** Which restaurant (and table) the call is for; absent for the legacy personas. */
   restaurant?: string;
   tableNo?: string | null;
-  /** The call's language is fixed when it starts; to change it, end the call and pick again. */
+  /** "auto": the agent answers in whatever language the guest speaks. */
   language: Language;
-  onLanguageChange: (next: Language) => void;
   onEnd: () => void;
   /** Called periodically while connected, and once more on disconnect, so the cart ordered by voice
    * shows up in the UI's own cart state. */
@@ -51,7 +48,6 @@ export function RealtimeCall({
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6">
         <AgentOrb className="size-28" state={isConnecting ? "connecting" : "idle"} />
-        <LanguageToggle value={language} onChange={onLanguageChange} disabled={isConnecting} />
         <Button onClick={() => void call.start()} disabled={isConnecting || !sessionId} className="gap-2">
           <Phone className="size-4" />
           {isConnecting ? "Connecting…" : `Call ${persona.agentName}`}
