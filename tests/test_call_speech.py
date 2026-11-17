@@ -70,6 +70,7 @@ def _voice_modules(monkeypatch):
 
 class FakeAgent:
     language = "hi"
+    language_mode = "fixed"
     agent_name = "Kabir"
     cart: list = []
     service_log: list = []
@@ -214,7 +215,7 @@ def test_push_to_talk_hears_and_speaks_in_the_conversations_language(monkeypatch
 
     from app import main
 
-    guest = SimpleNamespace(persona="waiter", language="en", cart=[], service_log=[])
+    guest = SimpleNamespace(persona="waiter", language="en", stt_language=lambda: "en", cart=[], service_log=[])
     monkeypatch.setattr(main, "get_or_create_session", lambda *a: guest)
     monkeypatch.setattr(main, "send_or_busy", lambda agent, text: "Sure.")
     heard, spoken = {}, {}

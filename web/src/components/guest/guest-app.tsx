@@ -18,7 +18,7 @@ import { useChatSession } from "@/hooks/use-chat-session";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useRealtimeCall } from "@/hooks/use-realtime-call";
 import { useTableSession, type TableSession } from "@/hooks/use-table-session";
-import type { CartLine, MenuItem, RestaurantInfo } from "@/lib/api";
+import type { CartLine, Language, MenuItem, RestaurantInfo } from "@/lib/api";
 import type { Persona } from "@/lib/personas";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -162,8 +162,8 @@ function Welcome({
   info: RestaurantInfo;
   persona: Persona;
   tableNo: string | null;
-  language: "en" | "hi";
-  onLanguage: (next: "en" | "hi") => void;
+  language: Language;
+  onLanguage: (next: Language) => void;
   onTalk: () => void;
   onMenu: () => void;
 }) {
@@ -301,8 +301,8 @@ function MenuScreen({
   cart: CartLine[];
   table: TableSession;
   store: boolean;
-  language: "en" | "hi";
-  onLanguage: (next: "en" | "hi") => void;
+  language: Language;
+  onLanguage: (next: Language) => void;
   onAdd: (id: string, variant?: string) => void;
   onRemove: (id: string, variant?: string) => void;
   onTalk: () => void;

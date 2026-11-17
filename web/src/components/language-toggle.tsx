@@ -4,12 +4,13 @@ import type { Language } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const OPTIONS: { value: Language; label: string }[] = [
+  { value: "auto", label: "Auto" },
   { value: "en", label: "English" },
   { value: "hi", label: "हिन्दी" },
 ];
 
-/** The English / हिन्दी switch. The choice decides the agent's reply language, what the speech
- * recognition listens for, and which voice speaks, so a mis-heard word can't flip the conversation. */
+/** Auto / English / हिन्दी. Auto (the default) answers in whatever language the guest just used; the other two fix the
+ * reply language, and what speech recognition listens for, for a guest who wants that. */
 export function LanguageToggle({
   value,
   onChange,

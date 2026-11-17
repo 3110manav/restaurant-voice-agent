@@ -369,7 +369,9 @@ async def chat_voice(
     persona = agent.persona
 
     audio_bytes = await audio.read()
-    transcript = transcribe_bytes(audio_bytes, filename=audio.filename or "audio.webm", language=agent.language, speech=speech)
+    transcript = transcribe_bytes(
+        audio_bytes, filename=audio.filename or "audio.webm", language=agent.stt_language(), speech=speech
+    )
 
     if not transcript:
         return VoiceChatResponse(transcript="", reply="", cart=agent.cart, service_log=agent.service_log)

@@ -113,7 +113,8 @@ export interface RestaurantContext {
   language?: Language;
 }
 
-export type Language = "en" | "hi";
+/** "auto" is the default: the agent answers in the language the guest is using, Hindi, Hinglish or English. */
+export type Language = "auto" | "en" | "hi";
 
 async function parseOrThrow<T>(res: Response): Promise<T> {
   if (!res.ok) {

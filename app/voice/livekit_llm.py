@@ -108,7 +108,8 @@ class SarthiLLMStream(LLMStream):
         # Say "Sure." (audio is cached) straight away, while the model works on the real answer. Not for hesitation
         # sounds or a bare "okay", which get no answer at all.
         quiet = guardrails.is_noise(user_text) or guardrails.is_bare_ack(user_text)
-        ack = None if quiet else lang.pick_ack(user_text, agent.language, llm._acks)
+        heard_in = lang.detect(user_text, agent.language) if agent.language_mode == "auto" else agent.language
+        ack = None if quiet else lang.pick_ack(user_text, heard_in, llm._acks)
         if ack:
             llm._acks += 1
             self._event_ch.send_nowait(

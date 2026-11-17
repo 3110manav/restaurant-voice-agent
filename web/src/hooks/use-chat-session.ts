@@ -61,9 +61,9 @@ export function useChatSession(persona: Persona, ctx: RestaurantContext = {}) {
   const [serviceLog, setServiceLog] = useState<ServiceLogEntry[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  // The English / हिन्दी toggle. It travels with every message and call, so the agent, the speech
-  // recognition and the voice all follow it, instead of guessing from what was just said.
-  const [language, setLanguageState] = useState<Language>("en");
+  // Auto (the default), English or हिन्दी. It travels with every message and call. Auto lets the agent answer in whatever
+  // language the guest just used; English and हिन्दी fix it, for a guest who wants that.
+  const [language, setLanguageState] = useState<Language>("auto");
 
   const setLanguage = useCallback(
     (next: Language) => {
@@ -73,7 +73,12 @@ export function useChatSession(persona: Persona, ctx: RestaurantContext = {}) {
         ...prev,
         {
           role: "agent",
-          text: next === "hi" ? "ठीक है, अब हिंदी में बात करते हैं।" : "Sure, let's continue in English.",
+          text:
+            next === "hi"
+              ? "ठीक है, अब हिंदी में बात करते हैं।"
+              : next === "en"
+                ? "Sure, let's continue in English."
+                : "Sure, I'll reply in whatever language you use.",
         },
       ]);
     },

@@ -351,7 +351,8 @@ class AgentBusyError(Exception):
 
 
 class RestaurantOrderingAgent:
-    language = lang.DEFAULT  # replaced per instance by set_language()
+    language = lang.DEFAULT  # the language of the reply being written: set by set_language(), then by each message in "auto"
+    language_mode = "fixed"  # "auto": the reply follows the language of the guest's latest message (lang.detect)
     _price_ok = True  # restaurant mode: only when the guest has asked about money (see send)
     phone = None  # replaced per instance on a phone call
     business_type = "restaurant"  # "kirana" and "pharmacy" are set per instance from the store's row
@@ -552,10 +553,32 @@ class RestaurantOrderingAgent:
     def _respond(self, state: AgentState) -> dict:
         return {"messages": [AIMessage(content=self._fast_reply(state["messages"]) or "")]}
 
-    def set_language(self, language: str | None) -> None:
-        self.language = lang.normalize(language)
-        if self.customer is not None:
-            self.customer.language = self.language
+    def set_language(self, language: str | None, start: str | None = None) -> None:
+        """"en" or "hi" fixes the reply language (the guest's own choice). "auto" makes every reply follow the language
+        of the guest's latest message, in Hindi, Hinglish or English; `start` is what it uses until they have spoken
+        (the greeting's language). Asking for "auto" again does not reset a language already settled on."""
+        if language == lang.AUTO:
+            self.language_mode = "auto"
+            if start:
+                self.language = lang.normalize(start)
+        else:
+            self.language_mode = "fixed"
+            self.language = lang.normalize(language)
+        self._sync_customer_language()
+
+    def _sync_customer_language(self) -> None:
+        if self.customer is not None:  # the customer record knows English and Hindi only
+            self.customer.language = "hi" if self.language == "hi" else "en"
+
+    def stt_language(self) -> str | None:
+        """The language to tell speech recognition: the guest's own choice, or None to let it hear whatever is spoken."""
+        return None if self.language_mode == "auto" else self.language
+
+    def _follow_language(self, text: str) -> None:
+        """In auto mode, answer in the language this message is in."""
+        if self.language_mode == "auto" and not self.phone:
+            self.language = lang.detect(text, self.language)
+            self._sync_customer_language()
 
     def opening_line(self, store_name: str | None = None) -> str:
         """The first thing said on a call: by name for a caller we recognise, else a plain welcome."""
@@ -656,6 +679,8 @@ class RestaurantOrderingAgent:
         if self.phone:
             self.set_language(lang.caller_language(user_text, self.language))
             self.phone.start_turn(self.language)
+        if not guardrails.is_noise(user_text):
+            self._follow_language(user_text)  # auto mode: answer in the language the guest just used
         verdict = guardrails.check_input(user_text, self.language)
         if verdict.reply is not None:
             return verdict.reply  # blocked or empty: answered without the model, kept out of the history
