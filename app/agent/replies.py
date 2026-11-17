@@ -15,7 +15,7 @@ import re
 from app.agent.language import line as lang_line, normalize
 
 FAST_TOOLS = {
-    "add_to_cart", "remove_from_cart", "checkout", "request_item", "flag_issue", "request_bill", "call_staff",
+    "add_to_cart", "add_note", "remove_from_cart", "checkout", "request_item", "flag_issue", "request_bill", "call_staff",
     "save_delivery_details", "choose_pickup", "choose_prescription_path",
 }
 
@@ -61,6 +61,7 @@ _PHRASES = {
 }
 _EVENT_GROUP = {
     "added": "order",
+    "noted": "order",
     # Answers to a question the shop asked ("I want to pick it up", "I want to talk to the pharmacist") are not new orders.
     "details_saved": "order",
     "pickup_chosen": "order",
@@ -126,6 +127,9 @@ def _added(event: dict, language: str) -> str:
     # One of something is just its name; more than one says how many ("Done, two Dolo 650 and an ORS").
     items = _join([(_label(l) if l["quantity"] == 1 else f"{_quantity(l['quantity'], language)} {_label(l)}") for l in event["lines"]], language)
     text = f"हो गया, {items} जोड़ दिया।" if hi else f"Done, {items}."
+    notes = [l["note"] for l in event["lines"] if l.get("note")]
+    if notes:  # said back, so the guest hears what the kitchen was told (and that it is a request)
+        text += f" किचन के लिए नोट: {', '.join(notes)}।" if hi else f" Noted for the kitchen: {', '.join(notes)}."
     if any(l.get("rx") for l in event["lines"]):  # a pharmacy item that needs a prescription
         text += (
             " इसके लिए पर्चा चाहिए, भेजने से पहले हमारे फार्मासिस्ट उसे देख लेंगे।"
@@ -225,6 +229,12 @@ def compose(events: list[dict], language: str) -> str | None:
             parts.append(_added(e, language))
         elif kind == "removed":
             parts.append(_removed(e, language))
+        elif kind == "noted":
+            name = _spoken_name(e["name"])
+            if hi:
+                parts.append(f"ठीक है, {name} के लिए किचन को बता दिया: {e['note']}।")
+            else:
+                parts.append(f"Noted for the kitchen, on the {name}: {e['note']}.")
         elif kind == "offer":
             parts.append(_offer(e, language))
             asked_something = True
@@ -276,6 +286,6 @@ def compose(events: list[dict], language: str) -> str | None:
             parts.append("कोई अभी आपके पास आता है।" if hi else "Someone will be right with you.")
     if not parts:
         return None
-    if events[-1]["type"] == "added" and not asked_something:
+    if events[-1]["type"] in ("added", "noted") and not asked_something:
         parts.append("और कुछ?" if hi else "Anything else?")
     return " ".join(parts)

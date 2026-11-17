@@ -642,6 +642,7 @@ Backend (FastAPI) on [Render](https://render.com), frontend (Next.js) on
 | `WHATSAPP_GRAPH_VERSION` — the Graph API version, for example `v25.0` | | ✅ | ✅ |
 | `PUBLIC_BASE_URL` — the Render API's URL, used in customers' pay links | | ✅ | ✅ |
 | `ADMIN_API_KEY` — any random string; without it `/admin/calls` returns 503 | | ✅ | |
+| `SARTHI_STORE_TRANSCRIPTS` — conversation transcripts are saved for the owner's Conversations tab (migration `005_conversation_turns.sql`); `0` turns it off | | ✅ | ✅ |
 | `SARTHI_LOG_TURNS` — `1` logs each spoken turn (heard, answered, stack) while debugging; off by default | | ✅ | ✅ |
 | `SARTHI_HISTORY_TURNS`, `SARTHI_MAX_RETRY_WAIT` — optional tuning of the history each model call carries (default 6) and the rate-limit wait on calls (default 6 s) | | ✅ | ✅ |
 

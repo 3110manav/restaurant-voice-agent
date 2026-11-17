@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
-from app import db
+from app import db, transcripts
 from app.menu import repository, service
 from app.menu.snapshot import menu_cache
 from app.table import repository as table_repository, service as table_service
@@ -334,6 +334,23 @@ def customer_visits(restaurant_id: str, customer_id: str, user_id: str = Depends
         for row in table_repository.list_sessions_for_phone(restaurant_id, customer["phone"])
     ]
     return {"customer": customer, "visits": visits}
+
+
+@router.get("/restaurants/{restaurant_id}/conversations")
+def conversations(restaurant_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    """The latest conversations guests have had with the agent (owners and managers only: they hold what customers said)."""
+    _restaurant_for(user_id, restaurant_id, editor=True)
+    return {"conversations": transcripts.list_conversations(restaurant_id)}
+
+
+@router.get("/restaurants/{restaurant_id}/conversations/{session_id}")
+def conversation(restaurant_id: str, session_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    """One conversation, turn by turn: what the guest said (or what speech recognition heard) and what the agent answered."""
+    _restaurant_for(user_id, restaurant_id, editor=True)
+    turns = transcripts.conversation_turns(restaurant_id, session_id)
+    if not turns:
+        raise HTTPException(status_code=404, detail="No such conversation")
+    return {"turns": turns}
 
 
 @router.get("/restaurants/{restaurant_id}/report")

@@ -161,6 +161,7 @@ async def entrypoint(ctx: JobContext) -> None:
         greeting = lang.greeting(language, agent.agent_name)
 
     agent.set_language(language)
+    agent.speech_label = speech or speech_stack()  # shown against this call's turns in the owner's transcript
 
     session = AgentSession(
         stt=build_stt(language, speech),

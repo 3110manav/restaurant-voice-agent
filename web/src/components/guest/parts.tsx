@@ -11,7 +11,10 @@ import { cn } from "@/lib/utils";
 /** What the guest's pages share, whichever layout shows them (phone column in guest-app.tsx, desktop in guest-desktop.tsx). */
 
 export const lineKey = (id: string, variant?: string | null) => `${id}|${variant ?? ""}`;
-export const lineLabel = (line: { name: string; variant?: string | null }) => (line.variant ? `${line.name} (${line.variant})` : line.name);
+export const lineLabel = (line: { name: string; variant?: string | null; note?: string | null }) => {
+  const label = line.variant ? `${line.name} (${line.variant})` : line.name;
+  return line.note ? `${label} · ${line.note}` : label;
+};
 export const sum = (lines: CartLine[]) => lines.reduce((total, line) => total + line.price * line.quantity, 0);
 
 /** A kirana or a pharmacy: ordered by chat or voice for delivery, with no table, kitchen or bill. */

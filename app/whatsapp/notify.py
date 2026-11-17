@@ -54,7 +54,9 @@ def items_summary(lines: list[dict]) -> str:
     parts = []
     for line in lines:
         label = f"{line['name']} ({line['variant']})" if line.get("variant") else line["name"]
-        parts.append(f"{line['quantity']} x {label}" + (" [Rx]" if line.get("rx") else ""))
+        parts.append(
+            f"{line['quantity']} x {label}" + (f" ({line['note']})" if line.get("note") else "") + (" [Rx]" if line.get("rx") else "")
+        )
     return ", ".join(parts)
 
 

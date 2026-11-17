@@ -90,6 +90,7 @@ class PhoneCall:
             restaurant=restaurant, customer=customer, live_call=True, **options,
         )
         self.agent.channel = "voice"
+        self.agent.record_channel = "phone"
 
     @property
     def greeting(self) -> str:

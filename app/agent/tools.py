@@ -32,6 +32,11 @@ class OrderLine(BaseModel):
     name: str = Field(description="item name as said")
     quantity: int = Field(default=1)
     variant: str = Field(default="", description="size or portion, if chosen")
+    note: str = Field(
+        default="",
+        description="a change the guest asked for on this dish, in their words: Jain, no onion, extra spicy, with podi. "
+        "Empty when there is none",
+    )
 
 
 _CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # no 0/O, 1/I/L: it gets read aloud and typed on a phone
@@ -82,7 +87,23 @@ def _medicine_note(item: dict) -> str:
 
 
 def _line_label(line: dict) -> str:
-    return f"{line['name']} ({line['variant']})" if line.get("variant") else line["name"]
+    label = f"{line['name']} ({line['variant']})" if line.get("variant") else line["name"]
+    return f"{label}, {line['note']}" if line.get("note") else label
+
+
+def _clean_note(note: str | None) -> str:
+    """A guest's request for a dish, tidied and kept short enough for a kitchen ticket."""
+    return " ".join((note or "").split())[:120]
+
+
+def _merge_note(line: dict, note: str) -> None:
+    """Set the note on a cart line, keeping an earlier one if this adds something different."""
+    if not note:
+        return
+    old = line.get("note", "")
+    if note.lower() in old.lower():
+        return
+    line["note"] = f"{old}; {note}"[:160] if old else note
 
 
 def _pick_variant(variants: list[dict], requested: str | None) -> dict | None:
@@ -101,7 +122,8 @@ def _pick_variant(variants: list[dict], requested: str | None) -> dict | None:
 
 
 def add_item_to_cart(
-    cart: list[CartItem], item: dict, quantity: int = 1, variant: str | None = None, with_prices: bool = True
+    cart: list[CartItem], item: dict, quantity: int = 1, variant: str | None = None, with_prices: bool = True,
+    note: str = "",
 ) -> str:
     """Add `quantity` of an already-resolved menu `item` dict to `cart`.
 
@@ -116,6 +138,7 @@ def add_item_to_cart(
     if item.get("is_available") is False:
         return f"{item['name']} isn't available right now."
 
+    note = _clean_note(note)
     variants = item.get("variants") or []
     chosen_name = None
     price = item["price"]
@@ -131,10 +154,13 @@ def add_item_to_cart(
             if line["quantity"] + quantity > MAX_LINE_QUANTITY:
                 return f"That would be more than {MAX_LINE_QUANTITY} of {_line_label(line)}. Ask the customer to confirm the number."
             line["quantity"] += quantity
+            _merge_note(line, note)
             return f"Updated {_line_label(line)} to {line['quantity']} in the cart."
     line = {"id": item["id"], "name": item["name"], "price": price, "quantity": quantity}
     if chosen_name:
         line["variant"] = chosen_name
+    if note:
+        line["note"] = note  # the kitchen sees this on the ticket
     if item.get("rx_required"):
         line["rx"] = True  # a prescription medicine: the pharmacist verifies before dispatch
     cart.append(line)
@@ -237,6 +263,8 @@ def build_tools(
         if events is not None:
             events.append(event)
 
+    emit = note  # add_note has a parameter called `note`, which hides the function above inside it
+
     @tool
     def search_menu(query: str) -> str:
         """Search the menu by description, ingredient, dietary need or mood. Use it for
@@ -290,13 +318,15 @@ def build_tools(
                 problem = True
                 continue
             chosen = _pick_variant(item.get("variants") or [], line.variant or None) if item.get("variants") else None
-            message = add_item_to_cart(cart, item, line.quantity, line.variant or None, with_prices=prices())
+            message = add_item_to_cart(
+                cart, item, line.quantity, line.variant or None, with_prices=prices(), note=line.note
+            )
             results.append(message)
             if message.startswith(("Added", "Updated")):
                 added.append(item)
                 lines_added.append(
                     {"name": item["name"], "variant": chosen["name"] if chosen else None, "quantity": line.quantity,
-                     "rx": bool(item.get("rx_required"))}
+                     "rx": bool(item.get("rx_required")), "note": _clean_note(line.note) or None}
                 )
             else:
                 problem = True
@@ -331,6 +361,42 @@ def build_tools(
             return f"Updated {_line_label(line)} to {line['quantity']} in the cart."
         note({"type": "problem"})
         return f"'{name}' isn't in the cart."
+
+    @tool
+    def add_note(name: str, note: str, variant: str = "") -> str:
+        """Attach the guest's request for a dish to that dish in the cart: "Jain", "no onion", "extra spicy", "with
+        podi", "less oil". This is the ONLY way the kitchen sees it, so use it whenever they ask for any change to a
+        dish, with their own words. It is a request, not a promise: never say it will definitely be done.
+        """
+        wanted = name.strip().lower()
+        text = _clean_note(note)
+        if not text:
+            return "Say what the note is (for example 'no onion')."
+        for line in cart:
+            if wanted not in (line["name"].lower(), _line_label(line).lower()) and wanted not in line["name"].lower():
+                continue
+            if variant and line.get("variant", "").lower() != variant.strip().lower():
+                continue
+            if placed is not None and any(
+                sent["id"] == line["id"] and (sent.get("variant") or "") == (line.get("variant") or "") for sent in placed()
+            ):
+                # The kitchen already has this dish: a note on the cart line would never reach it, so tell the staff.
+                erp.record_request(
+                    session_id, persona, "call_staff", f"Change to {line['name']} (already sent to the kitchen): {text}",
+                    restaurant_id=restaurant_id, table_no=table_no,
+                )
+                note_event = {"type": "noted", "name": line["name"], "note": text, "late": True}
+            else:
+                _merge_note(line, text)
+                note_event = {"type": "noted", "name": line["name"], "note": line["note"]}
+            emit(note_event)
+            return (
+                f"Noted for the kitchen: {text}, on {line['name']}. "
+                + ("The dish had already been sent, so the staff were told. " if note_event.get("late") else "")
+                + "Tell the guest it is noted; do not promise it."
+            )
+        emit({"type": "problem"})
+        return f"'{name}' isn't in the cart, so there is nothing to attach the note to. Add the dish first."
 
     @tool
     def view_cart() -> str:
@@ -437,7 +503,7 @@ def build_tools(
         told = say_total or prices()
         return f"Order placed: {summary}." + (f" Total: {format_price(total)}." if told else "") + " Thank you!"
 
-    tools = [search_menu, get_item_details, add_to_cart, remove_from_cart, view_cart, checkout]
+    tools = [search_menu, get_item_details, add_to_cart, add_note, remove_from_cart, view_cart, checkout]
 
     if customer is not None:
 

@@ -375,7 +375,11 @@ async def chat_voice(
         return VoiceChatResponse(transcript="", reply="", cart=agent.cart, service_log=agent.service_log)
 
     started = time.monotonic()
-    reply = send_or_busy(agent, transcript)
+    agent.record_channel, agent.speech_label = "push-to-talk", speech_resolve(speech)  # how this turn reads in the transcript
+    try:
+        reply = send_or_busy(agent, transcript)
+    finally:
+        agent.record_channel, agent.speech_label = None, None
     turnlog.log_turn(
         "push-to-talk", speech_resolve(speech), agent.language, transcript, reply,
         (time.monotonic() - started) * 1000, session_id,

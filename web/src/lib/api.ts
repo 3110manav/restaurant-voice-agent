@@ -8,6 +8,8 @@ export interface CartLine {
   quantity: number;
   /** Size/portion (e.g. "Large", "Half") for dishes that come in several. */
   variant?: string;
+  /** What the guest asked for on this dish ("Jain", "no onion"): a request for the kitchen, not a promise. */
+  note?: string | null;
 }
 
 export interface ServiceLogEntry {

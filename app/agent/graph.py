@@ -26,6 +26,7 @@ import copy
 import logging
 import os
 import threading
+import time
 
 import groq
 import httpx
@@ -43,6 +44,7 @@ from app.agent.service_tools import build_service_tools
 from app.agent.state import AgentState
 from app.agent.tools import build_tools
 from app.table.service import unplaced
+from app import transcripts
 from app.customers.session import CustomerSession
 from app.whatsapp import channels, client, notify
 
@@ -123,10 +125,10 @@ like "Enjoy your meal!" or "Have a good day!".
 
 Answer only what the guest just said or asked. If they ask about something new, answer that and stop: do not repeat \
 an earlier question in the same reply, and do not treat a hesitation or a bare "okay" as an order or as being finished. \
-When a guest wants a dish changed (no onion, Jain, less spicy, extra of something), you cannot change a recipe: pass \
-their exact words to the kitchen with call_staff, say plainly that you have passed it on, and keep their dish; never \
-offer a different dish as if it were the change, and never say a dish is Jain, vegan or allergen-free unless a tool \
-result says so."""
+When a guest wants a dish changed (no onion, Jain, less spicy, extra of something), add the dish and put their exact \
+words in its note (add_to_cart's note, or add_note for a dish already in the cart): that is the only way the kitchen \
+sees it. It is a request, never a promise, so say it is noted for the kitchen; never offer a different dish as if it \
+were the change, and never say a dish is Jain, vegan or allergen-free unless a tool result says so."""
 
 
 def _ordering_behavior(example: str) -> str:
@@ -356,6 +358,9 @@ class RestaurantOrderingAgent:
     customer = None  # a CustomerSession for stores and phone calls (app/customers/session.py)
     restaurant = None  # the store's row, for telling its owner about a placed order
     channel = "web"  # where the conversation happens: "web", "voice" or "whatsapp" (set by the caller)
+    record_channel: str | None = None  # overrides how a turn is labelled in the transcript (push-to-talk, phone)
+    speech_label: str | None = None  # "groq" or "sarvam", for the transcript of a voice turn
+    table_no: str | None = None
 
     def __init__(
         self,
@@ -382,6 +387,7 @@ class RestaurantOrderingAgent:
         self._placed_this_turn = False
         self.service_log: list[dict] = []
         self.phone = phone
+        self.table_no = table_no
         self.restaurant_id = restaurant["id"] if restaurant else (phone.restaurant_id if phone else None)
         self.business_type = (restaurant or {}).get("business_type") or "restaurant"
         self.customer = customer
@@ -625,6 +631,28 @@ class RestaurantOrderingAgent:
         return (self._placed_this_turn and "?" not in reply) or lang.is_goodbye(user_text, reply)
 
     def send(self, user_text: str) -> str:
+        """One turn: the guest's words in, the reply out. Every channel comes through here, so this is also where the
+        turn is recorded for the owner to read (app/transcripts.py); recording never delays or breaks the reply."""
+        started = time.monotonic()
+        reply = self._send(user_text)
+        try:
+            transcripts.record_turn(
+                self.restaurant_id, self.session_id, self._transcript_channel(), user_text, reply,
+                language=self.language, speech=self.speech_label, latency_ms=(time.monotonic() - started) * 1000,
+                table_no=self.table_no, caller_phone=getattr(self.customer, "phone", None) if self.customer else None,
+            )
+        except Exception:
+            logger.warning("couldn't record a turn", exc_info=True)
+        return reply
+
+    def _transcript_channel(self) -> str:
+        if self.record_channel:
+            return self.record_channel
+        if self.phone:
+            return "phone"
+        return {"voice": "browser-call", "whatsapp": "whatsapp"}.get(self.channel, "chat")
+
+    def _send(self, user_text: str) -> str:
         if self.phone:
             self.set_language(lang.caller_language(user_text, self.language))
             self.phone.start_turn(self.language)
