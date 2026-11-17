@@ -22,8 +22,9 @@ class StubAgent:
         self._placed_this_turn = False
         self.said = []
 
-    def set_language(self, language):
-        self.language = language
+    def set_language(self, language, start=None):
+        self.mode = language
+        self.language = start or language
 
     def opening_line(self, store_name=None):
         return f"Namaste from {store_name}"
@@ -81,12 +82,9 @@ def test_the_outcome_is_ordered_once_an_order_went_through(wired):
     assert call.outcome == "ordered"
 
 
-def test_the_agent_is_told_which_language_the_caller_speaks(wired):
+def test_the_agent_greets_in_hindi_then_follows_the_caller(wired):
     call = phone_call.PhoneCall("call-1", store(), "+919876543210")
-    call.take_turn("मुझे दो डोलो चाहिए")
-    assert call.agent.language == "hi"
-    call.take_turn("actually, two Dolo please")
-    assert call.agent.language == "en"
+    assert call.agent.mode == "auto" and call.agent.language == "hi"  # which language each reply is in is the agent's job
 
 
 def test_two_failures_in_a_row_leave_a_callback_note_for_the_store(wired):

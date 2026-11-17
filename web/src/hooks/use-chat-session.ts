@@ -61,24 +61,9 @@ export function useChatSession(persona: Persona, ctx: RestaurantContext = {}) {
   const [serviceLog, setServiceLog] = useState<ServiceLogEntry[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  // The English / हिन्दी toggle. It travels with every message and call, so the agent, the speech
-  // recognition and the voice all follow it, instead of guessing from what was just said.
-  const [language, setLanguageState] = useState<Language>("en");
-
-  const setLanguage = useCallback(
-    (next: Language) => {
-      if (next === language) return;
-      setLanguageState(next);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "agent",
-          text: next === "hi" ? "ठीक है, अब हिंदी में बात करते हैं।" : "Sure, let's continue in English.",
-        },
-      ]);
-    },
-    [language]
-  );
+  // Always auto: the agent answers in whatever language the guest just used (Hindi, Hinglish or English), and speech
+  // recognition is told no language. There is no selector to set.
+  const language: Language = "auto";
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -99,7 +84,7 @@ export function useChatSession(persona: Persona, ctx: RestaurantContext = {}) {
       setIsSending(true);
       try {
         const response = await sendChatMessage(sessionId, persona.key, trimmed, { restaurant, tableNo, language });
-        setMessages((prev) => [...prev, { role: "agent", text: response.reply }]);
+        if (response.reply) setMessages((prev) => [...prev, { role: "agent", text: response.reply }]);
         setCart(response.cart);
         setServiceLog(response.service_log);
       } catch (err) {
@@ -232,7 +217,6 @@ export function useChatSession(persona: Persona, ctx: RestaurantContext = {}) {
     restaurant,
     tableNo,
     language,
-    setLanguage,
     messages,
     cart,
     serviceLog,

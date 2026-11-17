@@ -29,7 +29,7 @@ const POLL_MS = 8000;
 const MIGRATION_HINT = "If this keeps happening, check that supabase/migrations/003_table_pilot.sql has been run.";
 
 /** Loads now and every `everyMs` (0: only on refresh). Keeps showing the last good data on errors. */
-function usePolled<T>(load: () => Promise<T>, everyMs = POLL_MS) {
+export function usePolled<T>(load: () => Promise<T>, everyMs = POLL_MS) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -343,7 +343,7 @@ function CustomerVisits({ restaurantId, customer, onClose }: { restaurantId: str
                   {formatTime(v.seated_at)}
                   {v.table_no ? ` · Table ${v.table_no}` : ""} ·{" "}
                 </span>
-                {v.ordered.map((l) => `${l.quantity} × ${l.name}${l.variant ? ` (${l.variant})` : ""}`).join(", ") || "Nothing ordered"}
+                {v.ordered.map((l) => `${l.quantity} × ${l.name}${l.variant ? ` (${l.variant})` : ""}${l.note ? ` [${l.note}]` : ""}`).join(", ") || "Nothing ordered"}
               </span>
               <span className="font-medium">
                 {v.bill_total ? formatPrice(v.bill_total) : "—"}

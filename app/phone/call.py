@@ -74,7 +74,8 @@ class PhoneCall:
             self.agent = RestaurantOrderingAgent(
                 session_id=room, menu_store=menu_store, persona=self.persona, phone=self.order, **options
             )
-        self.agent.set_language("hi")
+        if not self.database_store:
+            self.agent.set_language("hi")
 
     def _start_store_agent(self, room: str, store: dict, caller: str | None, options: dict) -> None:
         menu = menu_cache.get(store["restaurant_slug"])
@@ -90,6 +91,8 @@ class PhoneCall:
             restaurant=restaurant, customer=customer, live_call=True, **options,
         )
         self.agent.channel = "voice"
+        self.agent.record_channel = "phone"
+        self.agent.set_language(lang.AUTO, start="hi")  # greets in Hindi, then answers in whatever the caller speaks
 
     @property
     def greeting(self) -> str:
@@ -101,8 +104,6 @@ class PhoneCall:
         """Blocking. Always returns something to say: a caller must never be left in silence."""
         started = time.monotonic()
         try:
-            if self.database_store:  # the phone agent does this itself; the store agent is told
-                self.agent.set_language(lang.caller_language(text, self.agent.language))
             reply = self.agent.send(text)
             self.failures = 0
             if self.database_store and self.agent._placed_this_turn:

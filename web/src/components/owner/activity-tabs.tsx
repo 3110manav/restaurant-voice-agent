@@ -62,7 +62,7 @@ export function OrdersTab({ restaurantId }: { restaurantId: string }) {
                   <TableCell className="text-xs text-muted-foreground">{formatTime(o.created_at)}</TableCell>
                   <TableCell>{o.table_no ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {o.items.map((i) => `${i.quantity}x ${i.name}${i.variant ? ` (${i.variant})` : ""}`).join(", ")}
+                    {o.items.map((i) => `${i.quantity}x ${i.name}${i.variant ? ` (${i.variant})` : ""}${i.note ? ` [${i.note}]` : ""}`).join(", ")}
                   </TableCell>
                   <TableCell className="text-right font-medium">{formatPrice(o.total)}</TableCell>
                   <TableCell>

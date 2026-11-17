@@ -27,7 +27,14 @@ def build_stt(language: str | None, speech: str | None = None) -> lk_stt.STT:
     """Speech-to-text for a call. `language` is the conversation's ("en" or "hi") when it is fixed, as in a
     browser call; None on a phone call, where it can change and is heard from each sentence."""
     if _sarvam(speech):
-        # Saaras hears code-mixed Hindi and English and detects which, so it needs no language.
+        if language in ("en", "hi") and not os.environ.get("SARVAM_STT_AUTODETECT"):
+            # The app's English / हिन्दी setting is explicit, so Saaras is told instead of left to guess. Guessing put a
+            # stray Hindi word in front of English sentences, and turned unclear English into other words. English
+            # is transcribed as English; Hindi is codemix, so English words in it (brand names) stay in English.
+            if language == "hi":
+                return sarvam.STT(language="hi-IN", model=SARVAM_STT_MODEL, mode="codemix")
+            return sarvam.STT(language="en-IN", model=SARVAM_STT_MODEL, mode="transcribe")
+        # A phone call can switch language mid-call, so there Saaras hears code-mixed speech and detects which.
         return sarvam.STT(language="unknown", model=SARVAM_STT_MODEL, mode="codemix")
     if language:
         return groq.STT(model=GROQ_STT_MODEL, language=language)
