@@ -15,7 +15,7 @@ import re
 from app.agent.language import line as lang_line, normalize
 
 FAST_TOOLS = {
-    "add_to_cart", "remove_from_cart", "checkout", "request_item", "flag_issue", "request_bill", "call_staff",
+    "add_to_cart", "add_note", "remove_from_cart", "checkout", "request_item", "flag_issue", "request_bill", "call_staff",
     "save_delivery_details", "choose_pickup", "choose_prescription_path",
 }
 
@@ -61,6 +61,7 @@ _PHRASES = {
 }
 _EVENT_GROUP = {
     "added": "order",
+    "noted": "order",
     # Answers to a question the shop asked ("I want to pick it up", "I want to talk to the pharmacist") are not new orders.
     "details_saved": "order",
     "pickup_chosen": "order",
@@ -117,7 +118,7 @@ def _label(line: dict) -> str:
 def _join(parts: list[str], language: str) -> str:
     if len(parts) <= 1:
         return "".join(parts)
-    word = "और" if language == "hi" else "and"
+    word = "और" if language == "hi" else "aur" if language == "hinglish" else "and"
     return f"{', '.join(parts[:-1])} {word} {parts[-1]}"
 
 
@@ -125,11 +126,21 @@ def _added(event: dict, language: str) -> str:
     hi = language == "hi"
     # One of something is just its name; more than one says how many ("Done, two Dolo 650 and an ORS").
     items = _join([(_label(l) if l["quantity"] == 1 else f"{_quantity(l['quantity'], language)} {_label(l)}") for l in event["lines"]], language)
-    text = f"हो गया, {items} जोड़ दिया।" if hi else f"Done, {items}."
+    hg = language == "hinglish"
+    text = f"हो गया, {items} जोड़ दिया।" if hi else f"Ho gaya, {items} add kar diya." if hg else f"Done, {items}."
+    notes = [l["note"] for l in event["lines"] if l.get("note")]
+    if notes:  # said back, so the guest hears what the kitchen was told (and that it is a request)
+        text += (
+            f" किचन के लिए नोट: {', '.join(notes)}।" if hi
+            else f" Kitchen ke liye note: {', '.join(notes)}." if hg
+            else f" Noted for the kitchen: {', '.join(notes)}."
+        )
     if any(l.get("rx") for l in event["lines"]):  # a pharmacy item that needs a prescription
         text += (
             " इसके लिए पर्चा चाहिए, भेजने से पहले हमारे फार्मासिस्ट उसे देख लेंगे।"
             if hi
+            else " Iske liye prescription chahiye, bhejne se pehle hamare pharmacist ise dekh lenge."
+            if hg
             else " That one needs a prescription, and our pharmacist will check it before it goes out."
         )
     return text
@@ -145,10 +156,38 @@ def spoken_digits(number: str | None) -> str:
     return f"{' '.join(digits[:5])}, {' '.join(digits[5:])}"
 
 
+def _placed_hinglish(event: dict) -> str:
+    """The order-placed line for a guest who is writing Hinglish. The long prescription instructions stay in English,
+    where they are precise; everything a normal order says is in Hinglish."""
+    total, area, kind = event.get("total"), event.get("area"), event.get("fulfilment")
+    money = f"Total {round(total)} rupees" if event.get("say_total") and total else ""
+    if kind == "delivery":
+        where = f"{area} mein bhej rahe hain" if area else "aapke address par bhej rahe hain"
+    elif kind == "pickup":
+        where = "aap aakar le sakte hain"
+    else:
+        where = ""
+    detail = ", ".join(x for x in (money, where) if x)
+    text = f"Ho gaya! {detail}." if detail else "Ho gaya, order kitchen mein chala gaya hai."
+    number = event.get("wa_number")
+    if event.get("rx_path") == "whatsapp":
+        if event.get("wa_channel") != "whatsapp" and number:
+            text += f" Please prescription ki photo dukaan ke WhatsApp number {spoken_digits(number)} par bhej dijiye, pharmacist dekhkar order confirm karenge."
+        else:
+            text += " Please prescription ki saaf photo WhatsApp par bhej dijiye, pharmacist dekhkar order confirm karenge."
+    elif event.get("rx_path") == "pharmacist":
+        text += " Hamare pharmacist aapko jaldi call karenge."
+    elif event.get("wa_alerted") and kind in ("delivery", "pickup"):
+        text += " Maine aapka order dukaan ko WhatsApp par bhej diya hai."
+    return text + " Dhanyavaad!"
+
+
 def _placed(event: dict, language: str) -> str:
     """The order-placed line. Stores say the total and where it is going: "All set! That's fifty four rupees,
     coming to you in Bandra West." """
     hi = language == "hi"
+    if language == "hinglish":
+        return _placed_hinglish(event)
     total, area, kind = event.get("total"), event.get("area"), event.get("fulfilment")
     money = ""
     if event.get("say_total") and total:
@@ -191,12 +230,23 @@ def _removed(event: dict, language: str) -> str:
     label = _label(event)
     if event["remaining"] > 0:
         n = _quantity(event["remaining"], language)
+        if language == "hinglish":
+            return f"Theek hai, {label} ab {n} reh gaya."
         return f"ठीक है, {label} अब {n} रह गया।" if language == "hi" else f"Done, {label} is now {n}."
+    if language == "hinglish":
+        return f"Theek hai, {label} hata diya."
     return f"ठीक है, {label} हटा दिया।" if language == "hi" else f"Done, removed {label}."
 
 
 def _offer(event: dict, language: str) -> str:
     hi = language == "hi"
+    if language == "hinglish":
+        if event["kind"] == "dessert":
+            return f"Order dene se pehle, meethe mein {' ya '.join(event['desserts'])} lenge?"
+        drinks, side = " ya ".join(event["drinks"]), (event["sides"][0] if event["sides"] else None)
+        if drinks and side:
+            return f"Saath mein {drinks} lenge, ya {side} bhi?"
+        return f"Saath mein {drinks} lenge?" if drinks else f"Saath mein {side} bhi lenge?"
     if event["kind"] == "dessert":
         names = (" या " if hi else " or ").join(event["desserts"])
         return f"ऑर्डर देने से पहले, मीठे में {names} लेंगे?" if hi else f"Before I place it, would you like {names} to finish?"
@@ -225,6 +275,14 @@ def compose(events: list[dict], language: str) -> str | None:
             parts.append(_added(e, language))
         elif kind == "removed":
             parts.append(_removed(e, language))
+        elif kind == "noted":
+            name = _spoken_name(e["name"])
+            if hi:
+                parts.append(f"ठीक है, {name} के लिए किचन को बता दिया: {e['note']}।")
+            elif language == "hinglish":
+                parts.append(f"Theek hai, {name} ke liye kitchen ko bata diya: {e['note']}.")
+            else:
+                parts.append(f"Noted for the kitchen, on the {name}: {e['note']}.")
         elif kind == "offer":
             parts.append(_offer(e, language))
             asked_something = True
@@ -233,13 +291,19 @@ def compose(events: list[dict], language: str) -> str | None:
         elif kind == "details_saved":
             # Read back exactly what was saved (code, not the model, so a name is never misspelt).
             first = (e.get("name") or "").split(" ")[0]
-            if hi:
+            if language == "hinglish":
+                parts.append(f"Dhanyavaad{' ' + first if first else ''}. Address: {e['line']}. Kya yeh sahi hai?")
+            elif hi:
                 parts.append(f"धन्यवाद{' ' + first if first else ''}। पता: {e['line']}। क्या यह सही है?")
             else:
                 parts.append(f"Thanks{', ' + first if first else ''}. Got it: {e['line']}. Is that right?")
             asked_something = True
         elif kind == "pickup_chosen":
-            parts.append("ठीक है, आप खुद आकर ले लेंगे। ऑर्डर दे दें?" if hi else "Got it, you'll pick it up. Shall I place it?")
+            parts.append(
+                "ठीक है, आप खुद आकर ले लेंगे। ऑर्डर दे दें?" if hi
+                else "Theek hai, aap khud aakar le lenge. Order de dein?" if language == "hinglish"
+                else "Got it, you'll pick it up. Shall I place it?"
+            )
             asked_something = True
         elif kind == "rx_choice_needed":
             parts.append(lang_line(language, "rx_choice"))
@@ -247,10 +311,19 @@ def compose(events: list[dict], language: str) -> str | None:
         elif kind == "rx_path_chosen":
             if any(x["type"] in ("checkout", "checkout_held") for x in events):
                 continue  # the order is placed (or the next question asked) in the same turn
+            hg = language == "hinglish"
             if e["path"] == "whatsapp":
-                parts.append("ठीक है, पर्चा व्हाट्सऐप पर भेजना है। ऑर्डर दे दें?" if hi else "Got it, prescription on WhatsApp. Shall I place it?")
+                parts.append(
+                    "ठीक है, पर्चा व्हाट्सऐप पर भेजना है। ऑर्डर दे दें?" if hi
+                    else "Theek hai, prescription WhatsApp par bhejna hai. Order de dein?" if hg
+                    else "Got it, prescription on WhatsApp. Shall I place it?"
+                )
             else:
-                parts.append("ठीक है, फार्मासिस्ट आपको कॉल करेंगे। ऑर्डर दे दें?" if hi else "Got it, our pharmacist will call you. Shall I place it?")
+                parts.append(
+                    "ठीक है, फार्मासिस्ट आपको कॉल करेंगे। ऑर्डर दे दें?" if hi
+                    else "Theek hai, pharmacist aapko call karenge. Order de dein?" if hg
+                    else "Got it, our pharmacist will call you. Shall I place it?"
+                )
             asked_something = True
         elif kind == "details_needed":
             parts.append(lang_line(language, "details"))
@@ -259,23 +332,34 @@ def compose(events: list[dict], language: str) -> str | None:
             parts.append(_placed(e, language))
         elif kind == "bill":
             total = e.get("total")
+            hg = language == "hinglish"
             if total:
                 amount = f"{round(total)} रुपये" if hi else f"{round(total)} rupees"
-                parts.append(f"आपका कुल {amount} हुआ। बिल अभी लाते हैं।" if hi else f"Your total comes to {amount}. I'll bring the bill over.")
+                parts.append(
+                    f"आपका कुल {amount} हुआ। बिल अभी लाते हैं।" if hi
+                    else f"Aapka total {amount} hua. Bill abhi laate hain." if hg
+                    else f"Your total comes to {amount}. I'll bring the bill over."
+                )
             else:
-                parts.append("बिल अभी लाते हैं।" if hi else "I'll bring the bill right over.")
+                parts.append("बिल अभी लाते हैं।" if hi else "Bill abhi laate hain." if hg else "I'll bring the bill right over.")
         elif kind == "item_request":
-            parts.append(f"ठीक है, {e['item']} अभी लाते हैं।" if hi else f"Sure, {e['item']} is on its way.")
+            parts.append(
+                f"ठीक है, {e['item']} अभी लाते हैं।" if hi
+                else f"Theek hai, {e['item']} abhi laate hain." if language == "hinglish"
+                else f"Sure, {e['item']} is on its way."
+            )
         elif kind == "issue":
             parts.append(
                 f"माफ़ कीजिए, किचन को {e['item']} के बारे में बता दिया है।"
                 if hi
+                else f"Maaf kijiye, kitchen ko {e['item']} ke baare mein bata diya hai."
+                if language == "hinglish"
                 else f"Sorry about that, I've let the kitchen know about the {e['item']}."
             )
         elif kind == "staff":
-            parts.append("कोई अभी आपके पास आता है।" if hi else "Someone will be right with you.")
+            parts.append("कोई अभी आपके पास आता है।" if hi else "Koi abhi aapke paas aata hai." if language == "hinglish" else "Someone will be right with you.")
     if not parts:
         return None
-    if events[-1]["type"] == "added" and not asked_something:
-        parts.append("और कुछ?" if hi else "Anything else?")
+    if events[-1]["type"] in ("added", "noted") and not asked_something:
+        parts.append("और कुछ?" if hi else "Aur kuch?" if language == "hinglish" else "Anything else?")
     return " ".join(parts)

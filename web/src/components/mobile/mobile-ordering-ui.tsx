@@ -5,7 +5,6 @@ import { Mic, Phone, ShoppingBag, X } from "lucide-react";
 
 import { ChatPanel } from "@/components/chat/chat-panel";
 import { OrderPanel } from "@/components/chat/order-panel";
-import { LanguageToggle } from "@/components/language-toggle";
 import { BottomSheet } from "@/components/mobile/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { AgentOrb } from "@/components/voice/agent-orb";
@@ -147,7 +146,6 @@ export function MobileOrderingUI({ persona, session }: { persona: Persona; sessi
         <BottomSheet title={`Call ${persona.agentName}`} subtitle="You can keep browsing the menu during the call" onClose={() => setSheet(null)}>
           <div className="flex flex-1 flex-col items-center justify-center gap-4 overflow-y-auto p-4">
             <AgentOrb className="size-28" state={call.isConnecting ? "connecting" : "idle"} />
-            <LanguageToggle value={session.language} onChange={session.setLanguage} disabled={call.isConnecting} />
             <Button onClick={() => void beginCall()} disabled={call.isConnecting || !session.sessionId} className="h-11 gap-2 px-6">
               <Phone className="size-4" />
               {call.isConnecting ? "Connecting…" : `Call ${persona.agentName}`}

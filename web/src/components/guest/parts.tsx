@@ -11,34 +11,31 @@ import { cn } from "@/lib/utils";
 /** What the guest's pages share, whichever layout shows them (phone column in guest-app.tsx, desktop in guest-desktop.tsx). */
 
 export const lineKey = (id: string, variant?: string | null) => `${id}|${variant ?? ""}`;
-export const lineLabel = (line: { name: string; variant?: string | null }) => (line.variant ? `${line.name} (${line.variant})` : line.name);
+export const lineLabel = (line: { name: string; variant?: string | null; note?: string | null }) => {
+  const label = line.variant ? `${line.name} (${line.variant})` : line.name;
+  return line.note ? `${label} · ${line.note}` : label;
+};
 export const sum = (lines: CartLine[]) => lines.reduce((total, line) => total + line.price * line.quantity, 0);
 
 /** A kirana or a pharmacy: ordered by chat or voice for delivery, with no table, kitchen or bill. */
 export const isStore = (info: RestaurantInfo) => info.business_type === "kirana" || info.business_type === "pharmacy";
 
 /** How the agent introduces itself, by the kind of place it works for. */
-export function agentRole(info: RestaurantInfo, hi: boolean): string {
-  if (info.business_type === "pharmacy") return hi ? "फ़ार्मेसी असिस्टेंट" : "pharmacy assistant";
-  if (info.business_type === "kirana") return hi ? "दुकान असिस्टेंट" : "store assistant";
-  return hi ? "वेटर" : "waiter";
+export function agentRole(info: RestaurantInfo): string {
+  if (info.business_type === "pharmacy") return "pharmacy assistant";
+  if (info.business_type === "kirana") return "store assistant";
+  return "waiter";
 }
 
-export function welcomeLine(info: RestaurantInfo, persona: Persona, hi: boolean): string {
+export function welcomeLine(info: RestaurantInfo, persona: Persona): string {
   const name = persona.agentName;
   if (info.business_type === "pharmacy") {
-    return hi
-      ? `नमस्ते! मैं ${name} हूँ, आपकी फ़ार्मेसी असिस्टेंट। जो दवा या सामान चाहिए, बताइए या सूची से चुनिए।`
-      : `Hello! I'm ${name}, your pharmacy assistant. Tell me what you need, or pick from the list. Your pharmacist confirms every order.`;
+    return `Hello! I'm ${name}, your pharmacy assistant. Tell me what you need, in Hindi, English or both, or pick from the list. Your pharmacist confirms every order.`;
   }
   if (info.business_type === "kirana") {
-    return hi
-      ? `नमस्ते! मैं ${name} हूँ। जो सामान चाहिए बताइए, या सूची से चुनिए, हम घर तक पहुँचा देंगे।`
-      : `Hello! I'm ${name}. Tell me what you need, or pick from the list, and we'll bring it to your door.`;
+    return `Hello! I'm ${name}. Tell me what you need, in Hindi, English or both, or pick from the list, and we'll bring it to your door.`;
   }
-  return hi
-    ? `नमस्ते! मैं ${name} हूँ। मेन्यू से ऑर्डर करें, या बस बताइए क्या खाने का मन है।`
-    : `Welcome! I'm ${name}, your waiter today. Order from the menu, or just tell me what you feel like eating.`;
+  return `Welcome! I'm ${name}, your waiter today. Order from the menu, or just tell me what you feel like eating, in Hindi, English or both.`;
 }
 
 /** An example of what to type, for the kind of place it is. */

@@ -175,13 +175,46 @@ export const closeTable = (restaurantId: string, rowId: string) =>
 export const listCustomers = (restaurantId: string) =>
   ownerFetch<{ customers: Customer[] }>(`restaurants/${restaurantId}/customers`).then((r) => r.customers);
 
+export interface ConversationSummary {
+  session_id: string;
+  started_at: string;
+  last_at: string;
+  turns: number;
+  channels: string[];
+  table_no: string | null;
+  caller_phone: string | null;
+  /** How the conversation began: the guest's first words. */
+  preview: string;
+}
+
+export interface ConversationTurn {
+  id: string;
+  channel: string;
+  speech: string | null;
+  language: string | null;
+  table_no: string | null;
+  /** What the guest typed, or what speech recognition heard. */
+  customer_text: string;
+  agent_text: string;
+  latency_ms: number | null;
+  created_at: string;
+}
+
+export const listConversations = (restaurantId: string) =>
+  ownerFetch<{ conversations: ConversationSummary[] }>(`restaurants/${restaurantId}/conversations`).then((r) => r.conversations);
+
+export const getConversation = (restaurantId: string, sessionId: string) =>
+  ownerFetch<{ turns: ConversationTurn[] }>(
+    `restaurants/${restaurantId}/conversations/${encodeURIComponent(sessionId)}`
+  ).then((r) => r.turns);
+
 export const fetchMonthlyReport = (restaurantId: string, month?: string) =>
   ownerFetch<MonthlyReport>(`restaurants/${restaurantId}/report${month ? `?month=${encodeURIComponent(month)}` : ""}`);
 
 export interface CustomerVisit {
   seated_at: string;
   table_no: string | null;
-  ordered: { id: string; name: string; quantity: number; variant?: string }[];
+  ordered: { id: string; name: string; quantity: number; variant?: string; note?: string | null }[];
   bill_total: number | null;
   rating: number | null;
 }

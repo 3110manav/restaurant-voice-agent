@@ -1,6 +1,8 @@
-"""The conversation's language: an explicit setting, not a guess.
+"""The conversation's language: the guest's choice, or, in Auto (the default), whatever they are speaking.
 
-The web app's English / हिन्दी toggle sends the language with every message and call. From it:
+The web app's Auto / English / हिन्दी toggle sends the setting with every message and call. English and Hindi fix the
+reply language. Auto reads each message (detect below) and answers in Hindi, Hinglish (Hindi in Latin letters) or
+English to match, so the guest never has to choose. A fixed language does the following, and Auto does the same per message:
   - the agent gets a one-line LANGUAGE instruction at the end of every model call (agent/graph.py),
   - speech-to-text is told which language to expect (voice/stt.py, the LiveKit worker),
   - the reply is checked to be in that language's script (agent/guardrails.py),
@@ -14,7 +16,10 @@ followed by रुपये and dish names kept as they are on the menu.
 import re
 
 DEFAULT = "en"
-LANGUAGES = {"en": "English", "hi": "Hindi"}
+AUTO = "auto"  # not a language: the reply follows whatever the guest's latest message is written or spoken in
+# "hinglish" is Hindi mixed with English, written in Latin letters. The guest never picks it: Auto settles on it when
+# that is how they write.
+LANGUAGES = {"en": "English", "hi": "Hindi", "hinglish": "Hinglish"}
 
 
 def normalize(value: str | None) -> str:
@@ -36,19 +41,20 @@ def devanagari_share(text: str) -> float:
 
 
 def reply_in_language(reply: str, language: str) -> bool:
-    """Is `reply` written in `language`? English means no Devanagari at all; Hindi means mostly
-    Devanagari (dish names stay in English letters, so not entirely)."""
+    """Is `reply` written in `language`? English and Hinglish mean no Devanagari at all (Hinglish is Latin letters);
+    Hindi means mostly Devanagari (dish names stay in English letters, so not entirely)."""
     if language == "hi":
         return devanagari_share(reply) >= 0.25 or not any(ch.isalpha() for ch in reply)
     return not has_devanagari(reply)
 
 
 def use_hindi_voice(text: str, language: str | None) -> bool:
-    """Which text-to-speech voice reads `text`. The conversation's language decides; only when
-    none was given (the legacy CLIs) does it fall back to looking at the script."""
+    """Which text-to-speech voice reads `text`: the Hindi-capable one (Sarvam's Bulbul) for Hindi and Hinglish, the
+    English one otherwise. The conversation's language decides; with none given (a call that follows the speaker, the
+    legacy CLIs) each sentence is judged by its own script and words."""
     if language in LANGUAGES:
-        return language == "hi"
-    return has_devanagari(text)
+        return language in ("hi", "hinglish")
+    return has_devanagari(text) or looks_hinglish(text)
 
 
 # Hindi written in Latin letters, the way speech-to-text can hear a mixed sentence.
@@ -70,7 +76,53 @@ def caller_language(text: str, current: str) -> str:
     return "en" if len(words) >= 3 else normalize(current)
 
 
+# Words that are Hindi and nothing else when written in Latin letters ("do" and "me" are left out: they are English too).
+_HINGLISH_MARKERS = _ROMAN_HINDI | {
+    "mujhe", "mujhko", "mera", "meri", "hume", "humein", "humko", "aapko", "aapka", "aapke", "tum", "tumhe", "kyun", "kaise",
+    "kitne", "kitni", "kaun", "kab", "kahan", "hoon", "hoga", "hogi", "tha", "thi", "ji", "accha", "achha", "yaar", "chahta",
+    "chahte", "chahti", "kijiye", "karna", "karein", "lijiye", "toh", "bhi", "mein", "ko", "ka", "ki", "ke", "se", "thoda",
+    "thodi", "bahut", "abhi", "pehle", "baad", "mat", "zyada", "kam", "garam", "thanda", "jaldi", "batao", "bata", "dikhao",
+    "samajh", "pata", "lagta", "chalo", "chalega", "sahi", "galat", "bilkul", "matlab", "isme", "usme", "isko", "usko", "yeh",
+    "ye", "woh", "wo", "iska", "uska", "yahan", "wahan", "kuch", "koi", "sab", "kal", "aaj", "dekhta", "dekho", "chalu",
+    "rehne", "lagao", "mangwa", "mangna", "rahega", "rahegi", "wahi", "bhaiya", "didi",
+}
+
+
+def looks_hinglish(text: str) -> bool:
+    """Hindi written in Latin letters: at least two Hindi-only words, or one that is half the message ("thoda spicy").
+    One stray Hindi word in a longer English sentence ("Is the dosa garam?") does not count."""
+    words = re.findall(r"[a-z']+", (text or "").lower())
+    hits = sum(1 for w in words if w in _HINGLISH_MARKERS)
+    return bool(words) and hits > 0 and (hits >= 2 or hits / len(words) >= 0.5)
+
+
+def _devanagari_word_share(text: str) -> float:
+    """The share of the message's words written in Devanagari. By words, not letters: a Hindi sentence with an English
+    dish name in it ("मुझे one paneer tikka चाहिए") is still Hindi, however long the dish name is."""
+    words = [w for w in (text or "").split() if any(ch.isalnum() for ch in w)]
+    return sum(has_devanagari(w) for w in words) / len(words) if words else 0.0
+
+
+def detect(text: str, current: str = DEFAULT) -> str:
+    """The language a guest's latest message is in, and so the one to answer in: "hi" (Devanagari), "hinglish" (Hindi
+    in Latin letters) or "en". A message with nothing to go on, such as "ok" or a number, keeps the current language,
+    so the reply does not flip back and forth. A stray Devanagari word that speech recognition put in front of an
+    English sentence does not turn it into Hindi: it has to be a good part of the message."""
+    if _devanagari_word_share(text) >= 0.3:
+        return "hi"
+    if looks_hinglish(text):
+        return "hinglish"
+    words = re.findall(r"[a-z']+", (text or "").lower())
+    return "en" if len(words) >= 2 else normalize(current)
+
+
 _DIRECTIVES = {
+    "hinglish": (
+        "LANGUAGE: Hinglish. The guest is speaking Hindi mixed with English, so reply in the same natural mix, written "
+        "in Latin letters only and never Devanagari: Hindi words the way people text them (aap, kya, chahiye, theek hai) "
+        "with English for dish names and everyday words. Keep dish names exactly as on the menu. Write prices as digits "
+        "followed by 'rupees', for example 560 rupees. Keep it short and friendly."
+    ),
     "en": (
         "LANGUAGE: English. Reply only in English, in Latin letters, even if the guest writes Hindi "
         "words or Devanagari. Write prices as digits followed by 'rupees', for example 560 rupees."
@@ -128,6 +180,7 @@ LINES = {
         "order": "I haven't placed it yet. Shall I go ahead?",
         "cart": "Let me make sure I get that right. What would you like me to add or change?",
         "service": "Let me get someone to help with that. One moment please.",
+        "diet": "I'm not certain about that, so I'll check with the kitchen rather than guess.",
         "amount": "Let me double check that price for you. Which dish did you mean?",
         "dump": "What are you in the mood for? Something light, or something filling?",
         "default": "Sorry, could you say that once more?",
@@ -147,6 +200,7 @@ LINES = {
         "order": "अभी ऑर्डर दिया नहीं गया है। क्या मैं ऑर्डर दे दूँ?",
         "cart": "ज़रा ठीक से समझ लेते हैं। आप क्या जोड़ना या बदलना चाहेंगे?",
         "service": "अभी किसी को बुला देते हैं। एक पल रुकिए।",
+        "diet": "इस बारे में मुझे पक्का नहीं पता, इसलिए अंदाज़ा लगाने की बजाय किचन से पूछ लेते हैं।",
         "amount": "ज़रा क़ीमत दोबारा देख लेते हैं। आप किस डिश की बात कर रहे हैं?",
         "dump": "आज क्या खाने का मन है? कुछ हल्का, या भरपेट?",
         "default": "माफ़ कीजिए, क्या आप फिर से कह सकते हैं?",
@@ -162,6 +216,29 @@ LINES = {
 }
 
 
+# Hinglish: Hindi in Latin letters, the way people text it. Plural forms ("dete hain") keep it gender-neutral.
+LINES["hinglish"] = {
+    "injection": "Hum sirf aapke order aur table se jude kaam mein madad kar sakte hain. Aap kya lena chahenge?",
+    "empty": "Maaf kijiye, theek se sunai nahi diya. Kya aap ek baar phir bol sakte hain?",
+    "busy": "Maaf kijiye, abhi thodi bheed hai. Kripya thodi der baad phir boliye.",
+    "order": "Abhi order diya nahi gaya hai. Kya hum order de dein?",
+    "cart": "Zara theek se samajh lete hain. Aap kya add ya change karna chahenge?",
+    "service": "Abhi kisi ko bula dete hain. Ek minute rukiye.",
+    "amount": "Zara price dobara check kar lete hain. Aap kis dish ki baat kar rahe hain?",
+    "dump": "Aaj kya khane ka mann hai? Kuch halka, ya pet bharne wala?",
+    "default": "Maaf kijiye, kya aap phir se bol sakte hain?",
+    "emergency": "Yeh serious lag raha hai. Please abhi ek ek do par call kijiye, ya sabse paas ke hospital jaiye. Hum apne pharmacist ko abhi bata dete hain.",
+    "pharmacist": "Iske baare mein hamare pharmacist hi sahi salah de payenge. Hum unke liye note chhod dete hain, woh aapse baat karenge. Tab tak order mein kuch add kar dein?",
+    "details": "Order dene se pehle, kya hum aapka naam aur poora delivery address le lein? Ya aap khud aakar le lenge?",
+    "rx_choice": "Inmein se ek dawa ke liye prescription chahiye. Aap uski photo WhatsApp par bhejenge, ya pehle hamare pharmacist se baat karenge?",
+    "rx_received": "Dhanyavaad, order {code} ke liye aapka prescription mil gaya hai. Hamare pharmacist dekhkar jaldi confirm karenge.",
+    "rx_none": "Photo ke liye dhanyavaad! Prescription ka intezaar karta koi order nahi dikh raha. Aap kya mangwana chahenge?",
+    "wa_unsupported": "Abhi hum text message aur photo padh sakte hain. Kya aap likhkar bata sakte hain ki kya chahiye?",
+    "phone_callback": "Maaf kijiye, abhi thodi dikkat aa rahi hai. Dukaan se aapko jaldi phone aayega.",
+    "diet": "Is baare mein pakka nahi pata, isliye andaza lagane ki jagah kitchen se pooch lete hain.",
+}
+
+
 def line(language: str, key: str) -> str:
     return LINES[normalize(language)][key]
 
@@ -172,6 +249,7 @@ def line(language: str, key: str) -> str:
 ACKS = {
     "en": {"action": ["Sure.", "Okay.", "Got it."], "question": ["Let me check.", "One moment."]},
     "hi": {"action": ["ठीक है।", "जी।", "बिल्कुल।"], "question": ["ज़रा देखते हैं।", "एक पल।"]},
+    "hinglish": {"action": ["Theek hai.", "Ji.", "Bilkul."], "question": ["Ek second.", "Dekhta hoon."]},
 }
 _SMALL_TALK = re.compile(
     r"^\s*((ok(ay)?|alright|great|good|nice|cool|perfect)[\s,]+)?"

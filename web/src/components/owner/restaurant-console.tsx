@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { OrdersTab, RequestsTab } from "@/components/owner/activity-tabs";
+import { ConversationsTab } from "@/components/owner/conversations-tab";
 import { LoginForm } from "@/components/owner/login-form";
 import { MenuEditor } from "@/components/owner/menu-editor";
 import { CustomersTab, ReportTab, TonightTab } from "@/components/owner/pilot-tabs";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { key: "tonight", label: "Tonight" },
   { key: "customers", label: "Customers" },
+  { key: "conversations", label: "Conversations" },
   { key: "report", label: "Monthly report" },
   { key: "orders", label: "Orders" },
   { key: "requests", label: "Table requests" },
@@ -131,6 +133,12 @@ function Console({ id }: { id: string }) {
           <CustomersTab restaurant={restaurant} />
         ) : (
           <p className="text-sm text-muted-foreground">Only owners and managers can see the customer list.</p>
+        ))}
+      {tab === "conversations" &&
+        (canEdit ? (
+          <ConversationsTab restaurant={restaurant} />
+        ) : (
+          <p className="text-sm text-muted-foreground">Only owners and managers can read conversations.</p>
         ))}
       {tab === "report" && <ReportTab restaurant={restaurant} />}
       {tab === "settings" &&
