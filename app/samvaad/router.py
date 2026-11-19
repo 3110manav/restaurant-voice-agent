@@ -24,7 +24,7 @@ import os
 import httpx
 from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from app.phone import repository
 from app.samvaad.session import SamvaadSession, StoreNotFound, sessions
@@ -37,11 +37,13 @@ SARVAM_RUNTIME = "https://apps.sarvam.ai/api/app-runtime/"
 
 
 class ToolCall(BaseModel):
-    """What any Samvaad tool sends. Only interaction_id is required; the rest depends on the tool."""
+    """What any Samvaad tool sends. Everything is optional; which fields matter depends on the tool."""
 
     model_config = ConfigDict(extra="allow")
 
-    interaction_id: str
+    # Samvaad's built-in Interaction ID. It is empty when a tool is tried with "Send" in the tool editor,
+    # since there is no call yet, so a missing one falls back to an ID per caller (see _fill_interaction_id).
+    interaction_id: str | None = None
     store_slug: str | None = None
     called_number: str | None = None
     caller: str | None = None
@@ -58,6 +60,14 @@ class ToolCall(BaseModel):
     address: str | None = None
     whatsapp_number: str | None = None
     reason: str | None = None
+
+    @model_validator(mode="after")
+    def _fill_interaction_id(self) -> "ToolCall":
+        if _blank(self.interaction_id):
+            caller = _clean(self.caller) if isinstance(self.caller, str) else None
+            self.interaction_id = f"no-interaction-id-{caller or 'unknown'}"
+            logger.warning("Samvaad tool call without an interaction ID; using %s", self.interaction_id)
+        return self
 
 
 def _authorize(authorization: str | None) -> None:
@@ -218,7 +228,7 @@ def browser_config() -> dict:
     return {"enabled": enabled, **agent, "stores": stores}
 
 
-@router.get("/browser/cart/{interaction_id}")
+@router.get("/browser/cart/{interaction_id:path}")  # Samvaad IDs contain "/"
 def browser_cart(interaction_id: str) -> dict:
     """The live cart of a call in progress, for the page to show while the guest talks. Read-only, and only
     reachable with the interaction id, which Sarvam makes up per call and only that browser knows."""

@@ -61,6 +61,7 @@ class PhoneCall:
         self.metrics: list[dict] = []
         self.failures = 0
         self.closed = False
+        self.cost: dict | None = None  # what the call cost (app/voice/costs.py), set when a realtime call ends
         self.call_id = repository.start_call(room, store["id"], numbers.canonical(caller))
         options = {"model": model} if model else {}
         if self.database_store:
@@ -152,8 +153,9 @@ class PhoneCall:
             return
         self.closed = True
         try:
+            metrics = self.metrics + ([self.cost] if self.cost else [])
             repository.update_call(
-                self.call_id, turns=self.turns, metrics=self.metrics,
+                self.call_id, turns=self.turns, metrics=metrics,
                 outcome=self.outcome, ended_at=repository.now_iso(),
             )
         except Exception:

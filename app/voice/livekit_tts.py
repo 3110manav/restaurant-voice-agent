@@ -21,7 +21,9 @@ from livekit.agents.types import DEFAULT_API_CONNECT_OPTIONS
 
 from sarvamai import AsyncSarvamAI
 
-from app.voice.tts import sarvam_request, synthesize, synthesize_sarvam
+from app.agent.language import use_hindi_voice
+from app.voice.stack import uses_sarvam
+from app.voice.tts import ENGLISH_MODEL, SARVAM_MODEL, sarvam_request, synthesize, synthesize_sarvam
 
 SAMPLE_RATE = 48000
 NUM_CHANNELS = 1
@@ -57,6 +59,11 @@ def speak_audio(
     return audio
 
 
+def speech_model(text: str, language: str | None, sarvam_only: bool) -> str:
+    """Which model speak_audio would use for `text`, so its characters are billed to the right one."""
+    return SARVAM_MODEL if sarvam_only or uses_sarvam(None) or use_hindi_voice(text, language) else ENGLISH_MODEL
+
+
 def warm_phrases(
     persona: str, language: str | None, phrases: list[str], sarvam_only: bool = False, sample_rate: int | None = None
 ) -> None:
@@ -75,6 +82,7 @@ class SarthiTTS(TTS):
         language: str | None = "en",
         sarvam_only: bool = False,
         sample_rate: int | None = None,  # what to ask Bulbul for; None takes its default
+        meter=None,  # the call's CallCost (app/voice/costs.py): counts characters really sent for speech
     ) -> None:
         super().__init__(
             capabilities=TTSCapabilities(streaming=False),
@@ -86,6 +94,12 @@ class SarthiTTS(TTS):
         self._sarvam_only = sarvam_only
         self._request_rate = sample_rate
         self._sarvam = AsyncSarvamAI(timeout=30.0) if sarvam_only else None
+        self._meter = meter
+
+    def _count(self, text: str, cache_key: tuple) -> None:
+        """Bill `text` unless its audio is cached (a cached phrase is free)."""
+        if self._meter is not None and cache_key not in _PHRASE_CACHE:
+            self._meter.add_tts(speech_model(text, self._language, self._sarvam_only), len(text.strip()))
 
     @property
     def model(self) -> str:
@@ -116,6 +130,7 @@ class SarthiChunkedStream(ChunkedStream):
         if tts._sarvam_only:
             await self._stream_sarvam(tts, output_emitter)
         else:
+            tts._count(self._input_text, _cache_key(self._input_text, tts._persona, tts._language, False, None))
             wav_bytes = await asyncio.get_running_loop().run_in_executor(
                 None, speak_audio, self._input_text, tts._persona, tts._language
             )
@@ -129,6 +144,7 @@ class SarthiChunkedStream(ChunkedStream):
         if cached is not None:
             output_emitter.push(cached)
             return
+        tts._count(self._input_text, key)
         request = sarvam_request(self._input_text, tts._persona, tts._request_rate)
         chunks = []
         async for chunk in tts._sarvam.text_to_speech.convert_stream(**request):
@@ -138,13 +154,13 @@ class SarthiChunkedStream(ChunkedStream):
 
 
 def build_speech(
-    persona: str, language: str | None, sarvam_only: bool = False, sample_rate: int | None = None
+    persona: str, language: str | None, sarvam_only: bool = False, sample_rate: int | None = None, meter=None
 ) -> lk_tts.StreamAdapter:
     """The call's text-to-speech: Sarthi's voices behind an adapter that speaks each sentence as soon
     as it is ready. LiveKit's default holds any sentence under 20 characters until the next one
     arrives, which would stop the quick "Sure." from playing while the real answer is worked out."""
     return lk_tts.StreamAdapter(
-        tts=SarthiTTS(persona=persona, language=language, sarvam_only=sarvam_only, sample_rate=sample_rate),
+        tts=SarthiTTS(persona=persona, language=language, sarvam_only=sarvam_only, sample_rate=sample_rate, meter=meter),
         sentence_tokenizer=tokenize.blingfire.SentenceTokenizer(
             min_sentence_len=1, stream_context_len=0, retain_format=True
         ),

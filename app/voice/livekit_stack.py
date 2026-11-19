@@ -35,10 +35,15 @@ def build_stt(language: str | None, speech: str | None = None) -> lk_stt.STT:
 
 
 def build_tts(
-    persona: str, language: str | None, sample_rate: int | None = None, speech: str | None = None
+    persona: str, language: str | None, sample_rate: int | None = None, speech: str | None = None, meter=None
 ) -> lk_tts.StreamAdapter:
     """Text-to-speech for a call. `sample_rate` is 8000 on a phone line, which carries nothing more."""
-    return build_speech(persona, language, sarvam_only=_sarvam(speech), sample_rate=sample_rate)
+    return build_speech(persona, language, sarvam_only=_sarvam(speech), sample_rate=sample_rate, meter=meter)
+
+
+def stt_model(speech: str | None = None) -> str:
+    """The speech-to-text model a call uses, for pricing it (app/voice/costs.py)."""
+    return SARVAM_STT_MODEL if _sarvam(speech) else GROQ_STT_MODEL
 
 
 def warm(

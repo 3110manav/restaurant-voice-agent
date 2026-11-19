@@ -115,6 +115,13 @@ def test_an_unknown_store_is_refused(api):
     assert api.post("/samvaad/start", json=body, headers=AUTH).status_code == 404
 
 
+def test_the_tool_editors_send_button_works_without_an_interaction_id(api):
+    # Samvaad's "Send" test has no call yet, so the built-in Interaction ID arrives empty.
+    body = {"interaction_id": None, "store_slug": "spice-route", "caller": "", "query": "paneer"}
+    response = api.post("/samvaad/tools/search_menu", json=body, headers=AUTH)
+    assert response.status_code == 200 and "Paneer Butter Masala" in response.json()["result"]
+
+
 def test_a_tool_call_without_a_start_still_finds_its_store(api):
     assert "Paneer Butter Masala" in tool(api, "search_menu", query="paneer")["result"]
 
@@ -174,7 +181,7 @@ def test_after_the_yes_the_order_is_saved_and_whatsapp_queued(api, fake):
     saved = fake.tables["orders"][0]
     assert saved["total"] == 800 and saved["store_id"] == "store-1" and saved["address"] == "12 MG Road"
     assert {m["kind"] for m in fake.tables["message_outbox"]} == {"owner_order", "customer_bill"}
-    assert tool(api, "checkout")["result"] == "Order placed already."
+    assert tool(api, "checkout")["result"].startswith("Order placed already.")
     assert len(fake.tables["orders"]) == 1
 
 
@@ -241,6 +248,30 @@ def test_the_browser_sees_the_live_cart_of_its_call(api):
     tool(api, "add_to_cart", item_name="Butter Naan", quantity=2)
     body = api.get("/samvaad/browser/cart/call-1").json()
     assert body["active"] and body["cart_summary"] == "2 x Butter Naan" and body["store_name"] == "Spice Route"
+
+
+def test_the_live_cart_works_with_samvaads_interaction_ids(api):
+    call_id = "20261119/4d6019b6-15:08:22-aw179716"  # the shape Samvaad really sends, with a slash
+    tool(api, "add_to_cart", interaction_id=call_id, item_name="Butter Naan")
+    assert api.get(f"/samvaad/browser/cart/{call_id}").json()["cart_summary"] == "1 x Butter Naan"
+
+
+def test_a_dish_can_be_removed_by_a_name_said_differently(api):
+    tool(api, "add_to_cart", item_name="Paneer Butter Masala", quantity=3)
+    body = tool(api, "remove_from_cart", item_name="paneer makhani", quantity=1)  # the menu's other name for it
+    assert body["cart_summary"] == "2 x Paneer Butter Masala"
+
+
+def test_a_caller_without_a_whatsapp_number_is_asked_for_one(api, fake):
+    # Samvaad's test chat identifies the tester by email, so there is no number to send the bill to.
+    tool(api, "add_to_cart", caller="tester@example.com", item_name="Butter Naan")
+    held = tool(api, "set_order_details", caller="tester@example.com", order_type="pickup")
+    assert "WhatsApp" in held["result"] and "व्हाट्सएप नंबर" in held["say"]
+    assert "Say exactly this to the guest: " + held["say"] in held["result"]  # visible through {{result}}
+    refused = tool(api, "checkout", caller="tester@example.com")
+    assert refused["result"].startswith("Order not placed") and "व्हाट्सएप नंबर" in refused["say"]
+    tool(api, "set_order_details", order_type="pickup", whatsapp_number="9876543210")
+    assert tool(api, "read_back_order")["say"].startswith("आपका ऑर्डर")
 
 
 def test_a_store_without_upi_bills_as_text_paid_on_delivery(api, fake):

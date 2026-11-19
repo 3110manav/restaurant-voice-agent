@@ -21,7 +21,9 @@ from livekit.plugins import noise_cancellation, silero
 from app.agent import language as lang
 from app.phone.call import PhoneCall, open_call
 from app.voice.livekit_llm import _last_user_text
-from app.voice.livekit_stack import build_stt, build_tts, warm
+from app.voice.costs import CallCost
+from app.voice.livekit_stack import build_stt, build_tts, stt_model, warm
+from app.voice.stack import speech_stack
 
 logger = logging.getLogger("sarthi.livekit_phone")
 
@@ -139,11 +141,14 @@ async def phone_entrypoint(ctx: JobContext) -> None:
         ctx.delete_room()  # hanging up beats silence: the caller can ring the store directly
         return
 
+    meter = CallCost("phone", speech_stack(), stt_model(None), call_id=call.call_id)
+    call.agent.cost_meter = meter
+
     session = AgentSession(
         stt=build_stt(None),
         llm=PhoneLLM(call, on_goodbye=lambda: hang_up_after_goodbye(ctx, session)),
         # language=None: Hindi or English is read from each sentence's script, since a call can switch.
-        tts=build_tts(call.persona, None, sample_rate=PHONE_SAMPLE_RATE),
+        tts=build_tts(call.persona, None, sample_rate=PHONE_SAMPLE_RATE, meter=meter),
         vad=silero.VAD.load(),
         turn_handling=TURN_HANDLING,
     )
@@ -154,7 +159,11 @@ async def phone_entrypoint(ctx: JobContext) -> None:
         if timings:
             call.add_metric(timings)
 
+    session.on("metrics_collected", lambda event: meter.on_livekit_metrics(event.metrics))
+
     async def _finish(_reason: str = "") -> None:
+        meter.finish()
+        call.cost = meter.log()  # saved with the call's log, so /admin/calls shows what each call cost
         await loop.run_in_executor(None, call.close)
 
     ctx.add_shutdown_callback(_finish)

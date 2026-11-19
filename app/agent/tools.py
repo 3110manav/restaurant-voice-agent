@@ -294,8 +294,10 @@ def build_tools(
     def remove_from_cart(name: str, quantity: int = 1, variant: str = "") -> str:
         """Remove an item, or some of it, from the cart. Pass variant if the cart holds several sizes."""
         wanted = name.strip().lower()
+        # A name said differently from the menu ("मार्गरीटा पिज़्ज़ा", "margarita") still finds its dish.
+        dish = None if any(wanted in (l["name"].lower(), _line_label(l).lower()) for l in cart) else menu_store.find_by_name(name)
         for line in cart:
-            if wanted not in (line["name"].lower(), _line_label(line).lower()):
+            if wanted not in (line["name"].lower(), _line_label(line).lower()) and not (dish and line.get("id") == dish["id"]):
                 continue
             if variant and line.get("variant", "").lower() != variant.strip().lower():
                 continue

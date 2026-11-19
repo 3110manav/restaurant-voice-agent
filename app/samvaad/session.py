@@ -134,6 +134,9 @@ class SamvaadSession:
         body = {"result": result, **self.snapshot(), **extra}
         if self.order.spoken:
             body["say"] = self.order.spoken  # exact words for read-backs and confirmations: totals never restated
+            if self.order.spoken not in result:
+                # Samvaad's response template is often just {{result}}, which would hide "say" from its LLM.
+                body["result"] = f"{result}\nSay exactly this to the guest: {self.order.spoken}"
         return body
 
     # --------------------------------------------------------------- tools --
@@ -150,7 +153,14 @@ class SamvaadSession:
 
     def search_menu(self, query: str, language: str | None = None) -> dict:
         self._turn(language)
-        return self._reply(self._tool("search_menu", {"query": query}))
+        result = self._tool("search_menu", {"query": query})
+        if result.lstrip().startswith("- "):
+            # Samvaad's LLM sometimes searched for a dish the guest ordered and then never added it.
+            result += (
+                "\nThese dishes are on the menu and available. If the guest already asked to order one of them, "
+                "call add_to_cart for it now with its exact name; never tell the guest it isn't available."
+            )
+        return self._reply(result)
 
     def item_details(self, name: str, language: str | None = None) -> dict:
         self._turn(language)
