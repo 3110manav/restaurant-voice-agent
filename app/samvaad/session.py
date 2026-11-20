@@ -15,6 +15,7 @@ That is enough for one API instance; running several needs the cart moved to the
 """
 import logging
 import os
+import re
 import threading
 import time
 from dataclasses import dataclass, field
@@ -22,6 +23,7 @@ from dataclasses import dataclass, field
 from app.agent.salesflow import HINT_PREFIX, SalesState, dessert_offer
 from app.agent.tools import build_tools
 from app.currency import format_price
+from app.menu.snapshot import _sound
 from app.phone import numbers, repository
 from app.phone.call import _menu_and_restaurant, is_database_store
 from app.phone.ordering import PhoneOrder
@@ -33,6 +35,15 @@ SESSION_TTL_SECONDS = 3 * 60 * 60
 # the read-back means the model chained the two tools without waiting for the guest, so it is refused.
 MIN_CONFIRM_SECONDS = 3.0
 _PERSONA = {"restaurant": "waiter", "kirana": "quick_commerce"}
+_NOT_FOUND = re.compile(r"^Couldn't find '(.+)' on the menu\.")
+_COULD_MEAN = re.compile(r"^'(.+)' could mean: (.+)\. Ask the customer which one they want\.$")
+
+
+def _names_every_word(said: str, options: list[str]) -> bool:
+    """Whether the dishes offered for a name all contain every word of it ("chicken pizza" → BBQ Chicken
+    Pizza), so the guest only has to pick a version. Words compare by sound, so Hindi script matches too."""
+    words = set(_sound(said).split())
+    return bool(words) and all(words <= set(_sound(option).split()) for option in options)
 
 
 class StoreNotFound(LookupError):
@@ -157,8 +168,10 @@ class SamvaadSession:
         if result.lstrip().startswith("- "):
             # Samvaad's LLM sometimes searched for a dish the guest ordered and then never added it.
             result += (
-                "\nThese dishes are on the menu and available. If the guest already asked to order one of them, "
-                "call add_to_cart for it now with its exact name; never tell the guest it isn't available."
+                "\nThese are the only matching dishes on the menu; never suggest or promise a dish that is not in a "
+                "tool result. If the guest asked for one of these by name, call add_to_cart for it with its exact "
+                "name. If they asked for a dish that is not in this list, tell them it is not on the menu and offer "
+                "these instead; never add a different dish in its place unless they agree."
             )
         return self._reply(result)
 
@@ -175,7 +188,48 @@ class SamvaadSession:
         ]
         if not lines:
             return self._reply("No item name was given. Ask the guest what they would like.")
-        return self._reply(self._tool("add_to_cart", {"items": lines}))
+        before = {(line["id"], line.get("variant")): line["quantity"] for line in self.cart}
+        result = self._tool("add_to_cart", {"items": lines})
+        return self._reply(self._not_on_menu(result, before))
+
+    def _not_on_menu(self, result: str, before: dict) -> str:
+        """Samvaad's LLM told guests "added" for dishes the menu doesn't have (a real call: Veg Kolhapuri,
+        Paneer Lababdar, Buttermilk). A dish that isn't on the menu gets exact words to say instead, with the
+        closest dishes we do have, and the dishes that did go in are confirmed in the same sentence."""
+        missing, kept = [], []
+        for line in result.splitlines():
+            found = _NOT_FOUND.match(line)
+            close = _COULD_MEAN.match(line)
+            if found:
+                missing.append(found.group(1))
+            elif close and not _names_every_word(close.group(1), close.group(2).split(", ")):
+                # "Shahi Paneer" offered Paneer Tikka Masala: a different dish, not a choice between versions of it.
+                missing.append(close.group(1))
+            else:
+                kept.append(line)
+        if not missing:
+            return result
+        added = [
+            f"{line['quantity'] - before.get((line['id'], line.get('variant')), 0)} {line['name']}"
+            + (f" {line['variant']}" if line.get("variant") else "")
+            for line in self.cart
+            if line["quantity"] > before.get((line["id"], line.get("variant")), 0)
+        ]
+        alternatives = []
+        for name in missing:
+            for dish in self.menu.search(name, k=3):
+                if dish["name"] not in alternatives and len(alternatives) < 3:
+                    alternatives.append(dish["name"])
+        names = ", ".join(missing)
+        if self.language == "hi":
+            words = (f"{', '.join(added)} जोड़ दिया। " if added else "") + f"माफ़ कीजिए, {names} हमारे मेन्यू में नहीं है।"
+            words += f" इसकी जगह {', '.join(alternatives)} ले सकते हैं।" if alternatives else ""
+        else:
+            words = (f"I've added {', '.join(added)}. " if added else "") + f"Sorry, {names} isn't on our menu."
+            words += f" Instead, you could have {', '.join(alternatives)}." if alternatives else ""
+        self.order.spoken = words
+        kept.insert(0, f"NOT ADDED, not on the menu: {names}. Never tell the guest these were added.")
+        return "\n".join(kept)
 
     def remove(self, name: str, quantity: int = 1, variant: str = "", language: str | None = None) -> dict:
         self._turn(language)

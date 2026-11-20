@@ -147,6 +147,22 @@ def test_a_dish_with_sizes_asks_which_one(api):
     assert tool(api, "add_to_cart", item_name="Margherita Pizza", variant="large")["cart_total"] == "₹450"
 
 
+def test_a_dish_not_on_the_menu_is_never_reported_as_added(api):
+    body = tool(api, "add_to_cart", items=[{"name": "Butter Naan", "quantity": 2}, {"name": "Veg Kolhapuri"}])
+    assert body["result"].startswith("NOT ADDED, not on the menu: Veg Kolhapuri.")
+    assert body["cart_summary"] == "2 x Butter Naan"
+    # The exact words: what went in, what isn't on the menu, and dishes we do have.
+    assert body["say"].startswith("2 Butter Naan जोड़ दिया। माफ़ कीजिए, Veg Kolhapuri हमारे मेन्यू में नहीं है।")
+    assert "Say exactly this to the guest:" in body["result"]
+
+
+def test_only_versions_of_the_same_dish_are_a_which_one_question():
+    # A real call: "Shahi Paneer" was offered Paneer Tikka Masala, a different dish, so it isn't on the menu.
+    assert not samvaad_session._names_every_word("Shahi Paneer", ["Paneer Tikka Masala", "Paneer Tikka Pizza"])
+    assert samvaad_session._names_every_word("chicken pizza", ["BBQ Chicken Pizza", "Buffalo Chicken Pizza"])
+    assert samvaad_session._names_every_word("चिकन पिज़्ज़ा", ["BBQ Chicken Pizza", "Buffalo Chicken Pizza"])
+
+
 def test_remove_and_view_cart(api):
     tool(api, "add_to_cart", item_name="Butter Naan", quantity=3)
     assert tool(api, "remove_from_cart", item_name="Butter Naan", quantity=1)["cart_summary"] == "2 x Butter Naan"
