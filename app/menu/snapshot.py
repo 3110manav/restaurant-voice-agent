@@ -27,7 +27,9 @@ import time
 
 from rapidfuzz import fuzz, process
 
+from app.agent import promotions
 from app.menu import embedding, repository
+from app.menu.translit import has_devanagari, to_roman
 
 logger = logging.getLogger("sarthi.menu")
 
@@ -35,8 +37,25 @@ FUZZY_CUTOFF = 85
 VERSION_CHECK_SECONDS = 15
 
 
+SOUND_CUTOFF = 90
+
+
 def _norm(text: str) -> str:
-    return " ".join(re.sub(r"[^\w\s]", " ", text.lower()).split())
+    """Lower case, punctuation gone, and Hindi script in Roman letters ("पनीर टिक्का" -> "paneer tikka")."""
+    return " ".join(re.sub(r"[^\w\s]", " ", to_roman(text).lower()).split())
+
+
+def _sound(text: str) -> str:
+    """A rough sound-alike key, for dish names said in Hindi script: "बटर नान" and "Butter Naan" both
+    become "btr nn". Each word keeps its first letter, then only its consonants, with doubled letters,
+    'h' and spelling variants (c/k, ph/f, w/v) folded together."""
+    words = []
+    for word in _norm(text).split():
+        word = re.sub(r"c(?!h)", "k", word).replace("ph", "f").replace("w", "v").replace("q", "k")
+        word = re.sub(r"(.)\1+", r"\1", word)
+        rest = re.sub(r"[aeiouyh]", "", word[1:])
+        words.append(word[0] + rest)
+    return " ".join(words)
 
 
 def dish_from_row(row: dict, category_names: dict[str, str]) -> dict:
@@ -53,8 +72,13 @@ def dish_from_row(row: dict, category_names: dict[str, str]) -> dict:
         "ingredients": row.get("ingredients") or [],
         "allergens": row.get("allergens") or [],
         "tags": row.get("tags") or [],
+        "pairs_with": row.get("pairs_with") or [],
+        "order_role": row.get("order_role"),
         "variants": [{"name": v["name"], "price": float(v["price"])} for v in variants],
         "is_available": row["is_available"],
+        "is_bestseller": bool(row.get("is_bestseller")),
+        "is_new": bool(row.get("is_new")),
+        "promo_note": row.get("promo_note") or "",
         "image_url": row.get("image_url"),
         "knowledge_status": row.get("knowledge_status", "missing"),
         "sort_order": row.get("sort_order", 0),
@@ -87,8 +111,11 @@ class RestaurantMenu:
         self.category_order = [c["name"] for c in categories]
         rank = {name: i for i, name in enumerate(self.category_order)}
         self.menu = sorted(dishes, key=lambda d: (rank.get(d["category"], 999), d["sort_order"], d["name"]))
+        for d in self.menu:  # why the waiter may push a dish, after the owner's switches (app/agent/promotions.py)
+            d["featured"] = promotions.featured_of(d, promotions.settings(restaurant))
         self.by_id = {d["id"]: d for d in self.menu}
         self._norm_names = [_norm(d["name"]) for d in self.menu]
+        self._sounds = [_sound(d["name"]) for d in self.menu]
 
     @property
     def categories(self) -> list[str]:
@@ -106,6 +133,8 @@ class RestaurantMenu:
         if subs:
             return subs[:limit]
         found = process.extract(q, self._norm_names, scorer=fuzz.WRatio, limit=limit, score_cutoff=FUZZY_CUTOFF)
+        if not found and has_devanagari(name):
+            found = process.extract(_sound(name), self._sounds, scorer=fuzz.ratio, limit=limit, score_cutoff=SOUND_CUTOFF)
         return [self.menu[idx] for _, _, idx in found]
 
     def find_by_name(self, name: str) -> dict | None:
@@ -113,6 +142,25 @@ class RestaurantMenu:
         q = _norm(name)
         if not q:
             return None
+        dish = self._find_spelled(q)
+        if dish is None and has_devanagari(name):
+            dish = self._find_by_sound(_sound(name))
+        return dish
+
+    def _find_by_sound(self, key: str) -> dict | None:
+        """A dish said in Hindi script, matched on how it sounds; only an unambiguous match counts."""
+        exact = [d for d, s in zip(self.menu, self._sounds) if s == key]
+        if exact:
+            return exact[0] if len(exact) == 1 else None
+        found = process.extract(key, self._sounds, scorer=fuzz.ratio, limit=2, score_cutoff=SOUND_CUTOFF)
+        if not found:
+            return None
+        _, top_score, top_idx = found[0]
+        if len(found) == 1 or top_score - found[1][1] >= 6:
+            return self.menu[top_idx]
+        return None
+
+    def _find_spelled(self, q: str) -> dict | None:
         for d, n in zip(self.menu, self._norm_names):
             if n == q:
                 return d

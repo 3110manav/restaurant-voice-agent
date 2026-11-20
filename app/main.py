@@ -61,6 +61,7 @@ load_dotenv()
 from pathlib import Path  # noqa: E402
 
 from app import erp  # noqa: E402
+from app.agent import promotions  # noqa: E402
 from app.agent.graph import ENABLED_PERSONAS, AgentBusyError, RestaurantOrderingAgent, persona_for  # noqa: E402
 from app.customers.session import needs_identification, start_session  # noqa: E402
 from app.agent.tools import add_item_to_cart, remove_item_from_cart_by_id  # noqa: E402
@@ -72,6 +73,7 @@ from app.phone import outbox  # noqa: E402
 from app.phone import upi  # noqa: E402
 from app.phone.router import router as phone_router  # noqa: E402
 from app.rag.menu_store import GROCERY_PATH, MenuStore  # noqa: E402
+from app.samvaad.router import router as samvaad_router  # noqa: E402
 from app.table.service import unplaced  # noqa: E402
 from app.table.state import TableState  # noqa: E402
 from app.table.suggest import next_suggestion  # noqa: E402
@@ -113,6 +115,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.include_router(owner_router)
 app.include_router(phone_router)
 app.include_router(whatsapp_router)
+app.include_router(samvaad_router)
 
 # Two catalogs: the food menu (waiter) and a separate grocery catalog for
 # quick_commerce (shampoo, batteries, snacks, etc.) — see
@@ -576,7 +579,7 @@ def table_feedback(req: TableFeedbackRequest) -> dict:
 def table_suggestion(session_id: str, restaurant: str, table_no: str | None = None) -> dict:
     agent, state = _table(TableRequest(session_id=session_id, restaurant=restaurant, table_no=table_no))
     menu = LiveMenu(restaurant)
-    return {"suggestion": next_suggestion(state, menu.menu, menu.get, agent.cart)}
+    return {"suggestion": next_suggestion(state, menu.menu, menu.get, agent.cart, promotions.settings(getattr(menu, "restaurant", None)).pairings)}
 
 
 @app.post("/table/suggestion/dismiss")

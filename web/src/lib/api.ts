@@ -53,6 +53,10 @@ export interface MenuItem {
   allergens?: string[];
   tags?: string[];
   is_available?: boolean;
+  /** Set by the owner (supabase/migrations/007_owner_promotions.sql); the waiter recommends or mentions these. */
+  is_bestseller?: boolean;
+  is_new?: boolean;
+  promo_note?: string;
   image_url?: string | null;
   knowledge_status?: "missing" | "ai_draft" | "approved";
 }

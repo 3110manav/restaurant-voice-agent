@@ -22,6 +22,8 @@ logger = logging.getLogger("sarthi.menu")
 SPICE_LEVELS = {"none", "mild", "medium", "hot"}
 KNOWLEDGE_STATUSES = {"missing", "ai_draft", "approved"}
 SOURCES = {"manual", "excel", "image", "pos", "starter"}
+ORDER_ROLES = {"food", "side", "drink", "dessert"}
+OWNER_CHOICES = ("is_bestseller", "is_new", "promo_note")  # set in the owner console, never by an import
 
 
 class MenuValidationError(ValueError):
@@ -96,16 +98,27 @@ def validate_dish(payload: dict, partial: bool) -> dict:
         out["spice_level"] = payload["spice_level"]
     if "is_veg" in payload:  # None is valid: groceries and medicines are neither veg nor non-veg
         out["is_veg"] = None if payload["is_veg"] is None else bool(payload["is_veg"])
-    if "is_available" in payload and payload["is_available"] is not None:
-        out["is_available"] = bool(payload["is_available"])
+    for key in ("is_available", "is_bestseller", "is_new"):
+        if key in payload and payload[key] is not None:
+            out[key] = bool(payload[key])
+    if "promo_note" in payload and payload["promo_note"] is not None:
+        note = " ".join(str(payload["promo_note"]).split())
+        if len(note) > 200:
+            raise MenuValidationError("the promo note can be at most 200 characters")
+        out["promo_note"] = note
     if "medicine" in payload and payload["medicine"] is not None:
         out["medicine"] = _clean_medicine(payload["medicine"])
     for key in ("short_description", "long_description", "image_url", "pos_item_id", "category", "brand"):
         if key in payload and payload[key] is not None:
             out[key] = str(payload[key]).strip()
-    for key in ("ingredients", "allergens", "tags"):
+    for key in ("ingredients", "allergens", "tags", "pairs_with"):
         if key in payload and payload[key] is not None:
             out[key] = _clean_list(payload[key])
+    if "order_role" in payload:  # None is valid: the role is then worked out from the menu section
+        role = payload["order_role"]
+        if role is not None and role not in ORDER_ROLES:
+            raise MenuValidationError(f"order role must be one of {sorted(ORDER_ROLES)}")
+        out["order_role"] = role
     if "sort_order" in payload and payload["sort_order"] is not None:
         out["sort_order"] = int(payload["sort_order"])
     if "knowledge_status" in payload and payload["knowledge_status"] is not None:
@@ -241,6 +254,9 @@ def bulk_upsert_dishes(restaurant: dict, payloads: list[dict], source: str) -> d
         fields = validate_dish(payload, partial=False)
         fields.setdefault("sort_order", position)
         existing_id = repository.find_dish_id_by_name(restaurant["id"], fields["name"])
+        if existing_id:  # what the owner chose to push is theirs: re-seeding must not undo it
+            for owner_field in OWNER_CHOICES:
+                fields.pop(owner_field, None)
         _write_dish(restaurant["id"], existing_id, fields, categories, source, status_hint=False)
         written += 1
     result = _sync_embeddings(restaurant["id"], _dish_dicts(restaurant["id"]))

@@ -15,8 +15,8 @@ _REASONS = {
 }
 
 
-def next_suggestion(state: TableState, menu: list[dict], menu_by_id, cart: list[dict]) -> dict | None:
-    if len(state.suggestions_shown) >= MAX_SUGGESTIONS:
+def next_suggestion(state: TableState, menu: list[dict], menu_by_id, cart: list[dict], pairings: bool = True) -> dict | None:
+    if not pairings or len(state.suggestions_shown) >= MAX_SUGGESTIONS:  # pairings: the owner's switch
         return None
     everything = cart + state.ordered
     roles = {salesflow.role_of(d) for d in (menu_by_id(line["id"]) for line in everything) if d}

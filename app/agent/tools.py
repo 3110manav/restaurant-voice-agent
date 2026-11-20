@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 
 from app import erp
 from app.customers.session import CustomerSession
+from app.agent import promotions
 from app.agent.salesflow import SalesState, dessert_offer, first_order_offer
 from app.currency import format_price
 from app.table.service import unplaced
@@ -275,7 +276,7 @@ def build_tools(
             return "No matching items found."
         lines = []
         for item in matches:
-            line = f"- {item['name']} ({_item_descriptor(item, prices())}): {item['description']}"
+            line = f"- {item['name']} ({_item_descriptor(item, prices())}){promotions.label(item)}: {item['description']}"
             if _medicine_note(item):
                 line += f" [{_medicine_note(item)}]"
             lines.append(line)
@@ -347,8 +348,10 @@ def build_tools(
     def remove_from_cart(name: str, quantity: int = 1, variant: str = "") -> str:
         """Remove an item, or some of it, from the cart. Pass variant if the cart holds several sizes."""
         wanted = name.strip().lower()
+        # A name said differently from the menu ("मार्गरीटा पिज़्ज़ा", "margarita") still finds its dish.
+        dish = None if any(wanted in (l["name"].lower(), _line_label(l).lower()) for l in cart) else menu_store.find_by_name(name)
         for line in cart:
-            if wanted not in (line["name"].lower(), _line_label(line).lower()):
+            if wanted not in (line["name"].lower(), _line_label(line).lower()) and not (dish and line.get("id") == dish["id"]):
                 continue
             if variant and line.get("variant", "").lower() != variant.strip().lower():
                 continue

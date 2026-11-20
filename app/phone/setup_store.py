@@ -34,8 +34,10 @@ def add(args: argparse.Namespace) -> None:
     if args.type in ("restaurant", "pharmacy") and not args.restaurant:
         raise SystemExit("A restaurant or pharmacy needs --restaurant, the slug of its menu or medicines")
     database_store = args.type in ("kirana", "pharmacy") and bool(args.restaurant)
-    if not database_store and not (args.upi and args.payee):
-        raise SystemExit("--upi and --payee are needed: the customer's bill carries a UPI QR")
+    if bool(args.upi) != bool(args.payee):
+        raise SystemExit("Give both --upi and --payee, or neither (without them the bill says pay on delivery or at pickup)")
+    if not database_store and not args.upi:
+        print("No UPI given: bills from this store go without a QR, paid on delivery or at pickup.")
     fields = {
         "slug": args.slug,
         "name": args.name,
@@ -72,7 +74,7 @@ def main() -> None:
     add_parser.add_argument("--type", required=True, choices=["kirana", "restaurant", "pharmacy"])
     add_parser.add_argument("--agent", required=True)
     add_parser.add_argument("--owner", required=True)
-    add_parser.add_argument("--upi", help="the store's UPI ID; not needed for a store whose items are in the database")
+    add_parser.add_argument("--upi", help="the store's UPI ID; without it bills are paid on delivery or at pickup")
     add_parser.add_argument("--payee")
     add_parser.add_argument("--merchant", action="store_true")
     add_parser.add_argument("--catalog")

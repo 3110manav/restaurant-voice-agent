@@ -211,6 +211,7 @@ def test_flush_sends_a_bill_with_its_qr_and_marks_sent(fake, store, sent):
 
 def test_messages_wait_while_whatsapp_isnt_configured(fake, store, monkeypatch):
     monkeypatch.delenv("WHATSAPP_TOKEN", raising=False)
+    monkeypatch.delenv("WHATSAPP_ACCESS_TOKEN", raising=False)  # either name configures WhatsApp; a local .env may set it
     placed_order(store, fake)
     assert outbox.flush() == 0
     assert all(m["status"] == "pending" and m["attempts"] == 0 for m in fake.tables["message_outbox"])

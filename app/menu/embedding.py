@@ -54,6 +54,8 @@ def dish_embedding_text(dish: dict) -> str:
         parts.append(f"Ingredients: {', '.join(dish['ingredients'])}.")
     if dish.get("tags"):
         parts.append(f"Tags: {', '.join(dish['tags'])}.")
+    if dish.get("pairs_with"):
+        parts.append(f"Goes well with: {', '.join(dish['pairs_with'])}.")
     if dish.get("brand"):
         parts.append(f"Brand: {dish['brand']}.")
     if dish.get("generic_name"):

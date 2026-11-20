@@ -23,6 +23,10 @@ export interface OwnerRestaurant {
   upi_is_merchant?: boolean | null;
   gst_rate?: number | null;
   baseline_turn_minutes?: number | null;
+  // What the waiter may suggest (migration 007); all on until the owner turns one off.
+  suggest_pairings?: boolean | null;
+  promote_bestsellers?: boolean | null;
+  promote_new_items?: boolean | null;
 }
 
 export interface OwnerMenu {
@@ -38,6 +42,9 @@ export interface DishInput {
   is_veg?: boolean;
   spice_level?: string;
   is_available?: boolean;
+  is_bestseller?: boolean;
+  is_new?: boolean;
+  promo_note?: string;
   short_description?: string;
   long_description?: string;
   ingredients?: string[];

@@ -63,6 +63,11 @@ class PhoneOrder:
         self.cart: list[dict] = []
         self.spoken: str | None = None  # this turn's reply, when these rules decided what to say
 
+    @property
+    def takes_upi(self) -> bool:
+        """Whether the bill carries a UPI QR. A store without a UPI ID is paid on delivery or at pickup."""
+        return bool(self.store.get("upi_id") and self.store.get("upi_payee_name"))
+
     def start_turn(self, language: str) -> None:
         self.language = language
         self.turn += 1
@@ -137,14 +142,16 @@ class PhoneOrder:
             return "This caller's number can't receive WhatsApp. Ask for a mobile number that has WhatsApp, then call set_order_details."
         return None
 
-    def prepare_read_back(self) -> str:
-        blocker = self._blocker()
-        if blocker:
-            return blocker
-        self.read_back = copy.deepcopy(self.cart)
-        self.read_back_turn = self.turn
-        # Spaced, so "3210" is read digit by digit and not as a number in the thousands.
-        total, ending = round(self._total()), " ".join(numbers.last_four(self.whatsapp))
+    def _ask_for_whatsapp(self, blocker: str) -> None:
+        """The exact question, so a voice agent asks for the number instead of stalling on the instruction."""
+        if not self.whatsapp and blocker.startswith("This caller's number"):
+            self._say(
+                "बिल व्हाट्सएप पर भेजना है। आपका व्हाट्सएप नंबर बता दीजिए?",
+                "I'll send the bill on WhatsApp. What's your WhatsApp number?",
+            )
+
+    def _summary(self) -> tuple[str, str, int]:
+        """The order in words (Hindi, English) and its total, worked out here so it's never restated wrongly."""
         items = ", ".join(
             f"{line['quantity']} {line['name']}" + (f" {line['variant']}" if line.get("variant") else "")
             for line in self.cart
@@ -153,10 +160,32 @@ class PhoneOrder:
             where_hi, where_en = f"{self.address} पर डिलीवरी", f"Delivery to {self.address}"
         else:
             where_hi, where_en = "दुकान से पिकअप", "Pickup from the store"
+        total = round(self._total())
+        return f"आपका ऑर्डर: {items}। कुल {total} रुपये। {where_hi}।", f"Your order: {items}. Total {total} rupees. {where_en}.", total
+
+    def prepare_read_back(self) -> str:
+        blocker = self._blocker()
+        if blocker and blocker.startswith("This caller's number"):
+            # Only the WhatsApp number is missing: read the real order back now and ask for the number in the
+            # same breath, so a voice agent has the true items and total instead of composing its own.
+            # Nothing counts as read back yet: once the number is given, the full read-back comes next.
+            hindi, english, _ = self._summary()
+            self._say(
+                f"{hindi} बिल व्हाट्सएप पर भेजना है। आपका व्हाट्सएप नंबर बता दीजिए?",
+                f"{english} I'll send the bill on WhatsApp. What's your WhatsApp number?",
+            )
+            return f"{blocker} Say exactly this to the guest: {self.spoken}"
+        if blocker:
+            return blocker
+        self.read_back = copy.deepcopy(self.cart)
+        self.read_back_turn = self.turn
+        # Spaced, so "3210" is read digit by digit and not as a number in the thousands.
+        ending = " ".join(numbers.last_four(self.whatsapp))
+        hindi, english, _ = self._summary()
+        bill_hi, bill_en = ("बिल और पेमेंट QR", "bill and payment QR") if self.takes_upi else ("बिल", "bill")
         self._say(
-            f"आपका ऑर्डर: {items}। कुल {total} रुपये। {where_hi}। बिल और पेमेंट QR व्हाट्सएप पर {ending} वाले नंबर पर आएगा। ऑर्डर पक्का कर दूँ?",
-            f"Your order: {items}. Total {total} rupees. {where_en}. "
-            f"The bill and payment QR will come on WhatsApp to the number ending {ending}. Shall I place the order?",
+            f"{hindi} {bill_hi} व्हाट्सएप पर {ending} वाले नंबर पर आएगा। ऑर्डर पक्का कर दूँ?",
+            f"{english} The {bill_en} will come on WhatsApp to the number ending {ending}. Shall I place the order?",
         )
         return f"Read back to the customer: {self.spoken} Only call checkout after they say yes in their next message."
 
@@ -166,6 +195,7 @@ class PhoneOrder:
             return "Order placed already."
         blocker = self._blocker()
         if blocker:
+            self._ask_for_whatsapp(blocker)
             return f"Order not placed yet. {blocker}"
         if self.read_back != self.cart:
             return "Order not placed yet. The order must be read back first. Call read_back_order."
@@ -190,13 +220,15 @@ class PhoneOrder:
             "payment_ref": _payment_ref(),
             "pay_token": secrets.token_urlsafe(16),
         }
-        uri = upi.payment_uri(self.store, order["total"], order["payment_ref"])
+        uri = upi.payment_uri(self.store, order["total"], order["payment_ref"]) if self.takes_upi else None
         outgoing = [
             {"recipient": self.store["owner_whatsapp"], "kind": "owner_order", "body": messages.owner_order(order)},
             {
                 "recipient": self.whatsapp,
                 "kind": "customer_bill",
-                "body": messages.customer_bill(order, self.store, uri, pay_link(order["pay_token"]), self.language),
+                "body": messages.customer_bill(
+                    order, self.store, uri, pay_link(order["pay_token"]) if uri else None, self.language
+                ),
             },
         ]
         return order, outgoing
@@ -223,10 +255,16 @@ class PhoneOrder:
             return "The order could NOT be saved because of a system problem. The store will call them back."
         self.order_id = order["id"]
         outbox.flush_in_background()
-        self._say(
-            "ऑर्डर पक्का हो गया। बिल और पेमेंट QR व्हाट्सएप पर भेज दिया है। धन्यवाद!",
-            "Your order is placed. The bill and payment QR are on WhatsApp. Thank you!",
-        )
+        if self.takes_upi:
+            self._say(
+                "ऑर्डर पक्का हो गया। बिल और पेमेंट QR व्हाट्सएप पर भेज दिया है। धन्यवाद!",
+                "Your order is placed. The bill and payment QR are on WhatsApp. Thank you!",
+            )
+        else:
+            self._say(
+                "ऑर्डर पक्का हो गया। बिल व्हाट्सएप पर भेज दिया है, भुगतान डिलीवरी या पिकअप पर। धन्यवाद!",
+                "Your order is placed. The bill is on WhatsApp, and you pay on delivery or at pickup. Thank you!",
+            )
         return f"Order placed: {order['payment_ref']}. Total: {format_price(order['total'])}."
 
     def request_callback(self, reason: str) -> str:
