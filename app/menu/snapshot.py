@@ -27,6 +27,7 @@ import time
 
 from rapidfuzz import fuzz, process
 
+from app.agent import promotions
 from app.menu import embedding, repository
 from app.menu.translit import has_devanagari, to_roman
 
@@ -71,8 +72,13 @@ def dish_from_row(row: dict, category_names: dict[str, str]) -> dict:
         "ingredients": row.get("ingredients") or [],
         "allergens": row.get("allergens") or [],
         "tags": row.get("tags") or [],
+        "pairs_with": row.get("pairs_with") or [],
+        "order_role": row.get("order_role"),
         "variants": [{"name": v["name"], "price": float(v["price"])} for v in variants],
         "is_available": row["is_available"],
+        "is_bestseller": bool(row.get("is_bestseller")),
+        "is_new": bool(row.get("is_new")),
+        "promo_note": row.get("promo_note") or "",
         "image_url": row.get("image_url"),
         "knowledge_status": row.get("knowledge_status", "missing"),
         "sort_order": row.get("sort_order", 0),
@@ -105,6 +111,8 @@ class RestaurantMenu:
         self.category_order = [c["name"] for c in categories]
         rank = {name: i for i, name in enumerate(self.category_order)}
         self.menu = sorted(dishes, key=lambda d: (rank.get(d["category"], 999), d["sort_order"], d["name"]))
+        for d in self.menu:  # why the waiter may push a dish, after the owner's switches (app/agent/promotions.py)
+            d["featured"] = promotions.featured_of(d, promotions.settings(restaurant))
         self.by_id = {d["id"]: d for d in self.menu}
         self._norm_names = [_norm(d["name"]) for d in self.menu]
         self._sounds = [_sound(d["name"]) for d in self.menu]

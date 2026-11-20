@@ -20,6 +20,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 
+from app.agent import promotions
 from app.agent.salesflow import HINT_PREFIX, SalesState, dessert_offer
 from app.agent.tools import build_tools
 from app.currency import format_price
@@ -95,6 +96,7 @@ class SamvaadSession:
 
     def __post_init__(self):
         self.menu, restaurant_id = _menu_and_restaurant(self.store)
+        self.sales = SalesState(settings=promotions.settings(getattr(self.menu, "restaurant", None)))
         persona = _PERSONA[self.store["business_type"]]
         try:
             self.call_id = repository.start_call(

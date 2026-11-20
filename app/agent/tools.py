@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 
 from app import erp
 from app.customers.session import CustomerSession
+from app.agent import promotions
 from app.agent.salesflow import SalesState, dessert_offer, first_order_offer
 from app.currency import format_price
 from app.table.service import unplaced
@@ -275,7 +276,7 @@ def build_tools(
             return "No matching items found."
         lines = []
         for item in matches:
-            line = f"- {item['name']} ({_item_descriptor(item, prices())}): {item['description']}"
+            line = f"- {item['name']} ({_item_descriptor(item, prices())}){promotions.label(item)}: {item['description']}"
             if _medicine_note(item):
                 line += f" [{_medicine_note(item)}]"
             lines.append(line)

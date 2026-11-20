@@ -238,27 +238,53 @@ def _removed(event: dict, language: str) -> str:
     return f"ठीक है, {label} हटा दिया।" if language == "hi" else f"Done, removed {label}."
 
 
+def _promo_line(promo: dict | None, language: str) -> str:
+    """A dish the owner is pushing, said once after the order is confirmed."""
+    if not promo:
+        return ""
+    name, new, note = _spoken_name(promo["name"]), promo["why"] == "new", (promo.get("note") or "").strip().rstrip(".")
+    if language == "hi":
+        line = f"वैसे, {name} हमारे मेन्यू में नया है।" if new else f"वैसे, {name} हमारी सबसे पसंद की जाने वाली डिशों में से एक है।"
+    elif language == "hinglish":
+        line = f"Waise, {name} hamare menu mein naya hai." if new else f"Waise, {name} hamari sabse pasand ki jaane wali dishes mein se ek hai."
+    else:
+        line = f"By the way, {name} is new on our menu." if new else f"By the way, {name} is one of our most-ordered dishes."
+    return f"{line} {note}." if note else line
+
+
 def _offer(event: dict, language: str) -> str:
     hi = language == "hi"
+    promo = _promo_line(event.get("promo"), language)
     if language == "hinglish":
         if event["kind"] == "dessert":
             return f"Order dene se pehle, meethe mein {' ya '.join(event['desserts'])} lenge?"
-        drinks, side = " ya ".join(event["drinks"]), (event["sides"][0] if event["sides"] else None)
+        drinks, side = " ya ".join(event["drinks"]), " ya ".join(event["sides"][:2])
         if drinks and side:
-            return f"Saath mein {drinks} lenge, ya {side} bhi?"
-        return f"Saath mein {drinks} lenge?" if drinks else f"Saath mein {side} bhi lenge?"
+            text = f"Saath mein {drinks} lenge, ya {side} bhi?"
+        elif drinks:
+            text = f"Saath mein {drinks} lenge?"
+        else:
+            text = f"Saath mein {side} bhi lenge?" if side else ""
+        return f"{text} {promo}".strip()
     if event["kind"] == "dessert":
         names = (" या " if hi else " or ").join(event["desserts"])
         return f"ऑर्डर देने से पहले, मीठे में {names} लेंगे?" if hi else f"Before I place it, would you like {names} to finish?"
-    drinks = " या ".join(event["drinks"]) if hi else " or ".join(event["drinks"])
-    sides = event["sides"][0] if event["sides"] else None
+    drinks = (" या " if hi else " or ").join(event["drinks"])
+    sides = (" या " if hi else " or ").join(event["sides"][:2])
     if hi:
         if drinks and sides:
-            return f"साथ में {drinks} लेंगे, या {sides} भी?"
-        return f"साथ में {drinks} लेंगे?" if drinks else f"साथ में {sides} भी लेंगे?"
-    if drinks and sides:
-        return f"Want {drinks} with that, or some {sides} on the side?"
-    return f"Want {drinks} with that?" if drinks else f"Want some {sides} on the side?"
+            text = f"साथ में {drinks} लेंगे, या {sides} भी?"
+        elif drinks:
+            text = f"साथ में {drinks} लेंगे?"
+        else:
+            text = f"साथ में {sides} भी लेंगे?" if sides else ""
+    elif drinks and sides:
+        text = f"Want {drinks} with that, or some {sides} on the side?"
+    elif drinks:
+        text = f"Want {drinks} with that?"
+    else:
+        text = f"Want some {sides} on the side?" if sides else ""
+    return f"{text} {promo}".strip()
 
 
 def compose(events: list[dict], language: str) -> str | None:

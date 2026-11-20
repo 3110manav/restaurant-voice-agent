@@ -37,7 +37,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
 from app import erp
-from app.agent import guardrails, language as lang, medical, replies
+from app.agent import guardrails, language as lang, medical, promotions, replies
 from app.agent.hotel_tools import build_hotel_tools
 from app.agent.salesflow import SalesState
 from app.agent.service_tools import build_service_tools
@@ -397,7 +397,9 @@ class RestaurantOrderingAgent:
         self.menu_store = menu_store
         # Cross-sell offers (a drink with the first order, a dessert at the end) only for restaurants:
         # a pharmacy must not upsell medicines, and a kirana order is a quick list.
-        self.sales = SalesState() if restaurant and self.business_type == "restaurant" else None
+        self.sales = (
+            SalesState(settings=promotions.settings(restaurant)) if restaurant and self.business_type == "restaurant" else None
+        )
         self._regens = 0
         # What each action did this turn, so a turn of simple successful actions is answered in code.
         self.events: list[dict] = []
@@ -419,6 +421,8 @@ class RestaurantOrderingAgent:
             system_prompt = phone_system_prompt(self.agent_name, phone.store["name"], persona == "waiter")
         if customer is not None:
             system_prompt += customer.prompt_block()
+        if self.sales is not None:  # the owner's bestsellers and new items, when those switches are on
+            system_prompt += promotions.prompt_block(getattr(menu_store, "menu", None) or [])
         self.system_prompt = system_prompt
         in_restaurant = restaurant is not None
         self.tools = build_tools(

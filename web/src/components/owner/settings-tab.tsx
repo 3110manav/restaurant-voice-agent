@@ -57,6 +57,27 @@ export function SettingsTab({
     }
   }
 
+  const [switches, setSwitches] = useState({
+    suggest_pairings: restaurant.suggest_pairings !== false,
+    promote_bestsellers: restaurant.promote_bestsellers !== false,
+    promote_new_items: restaurant.promote_new_items !== false,
+  });
+  const [switchMessage, setSwitchMessage] = useState<string | null>(null);
+
+  async function flip(key: keyof typeof switches) {
+    const next = { ...switches, [key]: !switches[key] };
+    setSwitches(next); // shown at once; put back if the save fails
+    setSwitchMessage("Saving…");
+    try {
+      await updateRestaurant(restaurant.id, { [key]: next[key] });
+      setSwitchMessage("Saved. It applies to the next thing a guest says.");
+      await onChanged();
+    } catch (err) {
+      setSwitches(switches);
+      setSwitchMessage((err as Error).message);
+    }
+  }
+
   const link = `${origin}/r/${restaurant.slug}${table.trim() ? `?table=${encodeURIComponent(table.trim())}` : ""}`;
 
   return (
@@ -121,6 +142,33 @@ export function SettingsTab({
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Suggestions</CardTitle>
+            <CardDescription>
+              What {restaurant.agent_name} is allowed to suggest. Mark the dishes themselves on the Menu tab.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {(
+              [
+                ["suggest_pairings", "Suggest what goes with an order", "A side and a drink with the first order, a dessert at the end, picked from what each dish goes well with."],
+                ["promote_bestsellers", "Recommend my bestsellers", "Lead with the dishes marked Bestseller when a guest asks what is good."],
+                ["promote_new_items", "Promote new items", "Mention the dishes marked New, once, with a guest's first order."],
+              ] as const
+            ).map(([key, title, hint]) => (
+              <label key={key} className="flex items-start gap-3 text-sm">
+                <input type="checkbox" className="mt-1" checked={switches[key]} onChange={() => flip(key)} />
+                <span>
+                  {title}
+                  <span className="block text-xs text-muted-foreground">{hint}</span>
+                </span>
+              </label>
+            ))}
+            {switchMessage && <span className="text-sm text-muted-foreground">{switchMessage}</span>}
           </CardContent>
         </Card>
 

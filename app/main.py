@@ -61,6 +61,7 @@ load_dotenv()
 from pathlib import Path  # noqa: E402
 
 from app import erp  # noqa: E402
+from app.agent import promotions  # noqa: E402
 from app.agent.graph import ENABLED_PERSONAS, AgentBusyError, RestaurantOrderingAgent, persona_for  # noqa: E402
 from app.customers.session import needs_identification, start_session  # noqa: E402
 from app.agent.tools import add_item_to_cart, remove_item_from_cart_by_id  # noqa: E402
@@ -578,7 +579,7 @@ def table_feedback(req: TableFeedbackRequest) -> dict:
 def table_suggestion(session_id: str, restaurant: str, table_no: str | None = None) -> dict:
     agent, state = _table(TableRequest(session_id=session_id, restaurant=restaurant, table_no=table_no))
     menu = LiveMenu(restaurant)
-    return {"suggestion": next_suggestion(state, menu.menu, menu.get, agent.cart)}
+    return {"suggestion": next_suggestion(state, menu.menu, menu.get, agent.cart, promotions.settings(getattr(menu, "restaurant", None)).pairings)}
 
 
 @app.post("/table/suggestion/dismiss")

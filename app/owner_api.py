@@ -85,6 +85,9 @@ class DishIn(BaseModel):
     is_veg: bool | None = None
     spice_level: str | None = None
     is_available: bool | None = None
+    is_bestseller: bool | None = None
+    is_new: bool | None = None
+    promo_note: str | None = None
     image_url: str | None = None
     short_description: str | None = None
     long_description: str | None = None
@@ -121,6 +124,9 @@ class RestaurantPatch(BaseModel):
     upi_is_merchant: bool | None = None
     gst_rate: float | None = None
     baseline_turn_minutes: int | None = None
+    suggest_pairings: bool | None = None
+    promote_bestsellers: bool | None = None
+    promote_new_items: bool | None = None
 
 
 _CHOICES = {

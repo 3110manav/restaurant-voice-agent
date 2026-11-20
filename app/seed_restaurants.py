@@ -1,14 +1,14 @@
-"""Seed the demo stores into Supabase (restaurants after migration 001, kirana and pharmacy after 002).
+"""Seed the stores into Supabase (the restaurant after migrations 001 and 006, kirana and pharmacy after 002).
 
-    python -m app.seed_restaurants                       # all three, idempotent
-    python -m app.seed_restaurants --only slice-station
+    python -m app.seed_restaurants                       # everything, idempotent
+    python -m app.seed_restaurants --only borivali-biryani-centre
     python -m app.seed_restaurants --owner you@example.com   # also make that (already signed-up) user the owner
     python -m app.seed_restaurants --check               # validate the data files only; no database, no API calls
 
 Re-running is safe: dishes are matched by name and updated in place, and only
 dishes whose embedding text changed are re-embedded (a clean re-run embeds nothing).
-The three restaurants: a fine-dine multi-cuisine one (the original 105-dish menu plus
-authored dish stories), a Punjabi dhaba, and a pizza chain with sizes.
+The restaurant is Borivali Biryani Centre (app/data/restaurants/borivali-biryani-centre.json, built from its
+printed menu by bbc_menu.py); the demo stores are a kirana and a pharmacy.
 """
 import argparse
 import json
@@ -26,6 +26,8 @@ DATA = Path(__file__).resolve().parent / "data"
 RESTAURANTS_DIR = DATA / "restaurants"
 STORES_DIR = DATA / "stores"
 
+RESTAURANT_FILES = ("borivali-biryani-centre",)  # the restaurants seeded from app/data/restaurants/{slug}.json
+
 KIRANA = {
     "slug": "gupta-general-store",
     "name": "Gupta General Store",
@@ -36,47 +38,8 @@ KIRANA = {
     "accent_color": "#1d4ed8",
 }
 
-FINE_DINE = {
-    "slug": "saffron-table",
-    "name": "The Saffron Table",
-    "cuisine": "Multi-cuisine fine dine",
-    "tagline": "Indian, Chinese, Japanese and Italian under one roof.",
-    "agent_name": "Kabir",
-    "accent_color": "#b45309",
-}
-
-
 def _status(long_description: str) -> str:
     return "approved" if long_description else "missing"
-
-
-def fine_dine_spec() -> dict:
-    items = json.loads((DATA / "menu.json").read_text())
-    knowledge = json.loads((RESTAURANTS_DIR / "saffron-table-knowledge.json").read_text())
-    categories: list[str] = []
-    dishes = []
-    for item in items:
-        if item["category"] not in categories:
-            categories.append(item["category"])
-        k = knowledge.get(item["name"], {})
-        long_description = k.get("long_description", "")
-        dishes.append(
-            {
-                "category": item["category"],
-                "name": item["name"],
-                "price": item["price"],
-                # Indian veg/non-veg labelling: anything containing egg is not "veg".
-                "is_veg": item["veg"] and not any("egg" in i.lower() for i in item.get("ingredients", [])),
-                "spice_level": (item.get("spice_level") or "none").lower(),
-                "short_description": item["description"],
-                "long_description": long_description,
-                "ingredients": item.get("ingredients", []),
-                "allergens": k.get("allergens", []),
-                "tags": k.get("tags", []),
-                "knowledge_status": _status(long_description),
-            }
-        )
-    return {"restaurant": FINE_DINE, "categories": categories, "dishes": dishes}
 
 
 def file_spec(path: Path) -> dict:
@@ -85,8 +48,11 @@ def file_spec(path: Path) -> dict:
         spec["restaurant"] = spec.pop("store")
     pharmacy = spec.get("restaurant", {}).get("business_type") == "pharmacy"
     for dish in spec["dishes"]:
-        # Medicine text is a draft until a pharmacist approves it in the owner dashboard.
-        dish["knowledge_status"] = "ai_draft" if pharmacy else _status(dish.get("long_description", ""))
+        # Medicine text is a draft until a pharmacist approves it in the owner dashboard. A file may mark its own
+        # dishes as drafts (AI-written stories the owner has not read yet).
+        dish["knowledge_status"] = (
+            "ai_draft" if pharmacy else dish.get("knowledge_status") or _status(dish.get("long_description", ""))
+        )
     return spec
 
 
@@ -113,8 +79,8 @@ def kirana_spec() -> dict:
 
 
 def load_specs() -> dict[str, dict]:
-    specs = {FINE_DINE["slug"]: fine_dine_spec()}
-    for slug in ("sarson-da-khet", "slice-station"):
+    specs = {}
+    for slug in RESTAURANT_FILES:
         specs[slug] = file_spec(RESTAURANTS_DIR / f"{slug}.json")
     specs[KIRANA["slug"]] = kirana_spec()
     for path in sorted(STORES_DIR.glob("*.json")):  # pharmacies, and any other store file
