@@ -61,7 +61,8 @@ from app.voice.livekit_phone import (  # noqa: E402
 )
 from app.voice.livekit_rooms import parse_room_name  # noqa: E402
 from app.voice.livekit_tokens import AGENT_NAME  # noqa: E402
-from app.voice.livekit_stack import build_stt, build_tts, warm  # noqa: E402
+from app.voice.costs import CallCost  # noqa: E402
+from app.voice.livekit_stack import build_stt, build_tts, stt_model, warm  # noqa: E402
 from app.voice.stack import speech_stack  # noqa: E402
 
 logger = logging.getLogger("sarthi.livekit_worker")
@@ -164,6 +165,8 @@ async def entrypoint(ctx: JobContext) -> None:
 
     agent.set_language(lang.AUTO if auto else language, start=language)
     agent.speech_label = speech or speech_stack()  # shown against this call's turns in the owner's transcript
+    meter = CallCost("browser", speech or speech_stack(), stt_model(speech))
+    agent.cost_meter = meter
 
     session = AgentSession(
         stt=build_stt(None if auto else language, speech),  # auto: hear whatever language is spoken
@@ -171,12 +174,19 @@ async def entrypoint(ctx: JobContext) -> None:
             agent, session_id=session_id, persona=persona, restaurant=restaurant_slug, table_no=table_no,
             on_goodbye=lambda: hang_up_after_goodbye(ctx, session), speech=speech,
         ),
-        tts=build_tts(persona, None if auto else language, speech=speech),  # auto: each sentence picks its own voice
+        tts=build_tts(persona, None if auto else language, speech=speech, meter=meter),  # auto: each sentence picks its own voice
         vad=silero.VAD.load(),
         turn_handling=TURN_HANDLING,
     )
 
     session.on("metrics_collected", _log_turn_metrics)
+    session.on("metrics_collected", lambda event: meter.on_livekit_metrics(event.metrics))
+
+    async def _report_cost(_reason: str = "") -> None:
+        meter.finish()
+        meter.log()
+
+    ctx.add_shutdown_callback(_report_cost)
 
     @session.on("conversation_item_added")
     def _on_item(event) -> None:

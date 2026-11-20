@@ -43,8 +43,14 @@ def owner_order(order: dict) -> dict:
     }
 
 
-def customer_bill(order: dict, store: dict, upi_uri: str, pay_link: str | None, language: str) -> dict:
+def customer_bill(order: dict, store: dict, upi_uri: str | None, pay_link: str | None, language: str) -> dict:
     total = format_price(float(order["total"]))
+    if not upi_uri:  # a store without UPI set up: the bill is paid on delivery or at pickup
+        if language == "hi":
+            text = f"{store['name']}\nऑर्डर {order['payment_ref']}\n\n{_item_lines(order)}\n\nकुल: {total}\n{_fulfilment(order, 'hi')}\n\nभुगतान डिलीवरी या पिकअप पर।"
+        else:
+            text = f"{store['name']}\nOrder {order['payment_ref']}\n\n{_item_lines(order)}\n\nTotal: {total}\n{_fulfilment(order)}\n\nPay on delivery or at pickup."
+        return {"type": "text", "text": text}
     if language == "hi":
         pay = f"QR स्कैन करके {total} दीजिए।" + (f"\nइसी फ़ोन से देने के लिए: {pay_link}" if pay_link else "")
         text = f"{store['name']}\nऑर्डर {order['payment_ref']}\n\n{_item_lines(order)}\n\nकुल: {total}\n{_fulfilment(order, 'hi')}"

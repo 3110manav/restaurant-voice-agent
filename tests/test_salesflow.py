@@ -151,3 +151,65 @@ def test_a_real_pizza_order_gets_the_drink_offer_and_the_dessert_hold():
     first = first_order_hint(SalesState(), menu, by_id.get, cart, [menu[0]])
     assert first and "Chilled Soft Drink" in first and "Garlic Bread" in first
     assert "Cinnamon Dough Bites" in dessert_hint(SalesState(), menu, by_id.get, cart)
+
+
+# ------------------------------------------------------------------------------------- curated pairings (pairs_with)
+
+def paired_menu():
+    def d(i, name, category, role, veg=True, pairs=(), available=True, order=0):
+        out = dish(i, name, category, 100, veg=veg, available=available, order=order)
+        out.update(order_role=role, pairs_with=list(pairs))
+        return out
+
+    return [
+        d("a1", "Paneer Tikka Dry", "Tandoor Veg Starters", "food", pairs=["Roti", "Naan", "Chaas"]),
+        d("a2", "Chicken Dum Biryani", "Signature Non Veg Biryani", "food", veg=False,
+          pairs=["Veg Raita", "Boondi Raita", "Pineapple Raita", "Lassi"]),
+        d("a3", "Veg Dum Biryani", "Aromatic Veg Biryani", "food", pairs=["Boondi Raita", "Veg Raita"]),
+        d("b1", "Roti", "Naan / Roti", "side", order=1),  # "Naan / Roti" matches no section word: the role is explicit
+        d("b2", "Naan", "Naan / Roti", "side", order=2),
+        d("b3", "Garlic Naan", "Naan / Roti", "side", order=0),  # earlier on the menu, but not paired with the paneer tikka
+        d("r1", "Veg Raita", "Sides", "side", order=3),
+        d("r2", "Boondi Raita", "Sides", "side", order=4),
+        d("r3", "Pineapple Raita", "Sides", "side", order=5, available=False),
+        d("s1", "Bombay Sandwich", "Sandwiches", "food", order=0),
+        d("k1", "Chaas", "Dessert & Cooler", "drink", order=2),
+        d("k2", "Lassi", "Dessert & Cooler", "drink", order=1),
+    ]
+
+
+def offer_for(menu, ordered_id, extra_in_cart=()):
+    by_id = {d["id"]: d for d in menu}
+    cart = [{"id": ordered_id, "price": 100, "quantity": 1}] + [{"id": i, "price": 100, "quantity": 1} for i in extra_in_cart]
+    return first_order_hint(SalesState(), menu, by_id.get, cart, [by_id[ordered_id]])
+
+
+def test_a_paneer_tikka_is_offered_the_breads_the_menu_pairs_with_it_and_never_a_sandwich():
+    hint = offer_for(paired_menu(), "a1")
+    assert "Roti or Naan" in hint
+    assert "Chaas" in hint
+    assert "Bombay Sandwich" not in hint and "Garlic Naan" not in hint  # the menu says which breads, not just any bread
+
+
+def test_a_biryani_is_offered_raitas_and_skips_the_unavailable_one():
+    hint = offer_for(paired_menu(), "a2")
+    assert "Veg Raita or Boondi Raita" in hint  # Pineapple Raita is off, and two are offered at most
+    assert "Lassi" in hint
+
+
+def test_an_all_veg_order_is_offered_only_veg_pairings():
+    menu = paired_menu()
+    menu[2]["pairs_with"] = ["Boondi Raita", "Chicken Dum Biryani"]
+    assert "Chicken Dum Biryani" not in offer_for(menu, "a3")
+
+
+def test_a_dish_with_no_pairing_falls_back_to_the_cuisine_rules():
+    menu = paired_menu()
+    menu[0]["pairs_with"] = []
+    hint = offer_for(menu, "a1")
+    assert "Veg Raita" in hint and "Bombay Sandwich" not in hint  # the old behaviour: a cooling side that suits the cuisine
+
+
+def test_a_pairing_already_in_the_cart_is_not_offered_again():
+    hint = offer_for(paired_menu(), "a1", extra_in_cart=["b1"])  # a side is in the cart, so none is offered
+    assert "Roti" not in hint and "Naan" not in hint

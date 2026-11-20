@@ -37,7 +37,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
 from app import erp
-from app.agent import guardrails, language as lang, medical, replies
+from app.agent import guardrails, language as lang, medical, promotions, replies
 from app.agent.hotel_tools import build_hotel_tools
 from app.agent.salesflow import SalesState
 from app.agent.service_tools import build_service_tools
@@ -359,6 +359,7 @@ class RestaurantOrderingAgent:
     customer = None  # a CustomerSession for stores and phone calls (app/customers/session.py)
     restaurant = None  # the store's row, for telling its owner about a placed order
     channel = "web"  # where the conversation happens: "web", "voice" or "whatsapp" (set by the caller)
+    cost_meter = None  # a CallCost (app/voice/costs.py) on a realtime call, counting the LLM's tokens
     record_channel: str | None = None  # overrides how a turn is labelled in the transcript (push-to-talk, phone)
     speech_label: str | None = None  # "groq" or "sarvam", for the transcript of a voice turn
     table_no: str | None = None
@@ -396,7 +397,9 @@ class RestaurantOrderingAgent:
         self.menu_store = menu_store
         # Cross-sell offers (a drink with the first order, a dessert at the end) only for restaurants:
         # a pharmacy must not upsell medicines, and a kirana order is a quick list.
-        self.sales = SalesState() if restaurant and self.business_type == "restaurant" else None
+        self.sales = (
+            SalesState(settings=promotions.settings(restaurant)) if restaurant and self.business_type == "restaurant" else None
+        )
         self._regens = 0
         # What each action did this turn, so a turn of simple successful actions is answered in code.
         self.events: list[dict] = []
@@ -418,6 +421,8 @@ class RestaurantOrderingAgent:
             system_prompt = phone_system_prompt(self.agent_name, phone.store["name"], persona == "waiter")
         if customer is not None:
             system_prompt += customer.prompt_block()
+        if self.sales is not None:  # the owner's bestsellers and new items, when those switches are on
+            system_prompt += promotions.prompt_block(getattr(menu_store, "menu", None) or [])
         self.system_prompt = system_prompt
         in_restaurant = restaurant is not None
         self.tools = build_tools(
@@ -455,11 +460,18 @@ class RestaurantOrderingAgent:
             if phone or live_call
             else {"timeout": 30.0, "max_retries": 3, "http_client": _GROQ_HTTP, **({"reasoning_effort": effort} if effort else {})}
         )
+        self.model_name = model
         llm = ChatGroq(model=model, temperature=0, **limits)
         self.llm_with_tools = llm.bind_tools(self.tools)
 
         self.checkpointer = MemorySaver()
         self.graph = self._build_graph()
+
+    def _meter(self, response) -> None:
+        """Count this reply's tokens on the call's cost meter (app/voice/costs.py), when a call has one."""
+        meter = getattr(self, "cost_meter", None)
+        if meter is not None:
+            meter.add_llm_usage(self.model_name, getattr(response, "usage_metadata", None))
 
     def _call_model(self, state: AgentState) -> dict:
         messages = recent_turns(state["messages"])
@@ -468,6 +480,7 @@ class RestaurantOrderingAgent:
         # The language instruction goes last, on every call, and is never stored in the history.
         messages = messages + [SystemMessage(content=lang.directive(self.language))]
         response = self.llm_with_tools.invoke(messages)
+        self._meter(response)
         if response.tool_calls:
             return {"messages": [response]}
         return {"messages": [self._checked(messages, response)]}
@@ -507,6 +520,7 @@ class RestaurantOrderingAgent:
             retry = self.llm_with_tools.invoke(
                 messages + [response, HumanMessage(content=guardrails.correction_message(violations, self.language))]
             )
+            self._meter(retry)
             if retry.tool_calls:
                 return retry  # the model chose to look something up first; its next reply is checked again
             response, reply = retry, guardrails.cut_repetition(_extract_text(retry.content))

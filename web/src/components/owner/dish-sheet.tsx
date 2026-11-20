@@ -30,6 +30,9 @@ interface FormState {
   ingredients: string;
   allergens: string;
   tags: string;
+  is_bestseller: boolean;
+  is_new: boolean;
+  promo_note: string;
   hasSizes: boolean;
   variants: { name: string; price: string }[];
 }
@@ -52,6 +55,9 @@ function initialState(dish: MenuItem | null, categories: string[]): FormState {
     ingredients: (dish?.ingredients ?? []).join(", "),
     allergens: (dish?.allergens ?? []).join(", "),
     tags: (dish?.tags ?? []).join(", "),
+    is_bestseller: dish?.is_bestseller ?? false,
+    is_new: dish?.is_new ?? false,
+    promo_note: dish?.promo_note ?? "",
     hasSizes: Boolean(dish?.variants?.length),
     variants: dish?.variants?.length
       ? dish.variants.map((v) => ({ name: v.name, price: String(v.price) }))
@@ -107,6 +113,9 @@ export function DishSheet({
       ingredients: csv(form.ingredients),
       allergens: csv(form.allergens),
       tags: csv(form.tags),
+      is_bestseller: form.is_bestseller,
+      is_new: form.is_new,
+      promo_note: form.promo_note.trim(),
     };
     if (form.hasSizes) {
       const variants = form.variants.map((v) => ({ name: v.name.trim(), price: Number(v.price) }));
@@ -274,9 +283,53 @@ export function DishSheet({
               <Field label="Allergens" hint="e.g. dairy, nuts, gluten">
                 <Input value={form.allergens} onChange={(e) => set("allergens", e.target.value)} />
               </Field>
-              <Field label="Tags" hint="e.g. bestseller, jain-friendly">
+              <Field label="Tags" hint="e.g. jain-friendly, kids-favourite">
                 <Input value={form.tags} onChange={(e) => set("tags", e.target.value)} />
               </Field>
+            </div>
+            <div className="flex flex-col gap-3 rounded-lg border p-3">
+              <p className="text-sm font-medium">Push this dish</p>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={form.is_bestseller}
+                  onChange={(e) => set("is_bestseller", e.target.checked)}
+                />
+                <span>
+                  Bestseller
+                  <span className="block text-xs text-muted-foreground">
+                    {restaurant.agent_name} recommends it first when a guest asks what to try.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={form.is_new}
+                  onChange={(e) => set("is_new", e.target.checked)}
+                />
+                <span>
+                  New on the menu
+                  <span className="block text-xs text-muted-foreground">
+                    {restaurant.agent_name} mentions it once, with a guest&apos;s first order.
+                  </span>
+                </span>
+              </label>
+              <Field
+                label="What to say about it"
+                hint={`Optional, one line (200 characters). ${restaurant.agent_name} uses it in their own words, for example "launched this week, with a smoked chilli marinade". Only write what's true.`}
+              >
+                <Input
+                  maxLength={200}
+                  value={form.promo_note}
+                  onChange={(e) => set("promo_note", e.target.value)}
+                />
+              </Field>
+              <p className="text-xs text-muted-foreground">
+                Both can be switched off for the whole restaurant under Settings, Suggestions.
+              </p>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>

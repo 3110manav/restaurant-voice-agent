@@ -26,7 +26,7 @@ router = APIRouter()
 def _payable_order(token: str) -> tuple[dict, dict]:
     order = repository.order_by_pay_token(token)
     store = repository.get_store(order["store_id"]) if order and order.get("store_id") else None
-    if store is None:
+    if store is None or not store.get("upi_id"):
         raise HTTPException(status_code=404, detail="This payment link isn't valid")
     return order, store
 

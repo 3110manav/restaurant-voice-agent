@@ -42,6 +42,8 @@ export function MenuEditor({ menu, onChanged }: { menu: OwnerMenu; onChanged: ()
 
   const withStory = dishes.filter((d) => d.long_description).length;
   const unavailable = dishes.filter((d) => d.is_available === false).length;
+  const bestsellers = dishes.filter((d) => d.is_bestseller).length;
+  const fresh = dishes.filter((d) => d.is_new).length;
 
   function openSheet(dish: MenuItem | null) {
     setEditing(dish);
@@ -53,6 +55,17 @@ export function MenuEditor({ menu, onChanged }: { menu: OwnerMenu; onChanged: ()
     setError(null);
     try {
       await saveDish(restaurant.id, dish.id, { is_available: dish.is_available === false });
+      await onChanged();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  /** Marks or unmarks a dish for the waiter to push (see the "Suggestions" switches in Settings). */
+  async function toggleFlag(dish: MenuItem, flag: "is_bestseller" | "is_new") {
+    setError(null);
+    try {
+      await saveDish(restaurant.id, dish.id, { [flag]: !dish[flag] });
       await onChanged();
     } catch (err) {
       setError((err as Error).message);
@@ -75,7 +88,7 @@ export function MenuEditor({ menu, onChanged }: { menu: OwnerMenu; onChanged: ()
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          {dishes.length} dishes · {withStory} with a story · {unavailable} unavailable
+          {dishes.length} dishes · {withStory} with a story · {unavailable} unavailable · {bestsellers} bestsellers · {fresh} new
         </p>
         <div className="flex gap-2">
           <input
@@ -115,6 +128,24 @@ export function MenuEditor({ menu, onChanged }: { menu: OwnerMenu; onChanged: ()
                 <Badge variant="outline" className="text-[10px]">
                   {STORY_BADGE[dish.knowledge_status ?? "missing"]}
                 </Badge>
+                <label className="flex items-center gap-1.5 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(dish.is_bestseller)}
+                    onChange={() => toggleFlag(dish, "is_bestseller")}
+                    aria-label={`${dish.name} bestseller`}
+                  />
+                  Bestseller
+                </label>
+                <label className="flex items-center gap-1.5 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(dish.is_new)}
+                    onChange={() => toggleFlag(dish, "is_new")}
+                    aria-label={`${dish.name} new`}
+                  />
+                  New
+                </label>
                 <label className="flex items-center gap-1.5 text-xs">
                   <input
                     type="checkbox"
