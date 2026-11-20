@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { ChatPanel } from "@/components/chat/chat-panel";
 import { GuestDesktop } from "@/components/guest/guest-desktop";
 import { Monogram, Stepper, VegMark, isStore, lineKey, lineLabel, placeholderFor, sum, useMenu, welcomeLine } from "@/components/guest/parts";
-import { LanguageToggle } from "@/components/language-toggle";
 import { PhotoCredits } from "@/components/photo-credits";
 import { SpeechToggle } from "@/components/speech-toggle";
 import { BillStep, DoneStep } from "@/components/table/table-steps";
@@ -68,8 +67,6 @@ export function GuestApp({ info, persona, tableNo }: { info: RestaurantInfo; per
           info={info}
           persona={persona}
           tableNo={tableNo}
-          language={session.language}
-          onLanguage={session.setLanguage}
           onTalk={() => {
             setScreen("menu");
             setTalking(true);
@@ -86,8 +83,6 @@ export function GuestApp({ info, persona, tableNo }: { info: RestaurantInfo; per
           cart={session.cart}
           table={table}
           store={store}
-          language={session.language}
-          onLanguage={session.setLanguage}
           onAdd={(id, variant) => session.addItemDirect(id, 1, variant)}
           onRemove={(id, variant) => session.removeItemDirect(id, 1, variant)}
           onTalk={() => setTalking(true)}
@@ -154,26 +149,20 @@ function Welcome({
   info,
   persona,
   tableNo,
-  language,
-  onLanguage,
   onTalk,
   onMenu,
 }: {
   info: RestaurantInfo;
   persona: Persona;
   tableNo: string | null;
-  language: "en" | "hi";
-  onLanguage: (next: "en" | "hi") => void;
   onTalk: () => void;
   onMenu: () => void;
 }) {
-  const hi = language === "hi";
   const store = isStore(info);
   return (
     <div className="flex min-h-dvh flex-col px-6 pt-5 pb-6">
       <div className="flex flex-wrap items-center justify-end gap-2">
         <SpeechToggle />
-        <LanguageToggle value={language} onChange={onLanguage} />
       </div>
       <div className="flex flex-1 flex-col justify-center gap-5">
         <Monogram info={info} className="size-16 text-3xl" />
@@ -183,15 +172,15 @@ function Welcome({
             {[info.cuisine, tableNo ? `Table ${tableNo}` : null].filter(Boolean).join(" · ")}
           </p>
         </div>
-        <p className="text-lg leading-snug">{welcomeLine(info, persona, hi)}</p>
+        <p className="text-lg leading-snug">{welcomeLine(info, persona)}</p>
       </div>
       <div className="flex flex-col gap-2.5">
         <Button className="h-14 gap-2 text-base" onClick={onTalk}>
           <Mic className="size-5" />
-          {hi ? `${persona.agentName} से बात करें` : `Talk to ${persona.agentName}`}
+          Talk to {persona.agentName}
         </Button>
         <Button variant="outline" className="h-12 text-base" onClick={onMenu}>
-          {hi ? (store ? "सूची देखें" : "मेन्यू देखें") : store ? "See what's in stock" : "See the menu"}
+          {store ? "See what's in stock" : "See the menu"}
         </Button>
         <p className="mt-2 text-center text-xs text-muted-foreground">Powered by Sarthi</p>
       </div>
@@ -287,8 +276,6 @@ function MenuScreen({
   cart,
   table,
   store,
-  language,
-  onLanguage,
   onAdd,
   onRemove,
   onTalk,
@@ -301,8 +288,6 @@ function MenuScreen({
   cart: CartLine[];
   table: TableSession;
   store: boolean;
-  language: "en" | "hi";
-  onLanguage: (next: "en" | "hi") => void;
   onAdd: (id: string, variant?: string) => void;
   onRemove: (id: string, variant?: string) => void;
   onTalk: () => void;
@@ -335,7 +320,6 @@ function MenuScreen({
           <p className="truncate font-heading text-lg leading-tight font-semibold">{info.name}</p>
           <p className="text-xs text-muted-foreground">{tableNo ? `Table ${tableNo}` : (info.cuisine ?? info.tagline)}</p>
         </div>
-        <LanguageToggle value={language} onChange={onLanguage} />
       </header>
 
       <nav aria-label="Menu sections" className="sticky top-[65px] z-20 flex gap-2 overflow-x-auto border-b bg-background px-4 py-2.5">

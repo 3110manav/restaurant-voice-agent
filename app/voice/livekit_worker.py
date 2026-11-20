@@ -122,7 +122,9 @@ async def entrypoint(ctx: JobContext) -> None:
     # dispatch metadata; without it this is a kirana (or standalone waiter) call.
     meta = json.loads(ctx.job.metadata or "{}")
     restaurant_slug, table_no = meta.get("restaurant"), meta.get("table_no")
-    language = lang.normalize(meta.get("language"))
+    chosen = meta.get("language")
+    auto = chosen == lang.AUTO or not chosen  # no language chosen: follow the guest
+    language = "en" if auto else lang.normalize(chosen)  # what the greeting is in, before the guest has spoken
     speech = meta.get("speech")  # "groq" or "sarvam", settled by the API; absent means this worker's SARTHI_SPEECH
     logger.info(
         "starting realtime session: persona=%s session_id=%s restaurant=%s speech=%s",
@@ -148,7 +150,7 @@ async def entrypoint(ctx: JobContext) -> None:
             customer=start_session(menu.restaurant, caller, table_no, language, verified=verified),
         )
         agent.channel = "voice"
-        agent.set_language(language)
+        agent.set_language(lang.AUTO if auto else language, start=language)
         greeting = agent.opening_line(menu.restaurant["name"])
     else:
         if persona not in ENABLED_PERSONAS:
@@ -161,17 +163,18 @@ async def entrypoint(ctx: JobContext) -> None:
         agent = RestaurantOrderingAgent(session_id=f"livekit:{session_id}", menu_store=store, persona=persona, live_call=True)
         greeting = lang.greeting(language, agent.agent_name)
 
-    agent.set_language(language)
+    agent.set_language(lang.AUTO if auto else language, start=language)
+    agent.speech_label = speech or speech_stack()  # shown against this call's turns in the owner's transcript
     meter = CallCost("browser", speech or speech_stack(), stt_model(speech))
     agent.cost_meter = meter
 
     session = AgentSession(
-        stt=build_stt(language, speech),
+        stt=build_stt(None if auto else language, speech),  # auto: hear whatever language is spoken
         llm=SarthiLLM(
             agent, session_id=session_id, persona=persona, restaurant=restaurant_slug, table_no=table_no,
-            on_goodbye=lambda: hang_up_after_goodbye(ctx, session),
+            on_goodbye=lambda: hang_up_after_goodbye(ctx, session), speech=speech,
         ),
-        tts=build_tts(persona, language, speech=speech, meter=meter),
+        tts=build_tts(persona, None if auto else language, speech=speech, meter=meter),  # auto: each sentence picks its own voice
         vad=silero.VAD.load(),
         turn_handling=TURN_HANDLING,
     )
@@ -193,7 +196,10 @@ async def entrypoint(ctx: JobContext) -> None:
 
     await session.start(Agent(instructions=agent.system_prompt), room=ctx.room, room_options=room_options(telephony=False))
     # Pre-generate the acknowledgement phrases in the background so they play instantly.
-    asyncio.get_running_loop().run_in_executor(None, warm, persona, language, lang.all_acks(language), None, speech)
+    asyncio.get_running_loop().run_in_executor(
+        None, warm, persona, None if auto else language,
+        [p for code in ("en", "hinglish", "hi") for p in lang.all_acks(code)] if auto else lang.all_acks(language), None, speech,
+    )
     session.say(greeting, allow_interruptions=True)
 
 

@@ -57,7 +57,7 @@ def _chat(store: dict, phone: str, language: str) -> _Chat:
             )
             agent.channel = "whatsapp"
             context_language = agent.customer.context.language if agent.customer else None
-            agent.set_language(context_language or language)
+            agent.set_language(lang.AUTO, start=context_language or language)
             chat = _chats[key] = _Chat(agent)
         chat.last_used = now
         return chat
@@ -67,8 +67,6 @@ def reply_to_text(store: dict, phone: str, text: str) -> str:
     """The agent's reply to a customer's WhatsApp text."""
     chat = _chat(store, phone, "en")
     with chat.lock:  # two quick messages from one customer are handled one after the other
-        if lang.has_devanagari(text):
-            chat.agent.set_language("hi")
         try:
             return chat.agent.send(text)
         except AgentBusyError:

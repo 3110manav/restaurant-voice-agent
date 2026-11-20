@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 
 import { ChatPanel } from "@/components/chat/chat-panel";
 import { Monogram, Stepper, VegMark, agentRole, isStore, lineKey, lineLabel, placeholderFor, sum, useMenu, welcomeLine } from "@/components/guest/parts";
-import { LanguageToggle } from "@/components/language-toggle";
 import { PhotoCredits } from "@/components/photo-credits";
 import { SpeechToggle } from "@/components/speech-toggle";
 import { BillStep, DoneStep } from "@/components/table/table-steps";
@@ -45,7 +44,6 @@ export function GuestDesktop({
   call: ReturnType<typeof useRealtimeCall>;
 }) {
   const store = isStore(info);
-  const hi = session.language === "hi";
   const { items, failed } = useMenu(persona, info);
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
@@ -85,10 +83,9 @@ export function GuestDesktop({
           </p>
         </div>
         <SpeechToggle />
-        <LanguageToggle value={session.language} onChange={session.setLanguage} />
         <Button className="h-10 gap-2 px-4" onClick={() => void call.start()} disabled={call.connection !== null || call.isConnecting}>
           <Mic className="size-4" />
-          {hi ? `${persona.agentName} से बात करें` : `Talk to ${persona.agentName}`}
+          Talk to {persona.agentName}
         </Button>
       </header>
 
@@ -136,16 +133,16 @@ export function GuestDesktop({
               <section className="flex flex-col gap-5 rounded-2xl bg-primary/10 p-6">
                 <div className="max-w-3xl">
                   <p className="text-sm font-medium text-primary">
-                    {persona.agentName} · {agentRole(info, hi)}
+                    {persona.agentName} · {agentRole(info)}
                   </p>
-                  <p className="mt-1 font-heading text-2xl leading-snug font-semibold">{welcomeLine(info, persona, hi)}</p>
+                  <p className="mt-1 font-heading text-2xl leading-snug font-semibold">{welcomeLine(info, persona)}</p>
                 </div>
                 <div className="relative w-full max-w-md">
                   <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                   <Input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder={hi ? "खोजें" : store ? "Search items or brands" : "Search the menu"}
+                    placeholder={store ? "Search items or brands" : "Search the menu"}
                     aria-label="Search"
                     className="h-11 bg-background pl-9"
                   />
@@ -200,7 +197,6 @@ export function GuestDesktop({
             store={store}
             session={session}
             table={table}
-            hi={hi}
             onAdd={add}
             onRemove={remove}
             onBill={() => setPicked("bill")}
@@ -292,7 +288,6 @@ function OrderPanel({
   store,
   session,
   table: t,
-  hi,
   onAdd,
   onRemove,
   onBill,
@@ -302,7 +297,6 @@ function OrderPanel({
   store: boolean;
   session: ChatSession;
   table: TableSession;
-  hi: boolean;
   onAdd: (id: string, variant?: string) => void;
   onRemove: (id: string, variant?: string) => void;
   onBill: () => void;
@@ -318,7 +312,7 @@ function OrderPanel({
   return (
     <section aria-label="Your order" className="flex max-h-[55%] min-h-0 flex-col rounded-2xl border bg-background">
       <div className="flex items-center justify-between border-b px-4 py-3">
-        <h2 className="font-heading text-lg font-semibold">{hi ? "आपका ऑर्डर" : "Your order"}</h2>
+        <h2 className="font-heading text-lg font-semibold">Your order</h2>
         {lines.length > 0 && <span className="text-sm text-muted-foreground">{lines.reduce((n, l) => n + l.quantity, 0)} items</span>}
       </div>
 
@@ -402,7 +396,7 @@ function OrderPanel({
                 className="h-12 justify-between px-4 text-base"
                 disabled={asking}
                 onClick={() =>
-                  void session.sendText(hi ? "बस इतना ही, कृपया ऑर्डर कर दीजिए।" : "That's all, please place my order.")
+                  void session.sendText("That's all, please place my order.")
                 }
               >
                 <span>{asking ? "One moment…" : `Ask ${persona.agentName} to place it`}</span>

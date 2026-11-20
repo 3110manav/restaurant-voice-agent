@@ -494,6 +494,13 @@ It covers push-to-talk (`app/voice/stt.py`, `tts.py`), the browser's realtime ca
 (`app/voice/livekit_stack.py`). LiveKit carries the audio on both. The LLM is Groq on both (`SARTHI_MODEL`).
 Set the same value on the API and on the voice worker; a mistyped value stops either from starting.
 
+**Language.** The guest speaks however they like. The toggle is **Auto** by default: each reply is in the language of
+the guest's latest message, Hindi (Devanagari), Hinglish (Hindi in Latin letters) or English, judged by `detect` in
+`app/agent/language.py`. A message with nothing to go on ("ok", a number) keeps the language, so replies don't flip.
+**English** and **हिन्दी** still fix the reply language, and what speech recognition is told to listen for. In Auto
+speech recognition is not told a language, and each sentence picks its voice from what it says: Hindi and Hinglish
+use Sarvam's Bulbul, English uses the stack's English voice. WhatsApp follows the customer the same way.
+
 **Choosing in the web app.** With `SARTHI_SPEECH_CHOICE=1` on the API, a Groq / Sarvam switch appears on the landing
 page, the restaurant page and where a call starts. Each guest's pick overrides `SARTHI_SPEECH` for their push-to-talk
 and browser calls: the API settles it and passes it to the worker with the call, so one deployment serves both and the
@@ -642,6 +649,9 @@ Backend (FastAPI) on [Render](https://render.com), frontend (Next.js) on
 | `WHATSAPP_GRAPH_VERSION` — the Graph API version, for example `v25.0` | | ✅ | ✅ |
 | `PUBLIC_BASE_URL` — the Render API's URL, used in customers' pay links | | ✅ | ✅ |
 | `ADMIN_API_KEY` — any random string; without it `/admin/calls` returns 503 | | ✅ | |
+| `SARTHI_STORE_TRANSCRIPTS` — conversation transcripts are saved for the owner's Conversations tab (migration `005_conversation_turns.sql`); `0` turns it off | | ✅ | ✅ |
+| `SARTHI_LOG_TURNS` — `1` logs each spoken turn (heard, answered, stack) while debugging; off by default | | ✅ | ✅ |
+| `SARTHI_HISTORY_TURNS`, `SARTHI_MAX_RETRY_WAIT` — optional tuning of the history each model call carries (default 6) and the rate-limit wait on calls (default 6 s) | | ✅ | ✅ |
 
 Never set `WHATSAPP_ALLOW_UNSIGNED` on a deployment: it turns webhook signature checks off.
 Generate the random strings with `openssl rand -hex 24`.

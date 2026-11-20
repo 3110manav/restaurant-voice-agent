@@ -193,7 +193,8 @@ def start_session(
         return None
     context = load_context(restaurant["id"], phone) if phone else CustomerContext()
     return CustomerSession(
-        restaurant["id"], phone, context, delivery_required=delivery, language=language, phone_verified=bool(phone) and verified
+        restaurant["id"], phone, context, delivery_required=delivery, language="hi" if language == "hi" else "en",
+        phone_verified=bool(phone) and verified,  # the saved language is English or Hindi; "auto" is a mode, not a language
     )
 
 

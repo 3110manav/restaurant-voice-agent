@@ -64,7 +64,7 @@ def test_a_false_order_claim_is_regenerated(agent):
 def test_a_looping_reply_is_cut_without_another_model_call(agent):
     question = "Which size would you like, Regular or Large?"
     agent.llm_with_tools = ScriptedLLM(AIMessage(content=f"{question}Sure, just tell me the size.{question}" * 20))
-    assert agent.send("okay") == question
+    assert agent.send("which sizes do you have") == question
     assert len(agent.llm_with_tools.seen) == 1  # no regeneration, which could guess a size and add it
     assert history_text(agent)[-1] == question  # the loop doesn't enter the history either
 

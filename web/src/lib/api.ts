@@ -8,6 +8,8 @@ export interface CartLine {
   quantity: number;
   /** Size/portion (e.g. "Large", "Half") for dishes that come in several. */
   variant?: string;
+  /** What the guest asked for on this dish ("Jain", "no onion"): a request for the kitchen, not a promise. */
+  note?: string | null;
 }
 
 export interface ServiceLogEntry {
@@ -111,7 +113,8 @@ export interface RestaurantContext {
   language?: Language;
 }
 
-export type Language = "en" | "hi";
+/** "auto" is the default: the agent answers in the language the guest is using, Hindi, Hinglish or English. */
+export type Language = "auto" | "en" | "hi";
 
 async function parseOrThrow<T>(res: Response): Promise<T> {
   if (!res.ok) {

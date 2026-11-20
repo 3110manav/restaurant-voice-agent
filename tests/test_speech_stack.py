@@ -179,3 +179,14 @@ def test_health_says_whether_the_site_may_offer_the_switch(monkeypatch):
     monkeypatch.setenv("SARTHI_SPEECH", "groq")
     monkeypatch.setenv("SARTHI_SPEECH_CHOICE", "1")
     assert TestClient(main.app).get("/health").json() == {"status": "ok", "speech": "groq", "speech_choice": True}
+
+
+def test_sarvam_is_told_the_language_the_app_has_set_not_left_to_guess(monkeypatch, livekit_stack):
+    monkeypatch.setenv("SARTHI_SPEECH", "sarvam")
+    monkeypatch.delenv("SARVAM_STT_AUTODETECT", raising=False)
+    english, hindi, phone = (livekit_stack.build_stt("en"), livekit_stack.build_stt("hi"), livekit_stack.build_stt(None))
+    assert (english._opts.language, english._opts.mode) == ("en-IN", "transcribe")
+    assert (hindi._opts.language, hindi._opts.mode) == ("hi-IN", "codemix")
+    assert (phone._opts.language, phone._opts.mode) == ("unknown", "codemix")  # a phone call can switch mid-call
+    monkeypatch.setenv("SARVAM_STT_AUTODETECT", "1")  # the way back to guessing
+    assert livekit_stack.build_stt("en")._opts.language == "unknown"

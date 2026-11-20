@@ -17,7 +17,7 @@ import base64
 import functools
 import re
 
-from app.agent.language import has_devanagari, use_hindi_voice
+from app.agent.language import has_devanagari, looks_hinglish, use_hindi_voice
 from app.voice.stack import uses_sarvam
 from app.voice.voices import voices_for
 
@@ -61,7 +61,8 @@ def sarvam_request(text: str, persona: str = "online", sample_rate: int | None =
     sentence is read with Hindi's conventions for numbers."""
     voices = voices_for(persona)
     if not has_devanagari(text):
-        voice, code = voices["mixed"], ENGLISH_INDIA_LANGUAGE_CODE
+        # Hindi written in Latin letters ("aapka order ho gaya") is read as Hindi; plain English as Indian English.
+        voice, code = voices["mixed"], HINDI_LANGUAGE_CODE if looks_hinglish(text) else ENGLISH_INDIA_LANGUAGE_CODE
     else:
         voice, code = (voices["mixed"] if re.search(r"[A-Za-z]", text) else voices["hi"]), HINDI_LANGUAGE_CODE
     request = {

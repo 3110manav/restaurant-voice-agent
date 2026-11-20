@@ -18,6 +18,7 @@ from livekit.agents.types import DEFAULT_API_CONNECT_OPTIONS
 from livekit.agents.utils import shortuuid
 from livekit.plugins import noise_cancellation, silero
 
+from app.agent import guardrails
 from app.agent import language as lang
 from app.phone.call import PhoneCall, open_call
 from app.voice.livekit_llm import _last_user_text
@@ -84,11 +85,14 @@ class PhoneLLMStream(LLMStream):
         llm: PhoneLLM = self._llm  # type: ignore[assignment]
         agent = llm.call.agent
         # Say "ठीक है।" straight away (its audio is cached) while the model works on the real answer.
-        ack = lang.pick_ack(text, lang.caller_language(text, agent.language), llm.acks)
+        quiet = guardrails.is_noise(text) or guardrails.is_bare_ack(text)  # these get no answer at all
+        ack = None if quiet else lang.pick_ack(text, lang.caller_language(text, agent.language), llm.acks)
         if ack:
             llm.acks += 1
             self._event_ch.send_nowait(ChatChunk(id=shortuuid(), delta=ChoiceDelta(role="assistant", content=f"{ack} ")))
         reply = await asyncio.get_running_loop().run_in_executor(None, llm.call.take_turn, text)
+        if not reply:
+            return
         self._event_ch.send_nowait(ChatChunk(id=shortuuid(), delta=ChoiceDelta(role="assistant", content=reply)))
         if llm.on_goodbye and agent.conversation_over(text, reply):
             llm.on_goodbye()

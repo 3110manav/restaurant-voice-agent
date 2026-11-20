@@ -48,6 +48,7 @@ import contextlib
 import json
 import logging
 import threading
+import time
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Form, HTTPException, UploadFile
@@ -77,6 +78,7 @@ from app.table.state import TableState  # noqa: E402
 from app.table.suggest import next_suggestion  # noqa: E402
 from app.voice import livekit_tokens  # noqa: E402
 from app.whatsapp.webhook import router as whatsapp_router  # noqa: E402
+from app.voice import turnlog  # noqa: E402
 from app.voice.stack import choice_allowed, speech_stack  # noqa: E402
 from app.voice.stack import resolve as speech_resolve  # noqa: E402
 from app.voice.stt import transcribe_bytes  # noqa: E402
@@ -369,12 +371,23 @@ async def chat_voice(
     persona = agent.persona
 
     audio_bytes = await audio.read()
-    transcript = transcribe_bytes(audio_bytes, filename=audio.filename or "audio.webm", language=agent.language, speech=speech)
+    transcript = transcribe_bytes(
+        audio_bytes, filename=audio.filename or "audio.webm", language=agent.stt_language(), speech=speech
+    )
 
     if not transcript:
         return VoiceChatResponse(transcript="", reply="", cart=agent.cart, service_log=agent.service_log)
 
-    reply = send_or_busy(agent, transcript)
+    started = time.monotonic()
+    agent.record_channel, agent.speech_label = "push-to-talk", speech_resolve(speech)  # how this turn reads in the transcript
+    try:
+        reply = send_or_busy(agent, transcript)
+    finally:
+        agent.record_channel, agent.speech_label = None, None
+    turnlog.log_turn(
+        "push-to-talk", speech_resolve(speech), agent.language, transcript, reply,
+        (time.monotonic() - started) * 1000, session_id,
+    )
 
     try:
         reply_audio_b64 = base64.b64encode(synthesize(reply, persona, agent.language, speech)).decode("ascii")
