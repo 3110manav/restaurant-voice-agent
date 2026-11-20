@@ -3,7 +3,7 @@
 Restaurant phone orders through one Samvaad agent (Kabir) and our tool API (`app/samvaad/`).
 Setup steps: [SARVAM_SETUP.md](SARVAM_SETUP.md). Earlier pilot plan: [SARVAM_PILOT_CHECKLIST.md](SARVAM_PILOT_CHECKLIST.md).
 
-## Where we are (19 Nov 2026)
+## Where we are (20 Nov 2026)
 
 - [x] Kabir agent with 11 tools, working through an ngrok tunnel
 - [x] Stores for `slice-station`, `saffron-table`, `sarson-da-khet` (owner WhatsApp 8976448886, no UPI: pay on delivery)
@@ -15,7 +15,13 @@ Setup steps: [SARVAM_SETUP.md](SARVAM_SETUP.md). Earlier pilot plan: [SARVAM_PIL
 - [x] Tool replies put the exact words to say inside `result` ("Say exactly this to the guest: …")
 - [x] Search results tell the agent to add a dish the guest already asked for
 - [x] Tool calls without an interaction ID (Samvaad's Send button) and IDs containing "/" both work
-- [ ] Today's code changes committed (503 tests pass)
+- [x] **Dishes not on the menu are refused with exact words to say** ("NOT ADDED, not on the menu", plus the
+      closest dishes we have); "Shahi Paneer" is no longer offered Paneer Tikka Masala as a match
+- [x] Every Samvaad tool sends `result`, `cart_summary` and `cart_total` to the agent (block 3, as field chips)
+- [x] **Veg script passed** (browser, 20 Nov, order 9K7A4K, ₹1,190): 4 not-on-the-menu dishes refused, "which
+      dosa" asked, WhatsApp number asked, exact read-back, bill and owner alert sent
+- [ ] Same veg script on a **real phone call**
+- [ ] Code changes from 19–20 Nov committed (505 tests pass)
 
 **Seen in testing:** Samvaad's LLM repeated tool calls, picked the wrong dish ("Paneer Tikka" for Paneer Tikka
 Pizza), skipped a dish it had just found, ignored "say exactly", and twice told the guest an order was placed
@@ -64,7 +70,12 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
 - [ ] **Stable hosting**: Render paid instance (Singapore or India region) instead of ngrok; update all tool URLs
 - [ ] **Carts in the database** (Supabase) instead of API memory: a restart or reload loses live orders
 - [ ] **Never drop an order for a missing WhatsApp number**: save it, alert the owner, skip only the bill
-- [ ] **`quantity` = total wanted** in add_to_cart: a repeated "ek hi karo" removed a whole dish
+- [ ] **Duplicate tool calls**: `quantity` = total wanted, and ignore an identical add_to_cart within a few
+      seconds. Real call 20 Nov (order 9X3RQ8): "4 Paneer Tikka" was sent 5 times and saved as **17**; a repeated
+      "ek hi karo" once removed a whole dish
+- [ ] **Made-up read-backs**: on 9X3RQ8 Kabir read back 6 dishes for ₹2,400 while the cart was 17 Paneer Tikka +
+      12 Tandoori Roti, ₹6,380, and the guest's "haan" placed the real cart. Checkout must check the read-back the
+      guest heard (send `@Call Transcript` with checkout, refuse unless it contains the real total)
 - [ ] **WhatsApp business number + approved templates**: today it is Meta's test number (5 recipients), and
       customers who never messaged us are refused (error 131047)
 - [ ] **One number per restaurant**, and confirm the dialled number reaches `start_call`
@@ -93,11 +104,18 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
 - [ ] **Background noise cuts the read-back** (real call 20 Nov, order 6VE4F7): lower barge-in sensitivity or
       require a minimum speech length, turn on noise suppression, and shorten the read-back (skip the WhatsApp
       line when it's the caller's own number)
-- [ ] `end_call_log` sends an empty transcript: set its `transcript` row to the built-in Call Transcript variable
-- [ ] Not-on-the-menu dishes: show the search hint only when the named dish is in the result, and add the
-      instruction line "never add a different dish in its place without the guest agreeing" (Maggiano's Pizza)
+- [ ] `end_call_log` sends an empty transcript and call length: set those Body rows to the built-in Call
+      Transcript and Call Length variables (still empty on 20 Nov). Needed for the read-back check and for cost
+- [x] Not-on-the-menu dishes: search hint reworded, instruction lines added (Maggiano's Pizza, Veg Kolhapuri)
+- [ ] Not on the menu, asked as a question ("Shahi Paneer hai?"): `get_item_details` still answers "could mean…"
+- [ ] Alternatives for a missing dish should match veg / non-veg (Butter Naan was offered Butter Chicken)
+- [ ] Parallel tool calls: Samvaad sends one add_to_cart per dish at the same moment, so a reply can show a stale
+      cart ("empty") and a suggestion for a dish being added alongside. Answer them in order, from one cart
 - [ ] Kabir swapped Paneer Tikka Pizza for Paneer Tikka on its own (20 Nov call): check it's fixed by the
       full-dish-name instruction
+- [ ] Jain and other diet tags on dishes ("veg mein jain chahiye" had nothing to go on)
+- [ ] Cost per Samvaad call in `phone_calls.metrics` (minutes × plan rate + telephony pulses + WhatsApp), once
+      `call_length` arrives. A 95 s call was ≈ ₹6–8
 
 ### P2: after the pilot
 
@@ -115,6 +133,9 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
 4. Can an agent use a **custom LLM** endpoint (OpenAI-compatible)? Which LLMs can we pick?
 5. Do unused prepaid minutes carry over? Pilot pricing or startup credits? Growth concurrency at Pro price?
 6. Bulk pricing for 100+ numbers?
+7. Is usage billed per second or per started minute?
+8. Which settings control barge-in sensitivity, noise suppression and end-of-speech timing?
+9. Why do `@Call Transcript` and `@Call Length` arrive empty in the end tool?
 
 ---
 
@@ -173,7 +194,13 @@ on our Groq stack and compare before going live.
   and checkout waits for one. Real phone calls send the caller's number automatically.
 - Send "hi" from the test phone to the WhatsApp test number (+1 555-617-6465) within 24 hours before a test,
   or Meta refuses the messages.
+- Block 3 ("Send fields from the API response to the agent") needs real field chips: press **Send** once so
+  Samvaad learns the fields, then pick them from the `@` list. Typed `@result` reaches the agent as plain text,
+  and Kabir then guesses (it said "added" for dishes that weren't).
+- Samvaad's Send on `request_callback` sends a real WhatsApp alert to the owner.
 - Every tool needs the token in its **Auth** tab; pasting a cURL doesn't fill it. Body rows must be variables,
   not text left over from the cURL (only `called_number` stays as empty text).
 - ngrok adds about 0.1–0.35 s per tool call; phone calls are slower than browser mostly because of the phone
   network and 8 kHz audio.
+
+
