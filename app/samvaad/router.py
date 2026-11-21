@@ -55,6 +55,9 @@ class ToolCall(BaseModel):
     item_name: str | None = None
     quantity: int | str | None = None
     variant: str | None = None
+    note: str | None = None  # a change to one dish: "no beans", "extra spicy"
+    customer_name: str | None = None
+    request: str | None = None  # a wish about the whole order: "deliver after 8"
     items: list | str | None = None
     order_type: str | None = None
     address: str | None = None
@@ -88,7 +91,7 @@ def _clean(value: str | None) -> str | None:
     return None if _blank(value) else value.strip()
 
 
-def _session(call: ToolCall) -> SamvaadSession:
+def _session(call: ToolCall, restore: bool = False) -> SamvaadSession:
     try:
         return sessions.open(
             call.interaction_id,
@@ -97,6 +100,7 @@ def _session(call: ToolCall) -> SamvaadSession:
             caller=_clean(call.caller),
             language=_clean(call.language),
             channel=_clean(call.channel) or "phone",
+            restore=restore,
         )
     except StoreNotFound as e:
         logger.error("Samvaad call %s: %s", call.interaction_id, e)
@@ -126,23 +130,27 @@ def _items(call: ToolCall) -> list[dict]:
             entry = {"name": entry}
         if isinstance(entry, dict):
             items.append({"name": entry.get("name") or entry.get("item_name") or "",
-                          "quantity": _quantity(entry.get("quantity")), "variant": entry.get("variant") or ""})
+                          "quantity": _quantity(entry.get("quantity")), "variant": entry.get("variant") or "",
+                          "note": entry.get("note") or ""})
     name = _clean(call.item_name) or _clean(call.name)
     if name:
-        items.append({"name": name, "quantity": _quantity(call.quantity), "variant": _clean(call.variant) or ""})
+        items.append({"name": name, "quantity": _quantity(call.quantity), "variant": _clean(call.variant) or "",
+                      "note": _clean(call.note) or ""})
     return items
 
 
 @router.post("/start")
 def start(call: ToolCall, authorization: str | None = Header(default=None)) -> dict:
     _authorize(authorization)
+    # Only the names of any fields we don't know, never their values: they can be a caller's details.
+    logger.info("Samvaad start: unrecognised fields %s", sorted(call.model_extra or {}))
     session = _session(call)
     return {**session.start_variables(), **session.snapshot()}
 
 
 TOOLS = (
     "search_menu", "get_item_details", "add_to_cart", "remove_from_cart", "view_cart",
-    "set_order_details", "read_back_order", "checkout", "request_callback",
+    "add_note", "add_special_request", "set_order_details", "read_back_order", "checkout", "request_callback",
 )
 
 
@@ -151,7 +159,7 @@ def run_tool(tool: str, call: ToolCall, authorization: str | None = Header(defau
     _authorize(authorization)
     if tool not in TOOLS:
         raise HTTPException(status_code=404, detail=f"Unknown tool {tool!r}")
-    session = _session(call)
+    session = _session(call, restore=True)  # a call we have no session for may be one the API restarted in
     lang = _clean(call.language)
     with session.lock:
         try:
@@ -161,6 +169,9 @@ def run_tool(tool: str, call: ToolCall, authorization: str | None = Header(defau
                 return session.item_details(_clean(call.name) or _clean(call.item_name) or "", lang)
             if tool == "add_to_cart":
                 return session.add(_items(call), lang)
+            if tool == "add_note":
+                return session.add_note(_clean(call.item_name) or _clean(call.name) or "", _clean(call.note) or "",
+                                        _clean(call.variant) or "", lang)
             if tool == "remove_from_cart":
                 name = _clean(call.item_name) or _clean(call.name) or ""
                 return session.remove(name, _quantity(call.quantity), _clean(call.variant) or "", lang)
@@ -168,8 +179,11 @@ def run_tool(tool: str, call: ToolCall, authorization: str | None = Header(defau
                 return session.view(lang)
             if tool == "set_order_details":
                 return session.set_details(
-                    _clean(call.order_type) or "", _clean(call.address) or "", _clean(call.whatsapp_number) or "", lang
+                    _clean(call.order_type) or "", _clean(call.address) or "", _clean(call.whatsapp_number) or "", lang,
+                    _clean(call.customer_name) or "",
                 )
+            if tool == "add_special_request":
+                return session.add_special_request(_clean(call.request) or "", lang)
             if tool == "read_back_order":
                 return session.read_back(lang)
             if tool == "checkout":
@@ -192,6 +206,7 @@ async def end(request: Request, authorization: str | None = Header(default=None)
     interaction_id = (
         payload.get("interaction_id") or payload.get("attempt_id") or (payload.get("data") or {}).get("interaction_id")
     )
+    logger.info("Samvaad end: fields %s", sorted(payload) if isinstance(payload, dict) else [])
     session = sessions.pop(str(interaction_id)) if interaction_id else None
     if session is None:
         return {"closed": False}

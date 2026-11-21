@@ -72,6 +72,8 @@ class _Query:
         if self.db.failing:
             raise RuntimeError("database is down")
         if self.action == "insert":
+            if self.table == "phone_calls" and any(r["room"] == self.payload["room"] for r in self.db.tables.get("phone_calls", [])):
+                raise RuntimeError("duplicate key value violates unique constraint phone_calls_room_key")
             row = {**self.db.defaults(self.table), **copy.deepcopy(self.payload)}
             self.db.tables.setdefault(self.table, []).append(row)
             return _Result([copy.deepcopy(row)])
@@ -94,12 +96,14 @@ class _Query:
 
 
 class _Rpc:
-    def __init__(self, db, params):
-        self.db, self.params = db, params
+    def __init__(self, db, params, result=None):
+        self.db, self.params, self.result = db, params, result
 
     def execute(self):
         if self.db.failing:
             raise RuntimeError("database is down")
+        if "p_order" not in self.params:
+            return _Result(self.result)  # some other function: the test says what it returns
         order = copy.deepcopy(self.params["p_order"])
         orders = self.db.tables.setdefault("orders", [])
         if not any(row["id"] == order["id"] for row in orders):
@@ -120,13 +124,17 @@ class FakeSupabase:
     def __init__(self):
         self.tables = {}
         self.failing = False
+        self.rpc_calls = []        # other functions the code called: (name, params)
+        self.rpc_results = {}      # name -> what such a call returns
         self._clock = itertools.count()
 
     def table(self, name):
         return _Query(self, name)
 
     def rpc(self, name, params):
-        assert name == "place_phone_order"
+        if name != "place_phone_order":
+            self.rpc_calls.append((name, params))
+            return _Rpc(self, params, result=self.rpc_results.get(name))
         return _Rpc(self, params)
 
     def defaults(self, table):

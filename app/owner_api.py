@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
-from app import db, transcripts
+from app import db, owner_board, transcripts
 from app.menu import repository, service
 from app.menu.snapshot import menu_cache
 from app.table import repository as table_repository, service as table_service
@@ -255,7 +255,14 @@ def sync_embeddings(restaurant_id: str, user_id: str = Depends(current_user_id))
 @router.get("/restaurants/{restaurant_id}/orders")
 def list_orders(restaurant_id: str, user_id: str = Depends(current_user_id)) -> dict:
     _restaurant_for(user_id, restaurant_id)
-    return {"orders": repository.list_orders(restaurant_id)}
+    # No pay-link token and no full phone number: the board below is where customers are shown, masked.
+    return {"orders": [owner_board.owner_order(o) for o in repository.list_orders(restaurant_id)]}
+
+
+@router.get("/restaurants/{restaurant_id}/board")
+def calls_board(restaurant_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    """Orders with who placed them, their requests and the call; carts callers left; drop-off numbers."""
+    return owner_board.build(_restaurant_for(user_id, restaurant_id))
 
 
 @router.get("/restaurants/{restaurant_id}/requests")

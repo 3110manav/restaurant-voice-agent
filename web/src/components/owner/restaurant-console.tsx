@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { OrdersTab, RequestsTab } from "@/components/owner/activity-tabs";
+import { CallsBoardTab, DroppedCartsTab } from "@/components/owner/calls-board";
 import { ConversationsTab } from "@/components/owner/conversations-tab";
 import { LoginForm } from "@/components/owner/login-form";
 import { MenuEditor } from "@/components/owner/menu-editor";
@@ -16,17 +17,23 @@ import { isHexColor, readableOn } from "@/lib/brand";
 import { AuthRequiredError, fetchOwnerMenu, type OwnerMenu } from "@/lib/owner-api";
 import { cn } from "@/lib/utils";
 
-const TABS = [
-  { key: "tonight", label: "Tonight" },
-  { key: "customers", label: "Customers" },
+const ALL_TABS = [
+  { key: "board", label: "Calls & orders" },
+  { key: "dropped", label: "Dropped carts" },
+  { key: "tonight", label: "Tonight", table: true },
+  { key: "customers", label: "Customers", table: true },
   { key: "conversations", label: "Conversations" },
-  { key: "report", label: "Monthly report" },
-  { key: "orders", label: "Orders" },
-  { key: "requests", label: "Table requests" },
+  { key: "report", label: "Monthly report", table: true },
+  { key: "orders", label: "Orders", table: true },
+  { key: "requests", label: "Table requests", table: true },
   { key: "menu", label: "Menu" },
   { key: "settings", label: "Settings & QR" },
 ] as const;
-type TabKey = (typeof TABS)[number]["key"];
+type TabKey = (typeof ALL_TABS)[number]["key"];
+
+// The table-QR pilot is parked while the product is phone ordering; build with NEXT_PUBLIC_TABLE_PILOT=1 to bring its tabs back.
+const TABLE_PILOT = process.env.NEXT_PUBLIC_TABLE_PILOT === "1";
+const TABS = ALL_TABS.filter((t) => TABLE_PILOT || !("table" in t));
 
 export function RestaurantConsole({ id }: { id: string }) {
   const { session, loading, configured } = useOwnerSession();
@@ -39,7 +46,7 @@ export function RestaurantConsole({ id }: { id: string }) {
 function Console({ id }: { id: string }) {
   const [menu, setMenu] = useState<OwnerMenu | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<TabKey>("tonight");
+  const [tab, setTab] = useState<TabKey>("board");
 
   const reload = useCallback(async () => {
     try {
@@ -125,6 +132,8 @@ function Console({ id }: { id: string }) {
         ) : (
           <p className="text-sm text-muted-foreground">Only owners and managers can edit the menu.</p>
         ))}
+      {tab === "board" && <CallsBoardTab restaurantId={restaurant.id} />}
+      {tab === "dropped" && <DroppedCartsTab restaurantId={restaurant.id} />}
       {tab === "tonight" && <TonightTab restaurant={restaurant} />}
       {tab === "orders" && <OrdersTab restaurantId={restaurant.id} />}
       {tab === "requests" && <RequestsTab restaurantId={restaurant.id} />}
