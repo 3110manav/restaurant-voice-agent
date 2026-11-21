@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app import db
-from app.phone import outbox, repository
+from app.phone import carts, outbox, repository
 from app.phone.catalog import StoreCatalog
 from app.samvaad import router as samvaad_router
 from app.samvaad import session as samvaad_session
@@ -31,6 +31,7 @@ def fake(monkeypatch):
     client = FakeSupabase()
     monkeypatch.setattr(db, "get_client", lambda: client)
     monkeypatch.setattr(outbox, "flush_in_background", lambda: None)
+    monkeypatch.setattr(carts, "run_later", lambda fn, *args: fn(*args))  # saved at once, so a test can look
     monkeypatch.setenv("SAMVAAD_TOOL_TOKEN", TOKEN)
     monkeypatch.setattr(samvaad_session, "MIN_CONFIRM_SECONDS", 0)
     # Restaurants read their menu from Supabase (LiveMenu); here the same menu comes from memory.
@@ -300,3 +301,136 @@ def test_a_store_without_upi_bills_as_text_paid_on_delivery(api, fake):
     assert "pay on delivery" in tool(api, "checkout", language="English")["say"]
     bill = next(m for m in fake.tables["message_outbox"] if m["kind"] == "customer_bill")
     assert bill["body"]["type"] == "text" and "Pay on delivery or at pickup" in bill["body"]["text"]
+
+
+# ------------------------------------------------------------ requests on a dish --
+
+
+def test_a_change_to_a_dish_is_read_back_saved_and_sent_to_the_kitchen(api, fake):
+    tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 1, "note": "without capsicum"}])
+    tool(api, "add_to_cart", items=[{"name": "Butter Naan", "quantity": 2}])
+    tool(api, "add_note", item_name="Butter Naan", note="well done")  # asked for after it was added
+    tool(api, "set_order_details", order_type="delivery", address="12 MG Road, Borivali West")
+    read_back = tool(api, "read_back_order")
+    assert "without capsicum" in read_back["result"] and "well done" in read_back["result"]
+    tool(api, "checkout")
+    order = fake.tables["orders"][0]
+    assert {line["name"]: line.get("note") for line in order["items"]} == {
+        "Paneer Butter Masala": "without capsicum", "Butter Naan": "well done",
+    }
+    ticket = next(m for m in fake.tables["message_outbox"] if m["kind"] == "owner_order")["body"]["text"]
+    assert "Note: without capsicum" in ticket and "Note: well done" in ticket
+
+
+def test_a_note_on_a_dish_not_in_the_cart_is_refused_not_lost(api):
+    result = tool(api, "add_note", item_name="Butter Naan", note="crispy")["result"]
+    assert "isn't in the cart" in result
+
+
+# ------------------------------------------------------------ who ordered, and the saved cart --
+
+
+def place_order(api, **details):
+    tool(api, "add_to_cart", items=[{"name": "Butter Naan", "quantity": 2}])
+    tool(api, "set_order_details", order_type="delivery", address="12 MG Road, Borivali West", **details)
+    tool(api, "set_order_details", order_type="delivery", address="12 MG Road, Borivali West", **details)  # past the dessert hold
+    tool(api, "read_back_order")
+    return tool(api, "checkout")
+
+
+def test_an_order_carries_who_ordered_it_and_what_they_asked_for(api, fake):
+    tool(api, "add_to_cart", items=[{"name": "Butter Naan", "quantity": 2, "note": "well done"}])
+    tool(api, "add_special_request", request="deliver after 8 pm")
+    tool(api, "set_order_details", order_type="delivery", address="12 MG Road, Borivali West", customer_name="Priya Shah")
+    tool(api, "set_order_details", order_type="delivery", address="12 MG Road, Borivali West")  # past the dessert hold
+    read_back = tool(api, "read_back_order")["result"]
+    assert "deliver after 8 pm" in read_back and "well done" in read_back
+    assert tool(api, "checkout")["order_placed"]
+
+    order = fake.tables["orders"][0]
+    customer = fake.tables["customers"][0]
+    assert order["customer_name"] == "Priya Shah" and order["special_requests"] == "deliver after 8 pm"
+    assert order["customer_id"] == customer["id"] and order["channel"] == "call" and order["phone_verified"] is True
+    assert customer["phone"] == f"+{CUSTOMER}" and customer["name"] == "Priya Shah" and customer["restaurant_id"] == "rest-1"
+    assert order["customer_phone"] == f"+{CUSTOMER}"
+    ticket = next(m for m in fake.tables["message_outbox"] if m["kind"] == "owner_order")["body"]["text"]
+    assert "Special request: deliver after 8 pm" in ticket and "Priya Shah" in ticket
+    assert fake.tables["phone_calls"][0]["customer_id"] == customer["id"]
+
+
+def test_a_number_heard_as_a_name_is_not_kept(api, fake):
+    place_order(api, customer_name="98765 43210")
+    assert fake.tables["orders"][0]["customer_name"] is None and fake.tables["customers"][0].get("name") is None
+
+
+def test_a_number_the_caller_only_told_us_never_renames_an_existing_customer(api, fake):
+    fake.tables["customers"] = [{"id": "c-1", "restaurant_id": "rest-1", "phone": f"+{CUSTOMER}", "name": "Real Owner"}]
+    tool(api, "add_to_cart", items=[{"name": "Butter Naan", "quantity": 1}], channel="browser", caller="")
+    tool(api, "set_order_details", order_type="pickup", whatsapp_number=CUSTOMER[2:], customer_name="Someone Else", channel="browser")
+    assert fake.tables["customers"][0]["name"] == "Real Owner"
+    assert fake.tables["carts"][0]["phone_verified"] is False
+
+
+def test_the_cart_is_saved_as_it_changes_and_closes_with_the_order(api, fake):
+    tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 1, "note": "without capsicum"}])
+    saved = fake.tables["carts"][0]
+    assert saved["interaction_id"] == "call-1" and saved["status"] == "open" and saved["total"] == 280
+    assert saved["items"][0]["note"] == "without capsicum" and saved["customer_phone"] == f"+{CUSTOMER}"
+    place_order(api)
+    assert len(fake.tables["carts"]) == 1
+    cart = fake.tables["carts"][0]
+    assert cart["status"] == "ordered" and cart["order_id"] == fake.tables["orders"][0]["id"] and cart["closed_at"]
+
+
+def test_a_call_that_ends_with_items_and_no_order_leaves_an_abandoned_cart(api, fake):
+    tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 2}])
+    api.post("/samvaad/end", json={"interaction_id": "call-1", "end_reason": "user_hangup"}, headers=AUTH)
+    assert fake.tables["carts"][0]["status"] == "abandoned"
+    call = fake.tables["phone_calls"][0]
+    assert call["outcome"] == "abandoned" and call["end_reason"] == "user_hangup" and call["interaction_id"] == "call-1"
+
+
+def test_a_call_with_nothing_in_the_cart_leaves_no_cart(api, fake):
+    tool(api, "search_menu", query="paneer")
+    api.post("/samvaad/end", json={"interaction_id": "call-1"}, headers=AUTH)
+    assert fake.tables.get("carts", []) == []
+
+
+def test_an_abandoned_cart_is_won_back_when_the_caller_orders_later(api, fake):
+    tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 1}], interaction_id="call-1")
+    api.post("/samvaad/end", json={"interaction_id": "call-1"}, headers=AUTH)
+    tool(api, "add_to_cart", items=[{"name": "Butter Naan", "quantity": 1}], interaction_id="call-2")
+    for _ in range(2):
+        tool(api, "set_order_details", order_type="pickup", interaction_id="call-2")
+    tool(api, "read_back_order", interaction_id="call-2")
+    assert tool(api, "checkout", interaction_id="call-2")["order_placed"]
+    first, second = fake.tables["carts"]
+    assert first["status"] == "recovered" and first["order_id"] == second["order_id"]
+
+
+def test_a_restart_in_the_middle_of_a_call_picks_the_saved_cart_back_up(api, fake, monkeypatch):
+    tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 2, "note": "less oil"}])
+    tool(api, "add_special_request", request="call when you arrive")
+    registry = samvaad_session.SessionRegistry()  # the API restarted: no sessions in memory
+    monkeypatch.setattr(samvaad_session, "sessions", registry)
+    monkeypatch.setattr(samvaad_router, "sessions", registry)
+    body = tool(api, "view_cart")
+    assert body["cart"][0]["quantity"] == 2 and body["cart"][0]["note"] == "less oil"
+    assert len(fake.tables["phone_calls"]) == 1  # the same call, not a second one
+    assert len(fake.tables["carts"]) == 1
+
+
+def test_the_sweeper_asks_the_database_to_close_stale_carts(fake):
+    fake.rpc_results["close_stale_carts"] = {"abandoned": 2}
+    assert carts.sweep() == {"abandoned": 2}
+    assert fake.rpc_calls == [("close_stale_carts", {})]
+
+
+def test_a_database_failure_while_saving_never_breaks_the_call(api, fake, monkeypatch):
+    def broken(fn, *args):
+        raise RuntimeError("database is down")
+
+    monkeypatch.setattr(carts, "run_later", broken)
+    # The real run_later swallows this; the point here is the order rules still answer the guest.
+    monkeypatch.setattr(carts, "run_later", lambda fn, *args: carts._guarded(broken, fn, *args))
+    assert tool(api, "add_to_cart", items=[{"name": "Butter Naan", "quantity": 1}])["cart"][0]["quantity"] == 1

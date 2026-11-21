@@ -69,7 +69,7 @@ from app.menu import repository  # noqa: E402
 from app.menu.credits import photo_credits  # noqa: E402
 from app.menu.snapshot import LiveMenu, menu_cache  # noqa: E402
 from app.owner_api import router as owner_router  # noqa: E402
-from app.phone import outbox  # noqa: E402
+from app.phone import carts, outbox  # noqa: E402
 from app.phone import upi  # noqa: E402
 from app.phone.router import router as phone_router  # noqa: E402
 from app.rag.menu_store import GROCERY_PATH, MenuStore  # noqa: E402
@@ -106,8 +106,10 @@ def _warm_menus() -> None:
 async def lifespan(_app: FastAPI):
     threading.Thread(target=_warm_menus, daemon=True).start()  # never delays the server becoming ready
     stop_outbox = outbox.start()  # retries phone orders' WhatsApp messages
+    stop_carts = carts.start()  # turns carts of callers who left into "abandoned", then "expired"
     yield
     stop_outbox.set()
+    stop_carts.set()
 
 
 app = FastAPI(title="Voice Ordering Agent", lifespan=lifespan)

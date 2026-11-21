@@ -52,9 +52,20 @@ def assign_number(slug: str, number: str) -> None:
 # -------------------------------------------------------------------- calls --
 
 
-def start_call(room: str, store_id: str, caller: str | None) -> str:
-    row = _c().table("phone_calls").insert({"room": room, "store_id": store_id, "caller": caller}).execute()
-    return row.data[0]["id"]
+def start_call(room: str, store_id: str, caller: str | None, interaction_id: str | None = None) -> str:
+    fields = {"room": room, "store_id": store_id, "caller": caller}
+    if interaction_id:
+        fields["interaction_id"] = interaction_id
+    try:
+        return _c().table("phone_calls").insert(fields).execute().data[0]["id"]
+    except NotConfiguredError:
+        raise
+    except Exception:
+        # The room is unique: this call was already logged (the API restarted mid-call), so carry on with that row.
+        existing = _c().table("phone_calls").select("id").eq("room", room).limit(1).execute().data
+        if existing:
+            return existing[0]["id"]
+        raise
 
 
 def update_call(call_id: str, **fields) -> None:

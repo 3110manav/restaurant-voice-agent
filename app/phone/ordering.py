@@ -18,12 +18,19 @@ import uuid
 from langchain_core.tools import tool
 
 from app.currency import format_price
+from app.customers.phone import normalize_phone
 from app.phone import messages, numbers, outbox, repository, upi
 
 logger = logging.getLogger("sarthi.phone.ordering")
 
 _REF_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # no 0/O or 1/I/L, which get misread
 _SAVE_ATTEMPTS = 3
+
+
+def _clean_name(raw: str | None) -> str:
+    """A customer's name as it will show on the dashboard: one line, no digits (a number heard as a name is noise)."""
+    name = " ".join((raw or "").split())[:60]
+    return "" if any(ch.isdigit() for ch in name) else name
 
 
 def _payment_ref() -> str:
@@ -60,6 +67,12 @@ class PhoneOrder:
         self.read_back_turn = -1
         self.order_id: str | None = None
         self.callback_reason: str | None = None
+        # Who this is, for the owner's dashboard. The caller ID from the phone network is verified; a number the
+        # guest only told us is not (the caller of a browser demo is never verified, see SamvaadSession).
+        self.customer_name = ""
+        self.customer_id: str | None = None
+        self.caller_verified = bool(caller)
+        self.special_requests: list[str] = []  # wishes about the whole order; per-dish changes live on the cart lines
         self.cart: list[dict] = []
         self.spoken: str | None = None  # this turn's reply, when these rules decided what to say
 
@@ -89,11 +102,19 @@ class PhoneOrder:
         self.cart = cart
 
         @tool
-        def set_order_details(order_type: str, address: str = "", whatsapp_number: str = "") -> str:
+        def set_order_details(order_type: str, address: str = "", whatsapp_number: str = "", customer_name: str = "") -> str:
             """Record whether this is "delivery" or "pickup", the delivery address exactly as the
-            customer said it, and a WhatsApp number only if they gave a different one for the bill.
+            customer said it, the customer's name if they gave it, and a WhatsApp number only if
+            they gave a different one for the bill.
             """
-            return self.set_details(order_type, address, whatsapp_number)
+            return self.set_details(order_type, address, whatsapp_number, customer_name)
+
+        @tool
+        def add_special_request(request: str) -> str:
+            """Note a wish about the whole order that is not about one dish: "deliver after 8 pm", "no cutlery",
+            "call when you arrive". A change to one dish ("biryani without beans") goes on that dish with add_note.
+            """
+            return self.add_special_request(request)
 
         @tool
         def read_back_order() -> str:
@@ -109,15 +130,32 @@ class PhoneOrder:
             """
             return self.request_callback(reason)
 
-        return [set_order_details, read_back_order, request_callback]
+        return [set_order_details, add_special_request, read_back_order, request_callback]
 
-    def set_details(self, order_type: str, address: str = "", whatsapp_number: str = "") -> str:
+    def special_text(self) -> str:
+        return "; ".join(self.special_requests)
+
+    def add_special_request(self, request: str) -> str:
+        text = " ".join((request or "").split())[:200]
+        if not text:
+            return "Say what the request is (for example 'deliver after 8 pm')."
+        if text.lower() not in (r.lower() for r in self.special_requests):
+            if len(self.special_requests) >= 8:
+                return "That is enough requests for one order. Tell the customer the store will call about anything else."
+            self.special_requests.append(text)
+        self.read_back = None  # what was read back no longer describes the order
+        return f"Noted for the store: {text}. It is a request, not a promise: do not say it will definitely be done. " + self.prepare_read_back()
+
+    def set_details(self, order_type: str, address: str = "", whatsapp_number: str = "", customer_name: str = "") -> str:
         kind = order_type.strip().lower()
         if kind not in ("delivery", "pickup"):
             return 'Order type must be "delivery" or "pickup". Ask the customer which they want.'
         if kind == "delivery" and not address.strip() and not self.address:
             return "Delivery needs an address. Ask the customer for it."
         self.order_type = kind
+        name = _clean_name(customer_name)
+        if name:
+            self.customer_name = name
         if address.strip():
             self.address = address.strip()
         if whatsapp_number.strip():
@@ -154,6 +192,7 @@ class PhoneOrder:
         """The order in words (Hindi, English) and its total, worked out here so it's never restated wrongly."""
         items = ", ".join(
             f"{line['quantity']} {line['name']}" + (f" {line['variant']}" if line.get("variant") else "")
+            + (f" ({line['note']})" if line.get("note") else "")
             for line in self.cart
         )
         if self.order_type == "delivery":
@@ -161,7 +200,13 @@ class PhoneOrder:
         else:
             where_hi, where_en = "दुकान से पिकअप", "Pickup from the store"
         total = round(self._total())
-        return f"आपका ऑर्डर: {items}। कुल {total} रुपये। {where_hi}।", f"Your order: {items}. Total {total} rupees. {where_en}.", total
+        extra_hi = f" विशेष अनुरोध: {self.special_text()}।" if self.special_requests else ""
+        extra_en = f" Special request: {self.special_text()}." if self.special_requests else ""
+        return (
+            f"आपका ऑर्डर: {items}। कुल {total} रुपये। {where_hi}।{extra_hi}",
+            f"Your order: {items}. Total {total} rupees. {where_en}.{extra_en}",
+            total,
+        )
 
     def prepare_read_back(self) -> str:
         blocker = self._blocker()
@@ -213,7 +258,12 @@ class PhoneOrder:
             "restaurant_id": self.restaurant_id,
             "store_id": self.store["id"],
             "call_id": self.call_id,
-            "customer_phone": self.whatsapp,
+            "customer_phone": normalize_phone(self.whatsapp) or self.whatsapp,  # +91..., like the customers table
+            "customer_id": self.customer_id,
+            "customer_name": self.customer_name or None,
+            "phone_verified": self.caller_verified,
+            "channel": "call",
+            "special_requests": self.special_text() or None,
             "order_type": self.order_type,
             "address": self.address if self.order_type == "delivery" else None,
             "language": self.language,
