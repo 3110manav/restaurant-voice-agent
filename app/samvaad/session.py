@@ -13,6 +13,7 @@ The rules are the ones phone orders already follow (app/phone/ordering.py), reus
 Sessions live in this process's memory, keyed by Samvaad's interaction id, for up to SESSION_TTL_SECONDS.
 That is enough for one API instance; running several needs the cart moved to the database first.
 """
+import json
 import logging
 import os
 import re
@@ -24,14 +25,18 @@ from app.agent import promotions
 from app.agent.salesflow import HINT_PREFIX, SalesState, dessert_offer
 from app.agent.tools import build_tools
 from app.currency import format_price
+from app.customers import repository as customers
+from app.customers.phone import normalize_phone
 from app.menu.snapshot import _sound
-from app.phone import numbers, repository
+from app.phone import carts, numbers, repository
 from app.phone.call import _menu_and_restaurant, is_database_store
 from app.phone.ordering import PhoneOrder
 
 logger = logging.getLogger("sarthi.samvaad")
 
 SESSION_TTL_SECONDS = 3 * 60 * 60
+CART_REFRESH_SECONDS = 60  # an unchanged cart is saved again at most this often, to keep its "last active" time fresh
+CUSTOMER_RETRY_SECONDS = 30  # after a failed customer save, wait this long before trying again
 # Reading the order back and hearing a yes takes a person several seconds. A checkout sooner than this after
 # the read-back means the model chained the two tools without waiting for the guest, so it is refused.
 MIN_CONFIRM_SECONDS = 3.0
@@ -91,16 +96,25 @@ class SamvaadSession:
     call_id: str | None = None
     read_back_at: float | None = None
     sales: SalesState = field(default_factory=SalesState)
+    restaurant_id: str | None = None
+    customer_id: str | None = None
+    restore: bool = False  # a tool call arrived with no session (the API restarted): pick the saved cart back up
     last_used: float = field(default_factory=time.monotonic)
     lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def __post_init__(self):
         self.menu, restaurant_id = _menu_and_restaurant(self.store)
+        self.restaurant_id = restaurant_id
+        self._cart_key: str | None = None
+        self._cart_saved_at = 0.0
+        self._customer_key: tuple | None = None
+        self._customer_failed_at = 0.0
+        self._won_back = False
         self.sales = SalesState(settings=promotions.settings(getattr(self.menu, "restaurant", None)))
         persona = _PERSONA[self.store["business_type"]]
         try:
             self.call_id = repository.start_call(
-                f"samvaad:{self.interaction_id}", self.store["id"], numbers.canonical(self.caller)
+                f"samvaad:{self.interaction_id}", self.store["id"], numbers.canonical(self.caller), self.interaction_id
             )
         except Exception:
             logger.warning("couldn't log the start of Samvaad call %s", self.interaction_id, exc_info=True)
@@ -109,7 +123,11 @@ class SamvaadSession:
             call_id=self.call_id, restaurant_id=restaurant_id, session_id=f"samvaad:{self.interaction_id}",
         )
         self.order.language = self.language
+        # A browser demo's "caller" is whatever the page said; only a phone call's comes from the network.
+        self.order.caller_verified = bool(numbers.canonical(self.caller)) and self.channel == "phone"
         self.order.tools(self.cart)  # binds the cart: the order and the tools share one list
+        if self.restore:
+            self._restore()
         self._tools = {
             t.name: t
             for t in build_tools(
@@ -143,7 +161,100 @@ class SamvaadSession:
             "order_placed": bool(self.order.order_id),
         }
 
+    # ------------------------------------------------- saving the cart --
+
+    def _identity(self) -> tuple[str | None, bool]:
+        """(the user ID, whether the network vouched for it): the caller ID, else the number given for the bill."""
+        caller = numbers.canonical(self.caller)
+        if caller:
+            return caller, self.order.caller_verified
+        return normalize_phone(self.order.whatsapp), False
+
+    def _ensure_customer(self) -> None:
+        """Make sure this caller is a customer of the store, with the name they gave. Best effort: a database
+        problem costs the link to the customer, never the call."""
+        if not self.restaurant_id:
+            return
+        phone, verified = self._identity()
+        if not phone:
+            return
+        key = (phone, self.order.customer_name)
+        if key == self._customer_key or time.monotonic() - self._customer_failed_at < CUSTOMER_RETRY_SECONDS:
+            return
+        try:
+            self.customer_id = customers.ensure_customer(
+                self.restaurant_id, phone, self.order.customer_name or None, self.language, overwrite_name=verified
+            )
+            self._customer_key = key
+            self._customer_failed_at = 0.0
+            self.order.customer_id = self.customer_id
+            if self.call_id:
+                repository.update_call(self.call_id, customer_id=self.customer_id)
+        except Exception:
+            self._customer_failed_at = time.monotonic()
+            logger.warning("couldn't link call %s to a customer", self.interaction_id, exc_info=True)
+
+    def _cart_row(self, status: str) -> dict:
+        phone, verified = self._identity()
+        ordered = status == "ordered"
+        return {
+            "interaction_id": self.interaction_id,
+            "restaurant_id": self.restaurant_id,
+            "store_id": self.store["id"],
+            "call_id": self.call_id,
+            "customer_id": self.customer_id,
+            "customer_phone": phone,
+            "customer_name": self.order.customer_name or None,
+            "phone_verified": verified,
+            "channel": "call",
+            "language": self.language,
+            "items": [dict(line) for line in self.cart],
+            "total": sum(line["price"] * line["quantity"] for line in self.cart),
+            "fulfilment": self.order.order_type,
+            "address": self.order.address or None,
+            "special_requests": self.order.special_text() or None,
+            "status": status,
+            "order_id": self.order.order_id,
+            "closed_at": repository.now_iso() if ordered else None,
+            "closed_reason": "ordered" if ordered else None,
+            "last_activity_at": repository.now_iso(),
+        }
+
+    def _persist(self, status: str | None = None) -> None:
+        """Save the cart (off the call's path) unless nothing changed. `status` is for the end of a call;
+        otherwise a cart is 'ordered' once the order exists and 'open' until then."""
+        if not (self.cart or self.order.special_requests or self.order.order_id):
+            return  # nothing worth keeping yet
+        self._ensure_customer()
+        row = self._cart_row(status or ("ordered" if self.order.order_id else "open"))
+        key = json.dumps({k: v for k, v in row.items() if k != "last_activity_at"}, sort_keys=True, default=str)
+        now = time.monotonic()
+        if key != self._cart_key or now - self._cart_saved_at >= CART_REFRESH_SECONDS:
+            self._cart_key, self._cart_saved_at = key, now
+            carts.run_later(carts.save, row)
+        if self.order.order_id and not self._won_back and self.restaurant_id and row["customer_phone"]:
+            self._won_back = True
+            carts.run_later(carts.mark_recovered, self.restaurant_id, row["customer_phone"], self.order.order_id)
+
+    def _restore(self) -> None:
+        """Pick a call's saved cart back up after the API restarted mid-call. The read-back starts again, so the
+        guest hears the real order once more instead of a yes being counted against a cart they can't remember."""
+        row = carts.load(self.interaction_id)
+        if not row or row.get("order_id") or row.get("status") not in ("open", "abandoned"):
+            return
+        self.cart[:] = [dict(line) for line in row.get("items") or []]
+        self.order.order_type = row.get("fulfilment")
+        self.order.address = row.get("address") or ""
+        self.order.customer_name = row.get("customer_name") or ""
+        self.order.special_requests = [r for r in (row.get("special_requests") or "").split("; ") if r]
+        self.customer_id = row.get("customer_id")
+        self.order.customer_id = self.customer_id
+        if not self.call_id and row.get("call_id"):
+            self.call_id = self.order.call_id = row["call_id"]
+        logger.info("restored the cart of call %s (%d lines)", self.interaction_id, len(self.cart))
+
     def _reply(self, result: str, **extra) -> dict:
+        self._persist()
         body = {"result": result, **self.snapshot(), **extra}
         if self.order.spoken:
             body["say"] = self.order.spoken  # exact words for read-backs and confirmations: totals never restated
@@ -185,7 +296,7 @@ class SamvaadSession:
         self._turn(language)
         lines = [
             {"name": str(i.get("name", "")).strip(), "quantity": int(i.get("quantity") or 1),
-             "variant": str(i.get("variant") or "").strip()}
+             "variant": str(i.get("variant") or "").strip(), "note": str(i.get("note") or "").strip()}
             for i in items if str(i.get("name", "")).strip()
         ]
         if not lines:
@@ -233,6 +344,12 @@ class SamvaadSession:
         kept.insert(0, f"NOT ADDED, not on the menu: {names}. Never tell the guest these were added.")
         return "\n".join(kept)
 
+    def add_note(self, name: str, note: str, variant: str = "", language: str | None = None) -> dict:
+        """A change to a dish already in the cart ("biryani without beans"). It is saved on that cart line, so
+        it is read back, shown to the owner and printed on the kitchen's WhatsApp ticket."""
+        self._turn(language)
+        return self._reply(self._tool("add_note", {"name": name, "note": note, "variant": variant}))
+
     def remove(self, name: str, quantity: int = 1, variant: str = "", language: str | None = None) -> dict:
         self._turn(language)
         return self._reply(self._tool("remove_from_cart", {"name": name, "quantity": quantity, "variant": variant}))
@@ -255,9 +372,19 @@ class SamvaadSession:
             "add_to_cart; either way, then call read_back_order.]"
         )
 
-    def set_details(self, order_type: str, address: str = "", whatsapp_number: str = "", language: str | None = None) -> dict:
+    def add_special_request(self, request: str, language: str | None = None) -> dict:
         self._turn(language)
-        result = self.order.set_details(order_type, address, whatsapp_number)
+        result = self.order.add_special_request(request)
+        if self.order.read_back is not None:
+            self.read_back_at = time.monotonic()
+        return self._reply(result)
+
+    def set_details(
+        self, order_type: str, address: str = "", whatsapp_number: str = "", language: str | None = None,
+        customer_name: str = "",
+    ) -> dict:
+        self._turn(language)
+        result = self.order.set_details(order_type, address, whatsapp_number, customer_name)
         held = self._dessert_first()
         if held:
             return held
@@ -286,6 +413,7 @@ class SamvaadSession:
             return self._reply(
                 "Order not placed yet. Read the order back to the guest and wait for them to say yes, then call checkout."
             )
+        self._ensure_customer()  # so the order is saved with who ordered it
         result = self.order.checkout()
         return self._reply(result, order_id=self.order.order_id)
 
@@ -294,10 +422,14 @@ class SamvaadSession:
         return self._reply(self.order.request_callback(reason))
 
     def close(self, transcript=None, extra: dict | None = None) -> None:
+        if not self.order.order_id:
+            self._persist(status="abandoned")  # items in the cart and no order: the store can win this caller back
         if not self.call_id:
             return
         outcome = "ordered" if self.order.order_id else ("callback" if self.order.callback_reason else "abandoned")
         fields = {"outcome": outcome, "ended_at": repository.now_iso()}
+        if extra and extra.get("end_reason"):
+            fields["end_reason"] = str(extra["end_reason"])[:100]
         if transcript:
             fields["turns"] = transcript if isinstance(transcript, list) else [{"transcript": str(transcript)}]
         if extra:
@@ -331,6 +463,7 @@ class SessionRegistry:
         caller: str | None = None,
         language: str | None = None,
         channel: str = "phone",
+        restore: bool = False,
     ) -> SamvaadSession:
         """The session for this interaction, started if it is new. A tool call that arrives without a start
         (the on_start hook failed, or this process restarted) starts one too, from the store it names."""
@@ -341,7 +474,8 @@ class SessionRegistry:
                 return existing
         row = find_store(store, called_number)
         session = SamvaadSession(
-            interaction_id=interaction_id, store=row, caller=caller, language=_language(language), channel=channel
+            interaction_id=interaction_id, store=row, caller=caller, language=_language(language), channel=channel,
+            restore=restore,
         )
         with self._lock:
             return self._sessions.setdefault(interaction_id, session)

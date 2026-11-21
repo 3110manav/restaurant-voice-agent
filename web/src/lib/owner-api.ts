@@ -1,4 +1,4 @@
-import type { AdminOrder, AdminRequest, MenuItem } from "@/lib/api";
+import type { AdminOrder, AdminRequest, CartLine, MenuItem } from "@/lib/api";
 import type { CornerStyle, HeadingStyle, ThemeMode } from "@/lib/brand";
 import { getSupabase } from "@/lib/supabase";
 
@@ -108,6 +108,70 @@ export const syncEmbeddings = (restaurantId: string) =>
 
 export const listOwnerOrders = (restaurantId: string) =>
   ownerFetch<{ orders: AdminOrder[] }>(`restaurants/${restaurantId}/orders`).then((r) => r.orders);
+
+// ------------------------------------------------------ calls and orders board --
+
+/** Who is on the other end. The phone number arrives already masked ("+91 ••••• 2828"); a full one is never sent. */
+export interface BoardCustomer {
+  name: string | null;
+  phone: string | null;
+  /** True when the number is the caller ID from the phone network, false when the guest only said it. */
+  verified: boolean;
+  /** Orders from this customer in the list shown; more than one means a returning customer. */
+  orders: number;
+}
+
+export interface BoardOrder {
+  id: string;
+  created_at: string;
+  status: string;
+  payment_status?: string | null;
+  payment_ref?: string | null;
+  channel: "call" | "whatsapp" | "table" | "web";
+  fulfilment: "delivery" | "pickup" | "dine_in" | null;
+  address: string | null;
+  items: CartLine[];
+  total: number;
+  /** A wish about the whole order ("deliver after 8"); changes to one dish are on that item's note. */
+  special_requests?: string | null;
+  requests: { id: string; type: string; details: string; status: string; created_at: string }[];
+  customer: BoardCustomer;
+  call: { outcome: string | null; started_at: string | null; ended_at: string | null } | null;
+}
+
+export interface DroppedCart {
+  id: string;
+  status: "abandoned" | "expired";
+  opened_at: string;
+  last_activity_at: string;
+  items: CartLine[];
+  total: number;
+  fulfilment: string | null;
+  address: string | null;
+  special_requests: string | null;
+  recovery_attempts: number;
+  closed_reason: string | null;
+  customer: BoardCustomer;
+}
+
+export interface FunnelDay {
+  store_id: string;
+  day: string;
+  calls: number;
+  ordered: number;
+  callbacks: number;
+  no_order: number;
+  dropped_carts: number;
+  dropped_value: number;
+}
+
+export interface CallsBoard {
+  orders: BoardOrder[];
+  dropped_carts: DroppedCart[];
+  funnel: FunnelDay[];
+}
+
+export const fetchCallsBoard = (restaurantId: string) => ownerFetch<CallsBoard>(`restaurants/${restaurantId}/board`);
 
 export const listOwnerRequests = (restaurantId: string) =>
   ownerFetch<{ requests: AdminRequest[] }>(`restaurants/${restaurantId}/requests`).then((r) => r.requests);

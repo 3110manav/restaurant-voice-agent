@@ -12,7 +12,7 @@ import { formatPrice, formatRequestType, formatTime } from "@/lib/utils";
 const POLL_MS = 8000;
 
 /** Re-runs `load` every few seconds (staff leave this tab open on a counter screen). */
-function usePolling<T>(load: () => Promise<T>) {
+export function usePolling<T>(load: () => Promise<T>) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const refresh = useCallback(async () => {

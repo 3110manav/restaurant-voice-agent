@@ -10,11 +10,15 @@ CAPTION_LIMIT = 1024  # WhatsApp's limit on an image caption
 
 def _line(line: dict) -> str:
     name = f"{line['name']} ({line['variant']})" if line.get("variant") else line["name"]
-    return f"{line['quantity']} x {name} - {format_price(line['price'] * line['quantity'])}"
+    text = f"{line['quantity']} x {name} - {format_price(line['price'] * line['quantity'])}"
+    # What the guest asked for on this dish ("without beans"): the kitchen reads it on the ticket.
+    return f"{text}\n   Note: {line['note']}" if line.get("note") else text
 
 
 def _item_lines(order: dict) -> str:
-    return "\n".join(_line(line) for line in order["items"])
+    lines = "\n".join(_line(line) for line in order["items"])
+    # Wishes about the whole order sit right under the dishes, where the kitchen is already reading.
+    return f"{lines}\nSpecial request: {order['special_requests']}" if order.get("special_requests") else lines
 
 
 def _fulfilment(order: dict, language: str = "en") -> str:
@@ -25,6 +29,8 @@ def _fulfilment(order: dict, language: str = "en") -> str:
 
 def owner_order(order: dict) -> dict:
     customer = order.get("customer_phone") or "number not available"
+    if order.get("customer_name"):
+        customer = f"{order['customer_name']}, {customer}"
     text = (
         f"New phone order {order['payment_ref']}\n\n"
         f"{_item_lines(order)}\n\n"
