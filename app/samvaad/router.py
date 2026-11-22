@@ -63,6 +63,8 @@ class ToolCall(BaseModel):
     address: str | None = None
     whatsapp_number: str | None = None
     reason: str | None = None
+    # checkout only: Samvaad's @Call Transcript so far, to check the guest heard the real total before saying yes
+    transcript: str | list | dict | None = None
 
     @model_validator(mode="after")
     def _fill_interaction_id(self) -> "ToolCall":
@@ -187,7 +189,7 @@ def run_tool(tool: str, call: ToolCall, authorization: str | None = Header(defau
             if tool == "read_back_order":
                 return session.read_back(lang)
             if tool == "checkout":
-                return session.place(lang)
+                return session.place(lang, transcript=call.transcript)
             return session.callback(_clean(call.reason) or "the guest asked", lang)
         except Exception:
             logger.exception("Samvaad tool %s failed on call %s", tool, call.interaction_id)

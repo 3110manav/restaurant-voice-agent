@@ -283,12 +283,57 @@ def test_a_caller_without_a_whatsapp_number_is_asked_for_one(api, fake):
     # Samvaad's test chat identifies the tester by email, so there is no number to send the bill to.
     tool(api, "add_to_cart", caller="tester@example.com", item_name="Butter Naan")
     held = tool(api, "set_order_details", caller="tester@example.com", order_type="pickup")
-    assert "WhatsApp" in held["result"] and "व्हाट्सएप नंबर" in held["say"]
+    assert "WhatsApp" in held["result"] and held["say"] == "बिल के लिए अपना व्हाट्सएप नंबर बता दीजिए?"
     assert "Say exactly this to the guest: " + held["say"] in held["result"]  # visible through {{result}}
+    assert "आपका ऑर्डर" not in held["say"]  # asked in one short line: the order is read back once, later
     refused = tool(api, "checkout", caller="tester@example.com")
-    assert refused["result"].startswith("Order not placed") and "व्हाट्सएप नंबर" in refused["say"]
+    assert refused["result"].startswith("Order not placed")
     tool(api, "set_order_details", order_type="pickup", whatsapp_number="9876543210")
-    assert tool(api, "read_back_order")["say"].startswith("आपका ऑर्डर")
+    said = tool(api, "read_back_order")["say"]
+    assert said.startswith("आपका ऑर्डर") and "3 2 1 0 वाले नंबर" in said
+
+
+def test_an_order_is_never_dropped_for_want_of_a_whatsapp_number(api, fake):
+    caller = "tester@example.com"
+    tool(api, "add_to_cart", caller=caller, item_name="Butter Naan")
+    assert "व्हाट्सएप नंबर" in tool(api, "set_order_details", caller=caller, order_type="pickup")["say"]
+    # The guest has no WhatsApp: asked once, the order goes ahead without the bill.
+    read_back = tool(api, "read_back_order", caller=caller)
+    if "dessert" in read_back["result"]:
+        read_back = tool(api, "read_back_order", caller=caller)
+    assert "बिल व्हाट्सएप पर नहीं आ पाएगा" in read_back["say"]
+    placed = tool(api, "checkout", caller=caller)
+    assert placed["result"].startswith("Order placed") and "व्हाट्सएप" not in placed["say"]
+    assert [m["kind"] for m in fake.tables["message_outbox"]] == ["owner_order"]  # the store hears; no bill
+    assert "did NOT get a bill" in fake.tables["message_outbox"][0]["body"]["text"]
+
+
+# ------------------------------------------------------------- repeated calls --
+
+
+def test_the_same_add_sent_again_is_not_repeated(api):
+    # A real call: "4 Paneer Tikka" sent five times in 13 seconds became 17.
+    tool(api, "add_to_cart", item_name="Butter Naan", quantity=4)
+    again = tool(api, "add_to_cart", item_name="butter naan", quantity=4)
+    assert again["cart_summary"] == "4 x Butter Naan" and again["result"].startswith("NOT DONE AGAIN")
+    both = tool(api, "add_to_cart", items=[{"name": "Butter Naan", "quantity": 4}, {"name": "Sweet Lassi"}])
+    assert both["cart_summary"] == "4 x Butter Naan, 1 x Sweet Lassi"
+    # A different amount is a different request, and goes through.
+    assert tool(api, "add_to_cart", item_name="Butter Naan", quantity=1)["cart_summary"].startswith("5 x Butter Naan")
+
+
+def test_the_same_add_later_on_goes_through(api, monkeypatch):
+    monkeypatch.setattr(samvaad_session, "DUPLICATE_SECONDS", 0)
+    tool(api, "add_to_cart", item_name="Butter Naan", quantity=2)
+    assert tool(api, "add_to_cart", item_name="Butter Naan", quantity=2)["cart_summary"] == "4 x Butter Naan"
+
+
+def test_the_same_remove_sent_again_does_not_take_away_a_whole_dish(api):
+    # "Ek hi karo" sent twice once took Margherita from 2 to 0.
+    tool(api, "add_to_cart", item_name="Butter Naan", quantity=2)
+    assert tool(api, "remove_from_cart", item_name="Butter Naan", quantity=1)["cart_summary"] == "1 x Butter Naan"
+    again = tool(api, "remove_from_cart", item_name="Butter Naan", quantity=1)
+    assert again["cart_summary"] == "1 x Butter Naan" and again["result"].startswith("NOT DONE AGAIN")
 
 
 def test_a_store_without_upi_bills_as_text_paid_on_delivery(api, fake):
@@ -434,3 +479,53 @@ def test_a_database_failure_while_saving_never_breaks_the_call(api, fake, monkey
     # The real run_later swallows this; the point here is the order rules still answer the guest.
     monkeypatch.setattr(carts, "run_later", lambda fn, *args: carts._guarded(broken, fn, *args))
     assert tool(api, "add_to_cart", items=[{"name": "Butter Naan", "quantity": 1}])["cart"][0]["quantity"] == 1
+
+
+# ------------------------------------------------------------- opening hours --
+
+
+def test_a_closed_store_takes_no_new_order_and_says_when_it_opens(api, monkeypatch):
+    monkeypatch.setattr(samvaad_session.hours, "is_open", lambda store, now=None: False)
+    body = tool(api, "add_to_cart", item_name="Butter Naan")
+    assert body["result"].startswith("NOT ADDED: the store is closed") and body["cart_summary"] == "empty"
+    assert body["say"].startswith("माफ़ कीजिए, Spice Route")  # the hours module words it (tests/test_hours.py)
+
+
+def test_an_order_under_way_at_closing_time_is_finished(api, monkeypatch):
+    tool(api, "add_to_cart", item_name="Butter Naan")
+    monkeypatch.setattr(samvaad_session.hours, "is_open", lambda store, now=None: False)
+    assert tool(api, "add_to_cart", item_name="Sweet Lassi")["cart_summary"] == "1 x Butter Naan, 1 x Sweet Lassi"
+
+
+# ------------------------------------------------------- the total the guest heard --
+
+
+def test_checkout_goes_through_when_the_guest_heard_the_real_total(api, fake):
+    order_to_read_back(api)  # ₹800
+    heard = "Kabir: आपका ऑर्डर: 2 Paneer Butter Masala, 4 Butter Naan। कुल ८०० रुपये। ऑर्डर पक्का कर दूँ?\nGuest: haan"
+    assert tool(api, "checkout", transcript=heard)["result"].startswith("Order placed")
+
+
+def test_a_made_up_total_sends_the_order_back_for_a_true_read_back(api, fake):
+    # A real call: Kabir read back ₹2,400; the cart was ₹6,380; the guest's "haan" placed the real cart.
+    order_to_read_back(api)
+    heard = [{"role": "agent", "text": "Your order comes to 2,400 rupees. Shall I place it?"}, {"role": "user", "text": "haan"}]
+    refused = tool(api, "checkout", transcript=heard)
+    assert refused["result"].startswith("Order not placed yet: the guest has not heard the real total, 800")
+    assert "कुल 800 रुपये" in refused["say"] and not fake.tables.get("orders")
+    # Still not heard the second time: placed, never a loop, and the owner is asked to confirm the total.
+    placed = tool(api, "checkout", transcript=heard)
+    assert placed["result"].startswith("Order placed")
+    owner = next(m for m in fake.tables["message_outbox"] if m["kind"] == "owner_order")
+    assert "may not have heard this total" in owner["body"]["text"]
+
+
+def test_without_a_transcript_checkout_is_unchanged(api, fake):
+    order_to_read_back(api)
+    assert tool(api, "checkout", transcript="@Call Transcript")["result"].startswith("Order placed")
+
+
+def test_amounts_are_found_as_whole_numbers():
+    says = samvaad_session._says_amount
+    assert says("कुल 6380 रुपये", 6380) and says("total ₹6,380.", 6380) and says("1 190 rupees", 1190)
+    assert not says("total 16380", 6380) and not says("2,400 rupees", 6380) and not says("₹7200", 720)

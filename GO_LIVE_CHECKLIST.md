@@ -3,10 +3,11 @@
 Restaurant phone orders through one Samvaad agent (Kabir) and our tool API (`app/samvaad/`).
 Setup steps: [SARVAM_SETUP.md](SARVAM_SETUP.md). Earlier pilot plan: [SARVAM_PILOT_CHECKLIST.md](SARVAM_PILOT_CHECKLIST.md).
 
-## Where we are (20 Nov 2026)
+## Where we are (22 Nov 2026)
 
 - [x] Kabir agent with 11 tools, working through an ngrok tunnel
-- [x] Stores for `slice-station`, `saffron-table`, `sarson-da-khet` (owner WhatsApp 8976448886, no UPI: pay on delivery)
+- [x] Real menu: **Borivali Biryani Centre** (314 dishes, pairings, owner promotions); the three mock restaurants
+      are gone. Its store number is a placeholder (+918976448886)
 - [x] **First real phone order placed end to end**: YFUAQK, 2 Margherita Pizza + 2 Garlic Breadsticks, ₹1,300,
       delivery; bill and owner alert sent on WhatsApp; call log "ordered"
 - [x] Dish names said in Hindi script match the English menu (`app/menu/translit.py`)
@@ -20,8 +21,11 @@ Setup steps: [SARVAM_SETUP.md](SARVAM_SETUP.md). Earlier pilot plan: [SARVAM_PIL
 - [x] Every Samvaad tool sends `result`, `cart_summary` and `cart_total` to the agent (block 3, as field chips)
 - [x] **Veg script passed** (browser, 20 Nov, order 9K7A4K, ₹1,190): 4 not-on-the-menu dishes refused, "which
       dosa" asked, WhatsApp number asked, exact read-back, bill and owner alert sent
-- [ ] Same veg script on a **real phone call**
-- [ ] Code changes from 19–20 Nov committed (505 tests pass)
+- [x] Calls & orders board for owners, dropped carts, notes and special requests, carts saved in the database (Manav)
+- [x] **22 Nov P0 fixes** (635 tests pass, checked live through ngrok): Hindi names prefer an exact-sounding dish
+      (Mutton Seekh Kebab Biryani), repeated add/remove ignored, no order lost for want of a WhatsApp number,
+      opening hours, read-back total check
+- [ ] A test script for the biryani menu on a **real phone call**
 
 **Seen in testing:** Samvaad's LLM repeated tool calls, picked the wrong dish ("Paneer Tikka" for Paneer Tikka
 Pizza), skipped a dish it had just found, ignored "say exactly", and twice told the guest an order was placed
@@ -68,20 +72,24 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
 ### P0: before real customers
 
 - [ ] **Stable hosting**: Render paid instance (Singapore or India region) instead of ngrok; update all tool URLs
-- [ ] **Carts in the database** (Supabase) instead of API memory: a restart or reload loses live orders
-- [ ] **Never drop an order for a missing WhatsApp number**: save it, alert the owner, skip only the bill
-- [ ] **Duplicate tool calls**: `quantity` = total wanted, and ignore an identical add_to_cart within a few
+- [x] **Carts in the database** (Supabase): saved as they change, restored after a restart (Manav, migration 009)
+- [x] **Never drop an order for a missing WhatsApp number**: asked once in one short line; without it the order is
+      saved, the owner is alerted ("did NOT get a bill"), only the bill is skipped (22 Nov)
+- [x] **Duplicate tool calls** (22 Nov: the same add or remove for a dish within 20 s is not repeated): `quantity` = total wanted, and ignore an identical add_to_cart within a few
       seconds. Real call 20 Nov (order 9X3RQ8): "4 Paneer Tikka" was sent 5 times and saved as **17**; a repeated
       "ek hi karo" once removed a whole dish
-- [ ] **Made-up read-backs**: on 9X3RQ8 Kabir read back 6 dishes for ₹2,400 while the cart was 17 Paneer Tikka +
+- [x] **Made-up read-backs** (22 Nov, code ready; needs `transcript` = @Call Transcript on the checkout tool in
+      Samvaad. Refused once, then placed with an owner warning): on 9X3RQ8 Kabir read back 6 dishes for ₹2,400 while the cart was 17 Paneer Tikka +
       12 Tandoori Roti, ₹6,380, and the guest's "haan" placed the real cart. Checkout must check the read-back the
       guest heard (send `@Call Transcript` with checkout, refuse unless it contains the real total)
 - [ ] **WhatsApp business number + approved templates**: today it is Meta's test number (5 recipients), and
       customers who never messaged us are refused (error 131047)
 - [ ] **One number per restaurant**, and confirm the dialled number reaches `start_call`
       (else: `store_slug` per deployment, or one agent copy per restaurant)
-- [ ] **Opening hours**: closed means no orders, and say when it opens
-- [ ] **Add-ons and notes** in the cart: "extra cheese", "no onion", half-and-half, combos; shown in the read-back,
+- [ ] **Opening hours**: code ready (22 Nov): no new order while closed, says when it opens. To do: run migration
+      `010_opening_hours.sql`, then `python -m app.phone.setup_store hours <slug> "11:00-23:30"`
+- [x] **Notes and special requests** (Manav: `add_note`, `add_special_request`; create both tools in Samvaad).
+      Still open: priced add-ons. Original item: **Add-ons and notes** in the cart: "extra cheese", "no onion", half-and-half, combos; shown in the read-back,
       the owner's order and the bill
 - [ ] **Transfer or callback to the restaurant**, tested on a real call
 - [ ] **Owner buttons tested end to end**: Accept / Out of stock / Paid, and the customer is told

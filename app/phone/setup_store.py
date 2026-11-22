@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from app.phone import numbers, repository  # noqa: E402
+from app.phone import hours, numbers, repository  # noqa: E402
 
 
 def add(args: argparse.Namespace) -> None:
@@ -64,6 +64,23 @@ def use(args: argparse.Namespace) -> None:
     print(f"Calls to {number} now reach {args.slug}.")
 
 
+def set_hours(args: argparse.Namespace) -> None:
+    store = repository.get_store_by_slug(args.slug)
+    if store is None:
+        raise SystemExit(f"No store '{args.slug}'")
+    try:
+        spans = hours.parse(args.hours)
+    except ValueError:
+        raise SystemExit('Hours look like "11:00-23:30", or "12:00-15:30, 19:00-01:00", or "closed"')
+    if args.always_open:
+        opening = None
+    else:
+        opening = dict(store.get("opening_hours") or {})
+        opening[args.day] = spans
+    repository.save_store({**store, "opening_hours": opening})
+    print(f"{args.slug}: {'always open' if opening is None else opening}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(required=True)
@@ -85,6 +102,13 @@ def main() -> None:
     use_parser.add_argument("slug")
     use_parser.add_argument("number")
     use_parser.set_defaults(run=use)
+
+    hours_parser = commands.add_parser("hours", help='opening hours in Indian time, e.g. hours bbc "11:00-23:30"')
+    hours_parser.add_argument("slug")
+    hours_parser.add_argument("hours", nargs="?", default="", help='"11:00-23:30", "12:00-15:30, 19:00-01:00" or "closed"')
+    hours_parser.add_argument("--day", default="daily", choices=["daily", *hours.DAYS])
+    hours_parser.add_argument("--always-open", action="store_true", help="remove the hours")
+    hours_parser.set_defaults(run=set_hours)
 
     args = parser.parse_args()
     args.run(args)
