@@ -125,6 +125,7 @@ class SamvaadSession:
         self.order.language = self.language
         # A browser demo's "caller" is whatever the page said; only a phone call's comes from the network.
         self.order.caller_verified = bool(numbers.canonical(self.caller)) and self.channel == "phone"
+        self.order.collect_contact = True  # name and the bill's number in one question, so one read-back is enough
         self.order.tools(self.cart)  # binds the cart: the order and the tools share one list
         if self.restore:
             self._restore()
@@ -246,6 +247,7 @@ class SamvaadSession:
         self.order.order_type = row.get("fulfilment")
         self.order.address = row.get("address") or ""
         self.order.customer_name = row.get("customer_name") or ""
+        self.order.contact_asked = bool(self.order.customer_name)  # a saved name means that question was answered
         self.order.special_requests = [r for r in (row.get("special_requests") or "").split("; ") if r]
         self.customer_id = row.get("customer_id")
         self.order.customer_id = self.customer_id
@@ -360,8 +362,9 @@ class SamvaadSession:
 
     def _dessert_first(self) -> dict | None:
         """Once, just before the order is read back: a dessert suggestion (decided in code, app/agent/salesflow.py)."""
-        if self.order.order_id or self.order._blocker() is not None:
-            return None
+        if (self.order.order_id or self.order._blocker() is not None or self.order.read_back is None
+                or self.order.read_back_turn != self.order.turn):
+            return None  # only in place of a read-back that is about to be said, never over a question
         offer = dessert_offer(self.sales, self.menu.menu, self.menu.get, self.cart)
         if not offer:
             return None
@@ -372,11 +375,15 @@ class SamvaadSession:
             "add_to_cart; either way, then call read_back_order.]"
         )
 
+    def _mark_read_back(self) -> None:
+        """When the guest was read the order this turn (a yes is only counted a few seconds after it)."""
+        if self.order.read_back is not None and self.order.read_back_turn == self.order.turn:
+            self.read_back_at = time.monotonic()
+
     def add_special_request(self, request: str, language: str | None = None) -> dict:
         self._turn(language)
         result = self.order.add_special_request(request)
-        if self.order.read_back is not None:
-            self.read_back_at = time.monotonic()
+        self._mark_read_back()
         return self._reply(result)
 
     def set_details(
@@ -388,18 +395,16 @@ class SamvaadSession:
         held = self._dessert_first()
         if held:
             return held
-        if self.order.read_back is not None:
-            self.read_back_at = time.monotonic()
+        self._mark_read_back()
         return self._reply(result)
 
     def read_back(self, language: str | None = None) -> dict:
         self._turn(language)
+        result = self.order.prepare_read_back()
         held = self._dessert_first()
         if held:
             return held
-        result = self.order.prepare_read_back()
-        if self.order.read_back is not None:
-            self.read_back_at = time.monotonic()
+        self._mark_read_back()
         return self._reply(result)
 
     def place(self, language: str | None = None) -> dict:

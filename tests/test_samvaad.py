@@ -69,9 +69,17 @@ def tool(api, name, **body):
 
 def order_to_read_back(api) -> dict:
     tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 2}, {"name": "Butter Naan", "quantity": 4}])
-    held = tool(api, "set_order_details", order_type="delivery", address="12 MG Road")
+    asked = tool(api, "set_order_details", order_type="delivery", address="12 MG Road")
+    assert asked["say"] == "आपका नाम बता दीजिए? और बिल व्हाट्सएप पर इसी नंबर पर भेज दूँ, या किसी और नंबर पर?"
+    held = tool(api, "set_order_details", order_type="delivery", customer_name="Priya")  # "Priya, isi pe"
     assert "dessert" in held["result"] and "Gulab Jamun" in held["result"]  # suggested once, before the read-back
     return tool(api, "read_back_order")
+
+
+def details(api, **body) -> dict:
+    """set_order_details, then the guest's answer to the one name-and-number question."""
+    tool(api, "set_order_details", **body)
+    return tool(api, "set_order_details", **{k: v for k, v in body.items() if k in ("order_type", "language", "caller")})
 
 
 # ------------------------------------------------------------------ security --
@@ -181,7 +189,8 @@ def test_nothing_is_placed_before_the_read_back(api, fake):
 
 def test_the_read_back_gives_the_exact_words_to_say(api):
     body = order_to_read_back(api)
-    assert body["say"].startswith("आपका ऑर्डर") and "800" in body["say"]
+    assert body["say"].startswith("Priya जी, आपका ऑर्डर") and "800" in body["say"]
+    assert "इसी नंबर पर आएगा" in body["say"] and "0 0 0 2" not in body["say"]  # their own number isn't spelt out
 
 
 def test_a_checkout_straight_after_the_read_back_is_refused(api, fake, monkeypatch):
@@ -213,7 +222,7 @@ def test_a_change_after_the_read_back_needs_a_new_one(api, fake):
 
 def test_english_calls_get_english_read_backs(api):
     tool(api, "add_to_cart", item_name="Butter Naan", language="English")
-    tool(api, "set_order_details", order_type="pickup")
+    details(api, order_type="pickup", language="English")
     assert tool(api, "read_back_order", language="English")["say"].startswith("Your order")
 
 
@@ -283,19 +292,20 @@ def test_a_caller_without_a_whatsapp_number_is_asked_for_one(api, fake):
     # Samvaad's test chat identifies the tester by email, so there is no number to send the bill to.
     tool(api, "add_to_cart", caller="tester@example.com", item_name="Butter Naan")
     held = tool(api, "set_order_details", caller="tester@example.com", order_type="pickup")
-    assert "WhatsApp" in held["result"] and "व्हाट्सएप नंबर" in held["say"]
+    assert held["say"] == "आपका नाम और व्हाट्सएप नंबर बता दीजिए? बिल उसी पर भेजूँगा।"
     assert "Say exactly this to the guest: " + held["say"] in held["result"]  # visible through {{result}}
     refused = tool(api, "checkout", caller="tester@example.com")
     assert refused["result"].startswith("Order not placed") and "व्हाट्सएप नंबर" in refused["say"]
     tool(api, "set_order_details", order_type="pickup", whatsapp_number="9876543210")
-    assert tool(api, "read_back_order")["say"].startswith("आपका ऑर्डर")
+    said = tool(api, "read_back_order")["say"]
+    assert said.startswith("आपका ऑर्डर") and "3 2 1 0 वाले नंबर पर" in said  # a number they told us is read out
 
 
 def test_a_store_without_upi_bills_as_text_paid_on_delivery(api, fake):
     store = repository.get_store_by_slug("spice-route")
     repository.save_store({**store, "upi_id": None, "upi_payee_name": None})
     tool(api, "add_to_cart", item_name="Butter Naan", language="English")
-    tool(api, "set_order_details", order_type="pickup", language="English")
+    details(api, order_type="pickup", language="English")
     said = tool(api, "read_back_order", language="English")["say"]
     assert "QR" not in said and "The bill will come on WhatsApp" in said
     assert "pay on delivery" in tool(api, "checkout", language="English")["say"]
@@ -310,7 +320,7 @@ def test_a_change_to_a_dish_is_read_back_saved_and_sent_to_the_kitchen(api, fake
     tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 1, "note": "without capsicum"}])
     tool(api, "add_to_cart", items=[{"name": "Butter Naan", "quantity": 2}])
     tool(api, "add_note", item_name="Butter Naan", note="well done")  # asked for after it was added
-    tool(api, "set_order_details", order_type="delivery", address="12 MG Road, Borivali West")
+    details(api, order_type="delivery", address="12 MG Road, Borivali West")
     read_back = tool(api, "read_back_order")
     assert "without capsicum" in read_back["result"] and "well done" in read_back["result"]
     tool(api, "checkout")
@@ -434,3 +444,75 @@ def test_a_database_failure_while_saving_never_breaks_the_call(api, fake, monkey
     # The real run_later swallows this; the point here is the order rules still answer the guest.
     monkeypatch.setattr(carts, "run_later", lambda fn, *args: carts._guarded(broken, fn, *args))
     assert tool(api, "add_to_cart", items=[{"name": "Butter Naan", "quantity": 1}])["cart"][0]["quantity"] == 1
+
+
+# ------------------------------------------------------------ one confirmation --
+# A real complaint: the agent confirmed the address, offered a dessert, then read the whole order and address
+# back again. The guest should hear the order once, unless it changes or they ask.
+
+READ_BACK = "ऑर्डर पक्का कर दूँ?"
+
+
+def test_a_whole_call_has_one_read_back(api, fake):
+    said = []
+    for name, body in [
+        ("add_to_cart", {"items": [{"name": "paneer makhani", "quantity": 1}]}),
+        ("add_special_request", {"request": "no cutlery"}),
+        ("set_order_details", {"order_type": "delivery", "address": "12 MG Road"}),
+        ("set_order_details", {"order_type": "delivery", "customer_name": "Priya"}),  # past the one question
+        ("read_back_order", {}),                                                     # past the dessert question
+        ("set_order_details", {"order_type": "delivery", "customer_name": "Priya Shah"}),  # the model resends
+        ("checkout", {}),
+    ]:
+        said.append(tool(api, name, **body).get("say") or "")
+    assert sum(READ_BACK in s for s in said) == 1
+    assert "no cutlery" in said[4] and fake.tables["orders"][0]["customer_name"] == "Priya Shah"
+
+
+def test_a_special_request_before_the_read_back_is_only_noted(api):
+    tool(api, "add_to_cart", item_name="Butter Naan")
+    body = tool(api, "add_special_request", request="deliver after 8 pm")
+    assert "say" not in body and "Do not read the order back now" in body["result"]
+    assert "delivery or pickup" not in body["result"]  # no longer pushes the agent ahead of the guest
+
+
+def test_a_special_request_after_the_read_back_reads_it_again_once(api):
+    order_to_read_back(api)
+    body = tool(api, "add_special_request", request="ring the bell twice")
+    assert READ_BACK in body["say"] and "ring the bell twice" in body["say"]
+    assert tool(api, "checkout")["result"].startswith("Order placed")
+
+
+def test_the_name_and_number_question_is_asked_once(api):
+    tool(api, "add_to_cart", item_name="Butter Naan")
+    first = tool(api, "set_order_details", order_type="pickup")
+    assert "नाम" in first["say"]
+    again = tool(api, "read_back_order")  # the guest would rather not give a name: carry on without it
+    assert "नाम" not in (again.get("say") or "") and "नाम" not in again["result"]
+
+
+def test_same_number_in_words_means_the_callers_own(api, fake):
+    tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 1}])
+    tool(api, "set_order_details", order_type="pickup")
+    body = tool(api, "set_order_details", order_type="pickup", whatsapp_number="same", customer_name="Ravi")
+    assert "valid" not in body["result"]
+    tool(api, "read_back_order")
+    assert tool(api, "checkout")["order_placed"]
+    assert fake.tables["orders"][0]["customer_phone"] == f"+{CUSTOMER}"
+
+
+def test_another_number_for_the_bill_is_read_out_to_catch_a_misheard_digit(api, fake):
+    tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 1}])
+    tool(api, "set_order_details", order_type="pickup")
+    tool(api, "set_order_details", order_type="pickup", whatsapp_number="98765 43210", customer_name="Ravi")
+    said = tool(api, "read_back_order")["say"]
+    assert "3 2 1 0 वाले नंबर पर" in said
+    tool(api, "checkout")
+    bill = next(m for m in fake.tables["message_outbox"] if m["kind"] == "customer_bill")
+    assert bill["recipient"] == "919876543210"
+
+
+def test_a_name_and_number_given_up_front_skip_the_question(api):
+    tool(api, "add_to_cart", item_name="Butter Naan")
+    body = tool(api, "set_order_details", order_type="pickup", customer_name="Ravi", whatsapp_number="9876543210")
+    assert "नाम" not in (body.get("say") or "") and "इसी नंबर" not in (body.get("say") or "")
