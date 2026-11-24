@@ -25,6 +25,7 @@ logger = logging.getLogger("sarthi.phone.ordering")
 
 _REF_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # no 0/O or 1/I/L, which get misread
 _SAVE_ATTEMPTS = 3
+_CONTACT = "Ask the guest the question below, then call set_order_details with their answer."
 
 
 def _clean_name(raw: str | None) -> str:
@@ -73,6 +74,11 @@ class PhoneOrder:
         self.customer_id: str | None = None
         self.caller_verified = bool(caller)
         self.special_requests: list[str] = []  # wishes about the whole order; per-dish changes live on the cart lines
+        # Samvaad asks for the guest's name and where the bill goes in ONE question, once, before the read-back,
+        # so the read-back that follows is the only confirmation. The LiveKit agent doesn't (collect_contact off).
+        self.collect_contact = False
+        self.contact_asked = False
+        self.bill_number_given = False  # the guest chose or confirmed the bill's number themselves
         self.cart: list[dict] = []
         self.spoken: str | None = None  # this turn's reply, when these rules decided what to say
 
@@ -143,8 +149,12 @@ class PhoneOrder:
             if len(self.special_requests) >= 8:
                 return "That is enough requests for one order. Tell the customer the store will call about anything else."
             self.special_requests.append(text)
-        self.read_back = None  # what was read back no longer describes the order
-        return f"Noted for the store: {text}. It is a request, not a promise: do not say it will definitely be done. " + self.prepare_read_back()
+        noted = f"Noted for the store: {text}. It is a request, not a promise: do not say it will definitely be done."
+        if self.read_back is None:
+            # Nothing was read back yet: just carry on. One read-back at the end will include it.
+            return f"{noted} Tell the guest in a few words that it's noted, then carry on with the order. Do not read the order back now."
+        self.read_back = None  # the guest heard an order without this request: they hear it once more, with it
+        return f"{noted} " + self.prepare_read_back()
 
     def set_details(self, order_type: str, address: str = "", whatsapp_number: str = "", customer_name: str = "") -> str:
         kind = order_type.strip().lower()
@@ -152,17 +162,27 @@ class PhoneOrder:
             return 'Order type must be "delivery" or "pickup". Ask the customer which they want.'
         if kind == "delivery" and not address.strip() and not self.address:
             return "Delivery needs an address. Ask the customer for it."
+        if whatsapp_number.strip() and not any(ch.isdigit() for ch in whatsapp_number):
+            whatsapp_number = ""  # "same", "isi number pe": the number they're calling from
+        chosen = None
+        if whatsapp_number.strip():
+            chosen = numbers.whatsapp_number(whatsapp_number)
+            if not chosen:
+                return "That isn't a valid ten digit mobile number. Ask the customer to repeat it."
+        before = (self.order_type, self.address, self.whatsapp)
         self.order_type = kind
         name = _clean_name(customer_name)
         if name:
             self.customer_name = name
         if address.strip():
             self.address = address.strip()
-        if whatsapp_number.strip():
-            chosen = numbers.whatsapp_number(whatsapp_number)
-            if not chosen:
-                return "That isn't a valid ten digit mobile number. Ask the customer to repeat it."
+        if chosen:
             self.whatsapp = chosen
+            self.bill_number_given = True
+        if self.read_back is not None and (self.order_type, self.address, self.whatsapp) == before:
+            # Only the name came in (or nothing new): what the guest heard still stands. Reading it again is
+            # exactly the repetition callers find annoying.
+            return "Saved. The order was already read back and has not changed: do not read it again. Wait for the guest's yes."
         self.read_back = None  # what was read back no longer describes the order
         return self.prepare_read_back()
 
@@ -176,13 +196,43 @@ class PhoneOrder:
             return "Ask whether this is delivery or pickup, then call set_order_details."
         if self.order_type == "delivery" and not self.address:
             return "Ask for the delivery address, then call set_order_details."
+        if self.collect_contact:
+            return _CONTACT if self._needs_contact() else None
         if not self.whatsapp:
             return "This caller's number can't receive WhatsApp. Ask for a mobile number that has WhatsApp, then call set_order_details."
         return None
 
+    def _needs_contact(self) -> bool:
+        if not self.whatsapp:
+            return True  # no bill without a number, however often it takes
+        return not self.contact_asked and not (self.customer_name and self.bill_number_given)
+
+    def _contact_question(self) -> tuple[str, str]:
+        """The name and the bill's number, asked together and once. A guest who'd rather not give a name
+        isn't asked again."""
+        name = not self.customer_name and not self.contact_asked
+        if not self.whatsapp:
+            if name:
+                return ("आपका नाम और व्हाट्सएप नंबर बता दीजिए? बिल उसी पर भेजूँगा।",
+                        "May I have your name and your WhatsApp number for the bill?")
+            return ("बिल व्हाट्सएप पर भेजना है। आपका व्हाट्सएप नंबर बता दीजिए?",
+                    "I'll send the bill on WhatsApp. What's your WhatsApp number?")
+        if name:
+            return ("आपका नाम बता दीजिए? और बिल व्हाट्सएप पर इसी नंबर पर भेज दूँ, या किसी और नंबर पर?",
+                    "May I have your name? And shall I send the bill on WhatsApp to this number, or another one?")
+        return ("बिल व्हाट्सएप पर इसी नंबर पर भेज दूँ, या किसी और नंबर पर?",
+                "Shall I send the bill on WhatsApp to this number, or another one?")
+
+    def _ask_contact(self) -> str:
+        self._say(*self._contact_question())
+        self.contact_asked = True
+        return f"{_CONTACT} Say exactly this to the guest: {self.spoken}"
+
     def _ask_for_whatsapp(self, blocker: str) -> None:
         """The exact question, so a voice agent asks for the number instead of stalling on the instruction."""
-        if not self.whatsapp and blocker.startswith("This caller's number"):
+        if blocker == _CONTACT:
+            self._ask_contact()
+        elif not self.whatsapp and blocker.startswith("This caller's number"):
             self._say(
                 "बिल व्हाट्सएप पर भेजना है। आपका व्हाट्सएप नंबर बता दीजिए?",
                 "I'll send the bill on WhatsApp. What's your WhatsApp number?",
@@ -210,6 +260,8 @@ class PhoneOrder:
 
     def prepare_read_back(self) -> str:
         blocker = self._blocker()
+        if blocker == _CONTACT:
+            return self._ask_contact()
         if blocker and blocker.startswith("This caller's number"):
             # Only the WhatsApp number is missing: read the real order back now and ask for the number in the
             # same breath, so a voice agent has the true items and total instead of composing its own.
@@ -228,10 +280,21 @@ class PhoneOrder:
         ending = " ".join(numbers.last_four(self.whatsapp))
         hindi, english, _ = self._summary()
         bill_hi, bill_en = ("बिल और पेमेंट QR", "bill and payment QR") if self.takes_upi else ("बिल", "bill")
-        self._say(
-            f"{hindi} {bill_hi} व्हाट्सएप पर {ending} वाले नंबर पर आएगा। ऑर्डर पक्का कर दूँ?",
-            f"{english} The {bill_en} will come on WhatsApp to the number ending {ending}. Shall I place the order?",
-        )
+        if self.collect_contact:
+            # The guest has just told us where the bill goes: only a number they gave is read out (to catch a
+            # misheard digit), and their own number isn't spelt out again.
+            own = self.whatsapp == numbers.whatsapp_number(self.caller)
+            to_hi, to_en = ("इसी नंबर पर", "to this number") if own else (f"{ending} वाले नंबर पर", f"to the number ending {ending}")
+            hi_name, en_name = (f"{self.customer_name} जी, ", f"{self.customer_name}, ") if self.customer_name else ("", "")
+            self._say(
+                f"{hi_name}{hindi} {bill_hi} व्हाट्सएप पर {to_hi} आएगा। ऑर्डर पक्का कर दूँ?",
+                f"{en_name}{english[0].lower() if en_name else english[0]}{english[1:]} The {bill_en} will come on WhatsApp {to_en}. Shall I place the order?",
+            )
+        else:
+            self._say(
+                f"{hindi} {bill_hi} व्हाट्सएप पर {ending} वाले नंबर पर आएगा। ऑर्डर पक्का कर दूँ?",
+                f"{english} The {bill_en} will come on WhatsApp to the number ending {ending}. Shall I place the order?",
+            )
         return f"Read back to the customer: {self.spoken} Only call checkout after they say yes in their next message."
 
     def checkout(self) -> str:

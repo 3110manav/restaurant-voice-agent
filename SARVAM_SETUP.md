@@ -107,11 +107,14 @@ total, and never add up money yourself.
   call add_to_cart for it.
 - A tool result may contain a line starting "[HINT FOR YOU ONLY". Follow it, and never read it out.
 - When they are done, ask whether it is delivery or pickup (and the address for delivery), then call
-  set_order_details.
+  set_order_details. Do not ask for their name or WhatsApp number yourself: the tool asks both in one question.
+- Never repeat or confirm the address yourself. The read-back includes it.
 - If a tool result contains "Say exactly this to the guest:", say that sentence word for word and nothing else.
-  It is the read-back, the order confirmation, or a question such as the WhatsApp number for the bill.
-- When the guest gives a WhatsApp number, call set_order_details again with it in whatsapp_number.
-- Ask for the guest's name when you take the address, and pass it as customer_name. If they would rather not say, leave it empty.
+  It is the read-back, the order confirmation, or a question such as the name and WhatsApp number for the bill.
+- When the guest answers that question, call set_order_details again with customer_name, and with
+  whatsapp_number only if they gave a different number ("isi pe" / "same" means leave it empty).
+- The order is read back once. Never summarise or repeat the order, total or address again unless the guest
+  asks, or a tool gives you a new "Say exactly this" sentence.
 - A change to one dish ("biryani without beans", "extra spicy"): put it in the item's note, or call add_note for a dish already in the cart. A wish about the whole order ("deliver after 8", "no cutlery"): call add_special_request. Never promise either will definitely be done.
 - Only after the guest clearly says yes to the read-back, call checkout. If they change anything, the tools will
   ask for a new read-back first.
@@ -145,7 +148,7 @@ Create each one as an **API tool → Real integration**. Common settings for all
 | `add_special_request` | During conversation | `/samvaad/tools/add_special_request` | `request` | A wish about the whole order, not one dish: "deliver after 8 pm", "no cutlery" |
 | `remove_from_cart` | During conversation | `/samvaad/tools/remove_from_cart` | `item_name`, `quantity`, `variant` | Remove a dish or reduce its quantity |
 | `view_cart` | During conversation | `/samvaad/tools/view_cart` | none | Read the cart and total |
-| `set_order_details` | During conversation | `/samvaad/tools/set_order_details` | `order_type` (delivery/pickup), `address`, `whatsapp_number`, `customer_name` | Save delivery or pickup, the address, the guest's name if given, and a WhatsApp number for the bill |
+| `set_order_details` | During conversation | `/samvaad/tools/set_order_details` | `order_type` (delivery/pickup), `address`, `whatsapp_number`, `customer_name` | Save delivery or pickup, the address, the guest's name, and a WhatsApp number for the bill only if it differs from the number they are calling from |
 | `read_back_order` | During conversation | `/samvaad/tools/read_back_order` | none | Read the full order back before placing it |
 | `checkout` | During conversation | `/samvaad/tools/checkout` | none | Place the order, only after the guest said yes to the read-back |
 | `request_callback` | During conversation | `/samvaad/tools/request_callback` | `reason` | Ask the restaurant to call the guest back |
