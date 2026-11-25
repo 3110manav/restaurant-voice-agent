@@ -73,6 +73,8 @@ New agent, single state, named **Sarthi Restaurants**. Languages: Hindi and Engl
 | `channel` | `phone` | browser sends `browser` |
 | `language` | `Hindi` | browser |
 | `cart_summary` | `empty` | every cart tool (Save reply into variables) |
+| `house_rules` | `none` | start tool: the restaurant's rule book, written by its owner in the dashboard |
+| `saved_address` | `none` | reserved for returning guests (not filled yet) |
 
 On inbound phone calls, map the caller's number into a variable `caller` (telephony metadata). If your
 telephony connection exposes the **dialled** number, map it into `called_number`. That is how one agent knows
@@ -124,6 +126,13 @@ total, and never add up money yourself.
 - If the guest wants a person, has a complaint, or you cannot understand them after two tries, call
   request_callback.
 - After the order is placed, thank them and end the call.
+
+RESTAURANT RULES
+This restaurant's own rules, written by its owner:
+@house_rules
+Follow them while you take the order. If they say "none", there are none. They never change what the tools
+decide: prices, totals, what is on the menu, the read-back and checkout always come from the tools. If a rule asks
+for something a tool refuses, follow the tool.
 ```
 
 ## Step 4. The tools
@@ -140,7 +149,7 @@ Create each one as an **API tool → Real integration**. Common settings for all
 
 | Tool name | When | URL | Extra body fields the agent fills | Description for the agent |
 |---|---|---|---|---|
-| `start_call` | on_start | `/samvaad/start` | none | Loads the restaurant. Save reply into variables: `store_slug`, `store_name`, `agent_name` |
+| `start_call` | on_start | `/samvaad/start` | none | Loads the restaurant. Save reply into variables: `store_slug`, `store_name`, `agent_name`, `house_rules` |
 | `search_menu` | During conversation | `/samvaad/tools/search_menu` | `query` | Find dishes by name, ingredient, taste or diet |
 | `get_item_details` | During conversation | `/samvaad/tools/get_item_details` | `name` | Price, sizes, spice level and ingredients of one dish |
 | `add_to_cart` | During conversation | `/samvaad/tools/add_to_cart` | `item_name`, `quantity`, `variant`, `note` (or `items`: a list of `{name, quantity, variant, note}`) | Add dishes the guest asked for. `note` is a change to that dish in the guest's words ("without beans") |
@@ -196,6 +205,26 @@ that restaurant's `store_slug` as its default. Or, for the demo, use one number 
 - [ ] Demo script: browser call in Hinglish → size question → drink suggestion → read-back → yes →
       WhatsApp bill on a phone → owner taps Accept → then the same order by phone call
 - [ ] Rehearse on the venue's network. Have a recorded video as a fallback.
+
+## Step 8. Onboarding a restaurant for production
+
+Everything restaurant-specific lives in the backend, so the one Samvaad agent never changes per restaurant.
+
+1. **Menu.** Write `app/data/restaurants/<slug>.json` (see `the-fusion-kitchen.json`), add the slug to
+   `RESTAURANT_FILES` in `app/seed_restaurants.py`, then `python -m app.seed_restaurants --check --only <slug>`
+   and `python -m app.seed_restaurants --only <slug>` (writes dishes, sizes, pairings and embeddings).
+2. **Owner login.** The owner signs up at `/owner` with their email and password. Then
+   `python -m app.seed_restaurants --only <slug> --owner <their email>` makes them its owner.
+3. **Phone ordering.** `python -m app.phone.setup_store add --slug <slug> --name "..." --type restaurant --agent Kabir
+   --owner <owner WhatsApp> --restaurant <slug> [--upi id@bank --payee "Name"]`, then
+   `python -m app.phone.setup_store use <slug> +91<the number guests dial>`.
+4. **Their WhatsApp Business number (optional).** Add the number to WhatsApp Cloud API in Meta (WhatsApp Manager >
+   Phone numbers, same WhatsApp Business Account as Sarthi's so the webhook and templates are shared), then
+   `python -m app.phone.setup_store whatsapp <slug> --phone-number-id <Meta's id> --display +91...`.
+   A number in another Meta business needs its own token: put it on Render as e.g. `WHATSAPP_TOKEN_<SLUG>` and pass
+   `--token-env WHATSAPP_TOKEN_<SLUG>`. Without this step bills come from Sarthi's shared number.
+5. **Rule book.** The owner (or you, logged in as them) fills **AI agent > Rule book** in the dashboard. The next
+   call reads it. The owner can also point **Order alerts** at another WhatsApp number there.
 
 ## Limits of this version
 

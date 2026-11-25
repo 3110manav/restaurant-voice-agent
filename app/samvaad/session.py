@@ -23,10 +23,12 @@ from dataclasses import dataclass, field
 
 from app.agent import promotions
 from app.agent.salesflow import HINT_PREFIX, SalesState, dessert_offer
+from app import agent_config
 from app.agent.tools import build_tools
 from app.currency import format_price
 from app.customers import repository as customers
 from app.customers.phone import normalize_phone
+from app.menu import repository as menu_repository
 from app.menu.snapshot import _sound
 from app.phone import carts, numbers, repository
 from app.phone.call import _menu_and_restaurant, is_database_store
@@ -267,6 +269,17 @@ class SamvaadSession:
 
     # --------------------------------------------------------------- tools --
 
+    def _house_rules(self) -> str:
+        """This restaurant's rule book, read fresh at the start of each call so an owner's edit applies to the next
+        call. A database problem costs the rules for this call, never the call."""
+        if not self.restaurant_id:
+            return "none"
+        try:
+            return agent_config.rules_for_call(menu_repository.get_restaurant(self.restaurant_id))
+        except Exception:
+            logger.warning("couldn't read the rule book for call %s", self.interaction_id, exc_info=True)
+            return "none"
+
     def start_variables(self) -> dict:
         store = self.store
         return {
@@ -275,6 +288,7 @@ class SamvaadSession:
             "agent_name": store.get("agent_name") or "Kabir",
             "store_type": store["business_type"],
             "caller_known": bool(self.order.whatsapp),
+            "house_rules": self._house_rules(),
         }
 
     def search_menu(self, query: str, language: str | None = None) -> dict:

@@ -1,0 +1,2839 @@
+{
+ "restaurant": {
+  "slug": "the-fusion-kitchen",
+  "name": "The Fusion Kitchen",
+  "cuisine": "Global fusion: Mexican, Peruvian, Thai, Italian & Japanese",
+  "tagline": "Food doesn't need a passport.",
+  "agent_name": "Kabir",
+  "accent_color": "#c2410c",
+  "agent_rules": "- Every pasta comes veg, chicken or prawns: if the guest doesn't say, ask which. Then ask penne or spaghetti and put the shape in that dish's note. Aglio E Olio is spaghetti unless they ask for penne.\n- Shashlik Paneer Steak comes with one side: vegetables, mashed potato, garlic bread or French fries. Ask which.\n- These can be made Jain: all three soups, both salads, Over Laden Nachos, Naranja Pesto Cubes, Sriracha Paneer, Mexican Burrito Bowl, Veg Paprika, the Chipotle and Shashlik sizzlers, and veg Alfredo, Pink, Paprika and Pesto pasta. For a Jain order put \"Jain\" in that dish's note. Other dishes can't be made Jain.\n- Chicken (40) or prawns (60) can be added to any soup, chicken (90) to any salad, and chicken (20), fish or prawns (60) to any sizzler: add the matching \"Add ... to ...\" item, once per soup, salad or sizzler.\n- All desserts are eggless and made fresh in-house.\n- Camarones Cerveza is cooked in a beer sauce and Wine Glazed Chicken Steak in a wine sauce: say so if the guest asks about alcohol.\n- There are no drinks on the menu."
+ },
+ "categories": [
+  "Sides",
+  "Soups",
+  "Salads",
+  "Appetizers - Veg",
+  "Appetizers - Non Veg",
+  "Main Course - Veg",
+  "Main Course - Non Veg",
+  "Sizzlers",
+  "Pasta",
+  "Desserts",
+  "Add-ons"
+ ],
+ "dishes": [
+  {
+   "category": "Sides",
+   "name": "French Fries",
+   "price": 280,
+   "is_veg": true,
+   "order_role": "side",
+   "pairs_with": [
+    "Shashlik Paneer Steak",
+    "Stuffed Mushroom",
+    "Sriracha Paneer",
+    "Over Laden Nachos"
+   ],
+   "sort_order": 1,
+   "short_description": "Golden, crisp potato fries, served plain or tossed in peri peri, chipotle or truffle Parmesan.",
+   "long_description": "French Fries are potato batons fried until golden, crisp outside and fluffy inside. They come in four styles: Regular, simply salted; Peri Peri, dusted with a tangy chilli seasoning; Chipotle, with a smoky chipotle sauce; and Truffle Parmesan, finished with truffle and grated Parmesan cheese. Eat them as a snack or alongside the steaks, wings and starters. An easy pick for kids and for sharing at the table.",
+   "ingredients": [
+    "potatoes",
+    "oil",
+    "salt",
+    "peri peri seasoning",
+    "chipotle sauce",
+    "truffle oil",
+    "parmesan cheese"
+   ],
+   "allergens": [
+    "dairy"
+   ],
+   "tags": [
+    "shareable",
+    "kids-favourite"
+   ],
+   "spice_level": "mild",
+   "variants": [
+    {
+     "name": "Regular",
+     "price": 280
+    },
+    {
+     "name": "Peri Peri",
+     "price": 340
+    },
+    {
+     "name": "Chipotle",
+     "price": 390
+    },
+    {
+     "name": "Truffle Parmesan",
+     "price": 440
+    }
+   ],
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Sides",
+   "name": "Vegetables Sauteed",
+   "price": 330,
+   "is_veg": true,
+   "order_role": "side",
+   "pairs_with": [
+    "Shashlik Paneer Steak",
+    "Veg Paprika",
+    "Saltado Vegetariano",
+    "Veg Alfredo Pasta"
+   ],
+   "sort_order": 2,
+   "short_description": "Assorted vegetables tossed quickly in butter, garlic and herbs, tender with a light crunch.",
+   "long_description": "Vegetables Sauteed is a plate of assorted vegetables tossed quickly in a hot pan with butter, garlic and herbs, so they stay bright and tender with a little bite. It tastes light, buttery and gently seasoned. Order it as a side with the steaks, grilled fish, Thai curries or pastas, or on its own when you want something light. It suits anyone who wants more greens on the table.",
+   "ingredients": [
+    "assorted vegetables",
+    "broccoli",
+    "bell peppers",
+    "carrot",
+    "butter",
+    "garlic",
+    "herbs"
+   ],
+   "allergens": [
+    "dairy"
+   ],
+   "tags": [
+    "light"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Sides",
+   "name": "Garlic Bread",
+   "price": 220,
+   "is_veg": true,
+   "order_role": "side",
+   "pairs_with": [
+    "Veg Alfredo Pasta",
+    "Veg Pink Pasta",
+    "Veg Arrabbiata Pasta",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Broccoli & Cream Soup"
+   ],
+   "sort_order": 3,
+   "short_description": "Toasted bread with garlic butter and herbs, or loaded with melted cheese.",
+   "long_description": "Garlic Bread is bread spread with garlic butter and herbs and toasted until crisp at the edges and soft in the middle. It comes in two versions: Regular, with just the garlic butter, and Cheese, topped with a layer of melted cheese. It is the classic partner for the pastas and soups, and good for mopping up a sauce. A crowd-pleaser for kids and for sharing.",
+   "ingredients": [
+    "bread",
+    "butter",
+    "garlic",
+    "parsley",
+    "herbs",
+    "cheese"
+   ],
+   "allergens": [
+    "gluten",
+    "dairy"
+   ],
+   "tags": [
+    "italian",
+    "shareable",
+    "kids-favourite"
+   ],
+   "spice_level": "mild",
+   "variants": [
+    {
+     "name": "Regular",
+     "price": 220
+    },
+    {
+     "name": "Cheese",
+     "price": 410
+    }
+   ],
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Soups",
+   "name": "Broccoli & Cream Soup",
+   "price": 380,
+   "is_veg": true,
+   "order_role": "side",
+   "pairs_with": [
+    "Garlic Bread",
+    "Green Apple Salad",
+    "Stuffed Mushroom",
+    "Veg Pink Pasta"
+   ],
+   "sort_order": 4,
+   "short_description": "Smooth, creamy broccoli soup, mild and comforting; can be made Jain.",
+   "long_description": "Broccoli & Cream Soup is broccoli simmered and blended smooth, then finished with cream. It is velvety, mild and gently savoury, with a fresh green flavour. Have it as a starter, or with Garlic Bread for a light meal; it also sits well before the steaks and Paprika mains. It suits guests who want something soothing rather than spicy. It can be made Jain on request, and chicken or prawns can be added to it.",
+   "ingredients": [
+    "broccoli",
+    "cream",
+    "butter",
+    "onion",
+    "garlic",
+    "black pepper",
+    "herbs"
+   ],
+   "allergens": [
+    "dairy"
+   ],
+   "tags": [
+    "jain-available",
+    "comfort-food",
+    "light"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Soups",
+   "name": "Roasted Tomato & Bell Pepper Soup",
+   "price": 380,
+   "is_veg": true,
+   "order_role": "side",
+   "pairs_with": [
+    "Garlic Bread",
+    "Greek Salad",
+    "Veg Arrabbiata Pasta",
+    "Naranja Pesto Cubes"
+   ],
+   "sort_order": 5,
+   "short_description": "Roasted tomato and bell pepper blended into a tangy, slightly smoky soup; can be made Jain.",
+   "long_description": "Roasted Tomato & Bell Pepper Soup is made by roasting tomatoes and bell peppers until lightly charred, then blending them into a smooth soup. It tastes tangy, sweet and slightly smoky, with a gentle warmth. It is lovely with Garlic Bread, or before a pasta or a Mexican main. A good pick for anyone who likes a classic tomato soup with more depth. It can be made Jain on request, and chicken or prawns can be added to it.",
+   "ingredients": [
+    "tomatoes",
+    "red bell pepper",
+    "olive oil",
+    "onion",
+    "garlic",
+    "herbs",
+    "black pepper"
+   ],
+   "allergens": [],
+   "tags": [
+    "jain-available",
+    "tangy",
+    "light"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Soups",
+   "name": "Manchow Soup",
+   "price": 380,
+   "is_veg": true,
+   "order_role": "side",
+   "pairs_with": [
+    "Lotus Stem Chilli",
+    "Sriracha Paneer",
+    "Spicy Thai Paneer with Beetroot Rice",
+    "Veg Thai Curry & Steam Rice"
+   ],
+   "sort_order": 6,
+   "short_description": "Thick, spicy Indo-Chinese vegetable soup with soy, garlic and crunchy fried noodles; can be made Jain.",
+   "long_description": "Manchow Soup is a thick Indo-Chinese soup of finely chopped vegetables cooked with soy sauce, garlic, ginger and chilli. It tastes savoury, peppery and a little spicy, and is usually topped with crisp fried noodles for crunch. Have it hot as a starter before the Asian-style appetizers or the Thai mains. It suits guests who like a bold, hearty soup. It can be made Jain on request, and chicken or prawns can be added to it.",
+   "ingredients": [
+    "mixed vegetables",
+    "soy sauce",
+    "garlic",
+    "ginger",
+    "green chilli",
+    "cornflour",
+    "fried noodles",
+    "spring onion"
+   ],
+   "allergens": [
+    "soy",
+    "gluten"
+   ],
+   "tags": [
+    "jain-available",
+    "indo-chinese"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Salads",
+   "name": "Greek Salad",
+   "price": 440,
+   "is_veg": true,
+   "order_role": "side",
+   "pairs_with": [
+    "Roasted Tomato & Bell Pepper Soup",
+    "Garlic Bread",
+    "Veg Pesto Pasta",
+    "Naranja Pesto Cubes"
+   ],
+   "sort_order": 7,
+   "short_description": "Feta, crisp greens, olives and vegetables in a honey mustard olive oil dressing; can be made Jain.",
+   "long_description": "Greek Salad brings together feta cheese, lettuce, kale, cucumber, kalamata olives, cherry tomatoes, onion and bell pepper, dressed with a honey mustard dressing made in extra virgin olive oil. It is crisp, fresh and tangy, with salty bites of feta and olive. Eat it as a light starter or alongside the pastas, grilled fish and steaks. It suits anyone wanting something fresh rather than heavy. It can be made Jain on request, and chicken can be added to it.",
+   "ingredients": [
+    "feta cheese",
+    "lettuce",
+    "kale",
+    "cucumber",
+    "kalamata olives",
+    "cherry tomato",
+    "onion",
+    "bell pepper",
+    "honey mustard dressing",
+    "extra virgin olive oil"
+   ],
+   "allergens": [
+    "dairy"
+   ],
+   "tags": [
+    "jain-available",
+    "light",
+    "tangy"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Salads",
+   "name": "Green Apple Salad",
+   "price": 480,
+   "is_veg": true,
+   "order_role": "side",
+   "pairs_with": [
+    "Broccoli & Cream Soup",
+    "Garlic Bread",
+    "Veg Alfredo Pasta",
+    "Stuffed Mushroom"
+   ],
+   "sort_order": 8,
+   "short_description": "Crisp green apple, iceberg lettuce, feta, walnuts and pistachios in a zesty mustard dressing.",
+   "long_description": "Green Apple Salad tosses crisp green apples and iceberg lettuce with feta cheese, walnuts and pistachios in a zesty mustard dressing. It is crunchy, juicy and fresh, sweet-tart from the apple, with salty feta and nutty bites. Have it as a light starter, or with the creamy pastas and steaks to cut the richness. Note that it contains nuts. It can be made Jain on request, and chicken can be added to it.",
+   "ingredients": [
+    "green apple",
+    "iceberg lettuce",
+    "feta cheese",
+    "walnuts",
+    "pistachios",
+    "mustard dressing"
+   ],
+   "allergens": [
+    "dairy",
+    "nuts"
+   ],
+   "tags": [
+    "jain-available",
+    "light"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Veg",
+   "name": "Over Laden Nachos",
+   "price": 310,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Papas Ala Huancaina",
+    "Mexican Burrito Bowl"
+   ],
+   "sort_order": 9,
+   "short_description": "Spinach nachos loaded with peppers, kidney beans, olives and cheese, with salsa and cheese sauce.",
+   "long_description": "Over Laden Nachos is one of TFK's signature dishes: crisp spinach nachos piled with bell peppers, kidney beans, onion, olives and cheese, served with salsa and a cheese sauce for dipping. It is crunchy, cheesy and tangy, with a gentle Mexican-style kick. Great for sharing at the start of a meal, especially with a soup or salad. It comes in two sizes, a Small Plate and a Regular portion, and can be made Jain on request.",
+   "ingredients": [
+    "spinach nachos",
+    "bell peppers",
+    "kidney beans",
+    "onion",
+    "olives",
+    "cheese",
+    "salsa",
+    "cheese sauce"
+   ],
+   "allergens": [
+    "dairy",
+    "gluten"
+   ],
+   "tags": [
+    "signature",
+    "jain-available",
+    "mexican",
+    "shareable"
+   ],
+   "spice_level": "medium",
+   "variants": [
+    {
+     "name": "Small Plate",
+     "price": 310
+    },
+    {
+     "name": "Regular",
+     "price": 510
+    }
+   ],
+   "knowledge_status": "ai_draft",
+   "is_bestseller": true,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Veg",
+   "name": "Naranja Pesto Cubes",
+   "price": 510,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Greek Salad",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Veg Pesto Pasta"
+   ],
+   "sort_order": 10,
+   "short_description": "Paneer cubes marinated in oregano and chilli, topped with Chef Rachikul's Naranja pesto sauce.",
+   "long_description": "Naranja Pesto Cubes is a TFK signature made to Chef Rachikul's secret recipe. Soft paneer cubes are marinated in oregano and chilli and topped with Naranja pesto sauce; naranja is the Spanish word for orange. Expect herby, gently spiced paneer under a fragrant pesto. Have it as a starter with Garlic Bread or a salad. A great pick for paneer lovers who want something different, and it can be made Jain on request.",
+   "ingredients": [
+    "paneer",
+    "oregano",
+    "chilli",
+    "naranja pesto sauce",
+    "basil",
+    "olive oil"
+   ],
+   "allergens": [
+    "dairy",
+    "nuts"
+   ],
+   "tags": [
+    "signature",
+    "jain-available",
+    "chef-special"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": true,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Veg",
+   "name": "Tangy Garden Maki",
+   "price": 330,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Avocado Fusion Veg",
+    "Manchow Soup",
+    "Green Apple Salad",
+    "Lotus Stem Chilli"
+   ],
+   "sort_order": 11,
+   "short_description": "Vegetarian sushi roll of cucumber, avocado, gherkins and asparagus in sushi rice.",
+   "long_description": "Tangy Garden Maki is a vegetarian sushi roll: sushi rice rolled around crisp cucumber, creamy avocado, gherkins and fresh asparagus. The gherkins give it a gentle tang, the avocado keeps it smooth and the cucumber adds crunch. It is light and refreshing, and sushi is usually eaten dipped in soy sauce. A good starter for anyone new to sushi. It comes in two sizes, four pieces or eight pieces.",
+   "ingredients": [
+    "sushi rice",
+    "nori",
+    "cucumber",
+    "avocado",
+    "gherkins",
+    "asparagus"
+   ],
+   "allergens": [
+    "soy"
+   ],
+   "tags": [
+    "sushi",
+    "japanese",
+    "light"
+   ],
+   "spice_level": "mild",
+   "variants": [
+    {
+     "name": "4 pcs",
+     "price": 330
+    },
+    {
+     "name": "8 pcs",
+     "price": 580
+    }
+   ],
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Veg",
+   "name": "Stuffed Mushroom",
+   "price": 440,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Broccoli & Cream Soup",
+    "Green Apple Salad",
+    "Veg Alfredo Pasta"
+   ],
+   "sort_order": 12,
+   "short_description": "Button mushrooms stuffed with cheese, crumb-coated and fried golden.",
+   "long_description": "Stuffed Mushroom is button mushrooms filled with cheese, coated in breadcrumbs and fried until golden. Each bite is crisp outside, with a juicy mushroom and melted cheese inside. It is mild, savoury and moreish, best eaten hot as a starter, perhaps with a creamy soup or a salad. A good pick for mushroom and cheese lovers, and for kids who like something mild.",
+   "ingredients": [
+    "button mushrooms",
+    "cheese",
+    "breadcrumbs",
+    "flour",
+    "herbs",
+    "oil"
+   ],
+   "allergens": [
+    "dairy",
+    "gluten"
+   ],
+   "tags": [
+    "kids-favourite",
+    "shareable"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Veg",
+   "name": "Sriracha Paneer",
+   "price": 530,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Manchow Soup",
+    "French Fries",
+    "Lotus Stem Chilli",
+    "Veg Thai Curry & Steam Rice"
+   ],
+   "sort_order": 13,
+   "short_description": "Fried paneer coated with peri peri and hot, spicy Thai Sriracha sauce.",
+   "long_description": "Sriracha Paneer is fried paneer coated with peri peri seasoning and a hot and spicy Thai Sriracha sauce. The paneer stays soft inside under a sticky, fiery, garlicky glaze with a touch of sweetness. It is one of the spicier starters, so it goes well with Manchow Soup or French Fries. It suits paneer lovers who like real heat, and it can be made Jain on request.",
+   "ingredients": [
+    "paneer",
+    "sriracha sauce",
+    "peri peri seasoning",
+    "cornflour",
+    "garlic",
+    "oil"
+   ],
+   "allergens": [
+    "dairy",
+    "gluten"
+   ],
+   "tags": [
+    "jain-available",
+    "thai"
+   ],
+   "spice_level": "hot",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Veg",
+   "name": "Lotus Stem Chilli",
+   "price": 410,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Manchow Soup",
+    "Vegetables Sauteed",
+    "Sriracha Paneer",
+    "Spicy Thai Paneer with Beetroot Rice"
+   ],
+   "sort_order": 14,
+   "short_description": "Crispy lotus stem slices tossed in Schezwan sauce with onion, garlic and bell peppers.",
+   "long_description": "Lotus Stem Chilli is a TFK signature: slices of lotus stem fried until crisp, then tossed in a spicy Schezwan sauce with onion, garlic and bell peppers. It is crunchy, hot and a little sweet and tangy, with the lotus stem keeping its bite under the sauce. Enjoy it as a starter with Manchow Soup or alongside the Thai mains. It suits anyone who likes Indo-Chinese style heat.",
+   "ingredients": [
+    "lotus stem",
+    "cornflour",
+    "schezwan sauce",
+    "onion",
+    "garlic",
+    "bell peppers",
+    "soy sauce"
+   ],
+   "allergens": [
+    "soy",
+    "gluten"
+   ],
+   "tags": [
+    "signature",
+    "indo-chinese"
+   ],
+   "spice_level": "hot",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": true,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Veg",
+   "name": "Papas Ala Huancaina",
+   "price": 460,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Greek Salad",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Saltado Vegetariano",
+    "Over Laden Nachos"
+   ],
+   "sort_order": 15,
+   "short_description": "Peruvian-style potato bites covered in spicy aji amarillo sauce and topped with olive.",
+   "long_description": "Papas Ala Huancaina is a TFK signature in the Peruvian style: potato bites covered with a spicy aji amarillo sauce, made from Peruvian yellow chilli, and topped with olive. The potatoes are soft, the sauce is creamy with a fruity heat, and the olive adds a salty finish. Have it as a starter or share it before a Peruvian or Mexican main. A good choice for vegetarians who want something different from the usual potato snack.",
+   "ingredients": [
+    "potatoes",
+    "aji amarillo sauce",
+    "cheese",
+    "olives"
+   ],
+   "allergens": [
+    "dairy",
+    "gluten"
+   ],
+   "tags": [
+    "signature",
+    "peruvian",
+    "shareable"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": true,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Veg",
+   "name": "Avocado Fusion Veg",
+   "price": 350,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Tangy Garden Maki",
+    "Manchow Soup",
+    "Green Apple Salad",
+    "Sriracha Paneer"
+   ],
+   "sort_order": 16,
+   "short_description": "Sushi roll of avocado, bell pepper and cucumber, topped with sriracha, sweet chilli and chipotle sauce.",
+   "long_description": "Avocado Fusion Veg is a vegetarian sushi roll of creamy avocado, crisp bell peppers and fresh cucumber rolled in sushi rice and nori, then topped with the signature fusion sauce, a blend of sriracha, sweet chilli and smoky chipotle. It is cool and creamy inside with a sweet, smoky, gently spicy topping. A great starter to share with the other sushi. It comes in two sizes, four pieces or eight pieces.",
+   "ingredients": [
+    "sushi rice",
+    "nori",
+    "avocado",
+    "bell peppers",
+    "cucumber",
+    "sriracha",
+    "sweet chilli sauce",
+    "chipotle sauce"
+   ],
+   "allergens": [
+    "soy"
+   ],
+   "tags": [
+    "sushi",
+    "japanese"
+   ],
+   "spice_level": "medium",
+   "variants": [
+    {
+     "name": "4 pcs",
+     "price": 350
+    },
+    {
+     "name": "8 pcs",
+     "price": 610
+    }
+   ],
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Non Veg",
+   "name": "Pollo Ala Huancaina",
+   "price": 550,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Greek Salad",
+    "French Fries",
+    "Papas Ala Huancaina",
+    "Camarones Cerveza",
+    "Mojo Criollo Chicken Steak"
+   ],
+   "sort_order": 17,
+   "short_description": "Chicken chunks in a spicy Peruvian yellow pepper cheese sauce, with boiled egg and olives.",
+   "long_description": "Pollo Ala Huancaina is a TFK signature: chicken chunks covered in a spicy Peruvian yellow pepper cheese sauce and topped with boiled egg quarters and olives. The sauce is creamy with a fruity chilli heat, the chicken is tender, and the egg and olive add richness and a salty edge. Enjoy it as a hearty starter with a salad or fries, or share it before a main. A good pick for guests who like creamy, spiced chicken.",
+   "ingredients": [
+    "chicken",
+    "aji amarillo yellow pepper sauce",
+    "cheese",
+    "boiled egg",
+    "olives"
+   ],
+   "allergens": [
+    "dairy",
+    "egg",
+    "gluten"
+   ],
+   "tags": [
+    "signature",
+    "peruvian",
+    "rich"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": true,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Non Veg",
+   "name": "Camarones Cerveza",
+   "price": 590,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Pollo Ala Huancaina",
+    "Chicken Tikka Nachos"
+   ],
+   "sort_order": 18,
+   "short_description": "Mexican-style shrimp slow cooked in a tomato, onion, garlic and beer infused sauce.",
+   "long_description": "Camarones Cerveza is a TFK signature Mexican delicacy: shrimp slow cooked in a sauce of tomato, onion and garlic infused with beer. The shrimp are juicy and tender, and the sauce is savoury and tangy with a light malty depth from the beer. Mop it up with Garlic Bread or enjoy it as a starter before a main. Note that the sauce is made with beer, so it contains alcohol. A great pick for seafood lovers.",
+   "ingredients": [
+    "shrimp",
+    "tomato",
+    "onion",
+    "garlic",
+    "beer",
+    "herbs",
+    "chilli"
+   ],
+   "allergens": [
+    "shellfish",
+    "alcohol"
+   ],
+   "tags": [
+    "signature",
+    "mexican",
+    "seafood"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": true,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Non Veg",
+   "name": "Fish Fingers",
+   "price": 510,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "French Fries",
+    "Greek Salad",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Garlic Bread"
+   ],
+   "sort_order": 19,
+   "short_description": "Crumb-coated fish strips fried crisp and golden, flaky and mild inside.",
+   "long_description": "Fish Fingers are strips of fish coated in crumbs and fried until crisp and golden. They are crunchy outside, soft and flaky inside, and mildly seasoned, so they suit kids and anyone who does not want much spice. Eat them as a starter with French Fries or a fresh salad. A simple, crowd-pleasing pick for seafood lovers.",
+   "ingredients": [
+    "fish",
+    "breadcrumbs",
+    "flour",
+    "egg",
+    "herbs",
+    "oil"
+   ],
+   "allergens": [
+    "fish",
+    "gluten",
+    "egg"
+   ],
+   "tags": [
+    "seafood",
+    "kids-favourite",
+    "shareable"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Non Veg",
+   "name": "BBQ/Pesto Chicken Wings",
+   "price": 470,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "French Fries",
+    "Garlic Bread",
+    "Greek Salad",
+    "Chicken Tikka Nachos"
+   ],
+   "sort_order": 20,
+   "short_description": "Juicy chicken wings tossed in a smoky, tangy BBQ glaze or a herby pesto glaze.",
+   "long_description": "BBQ/Pesto Chicken Wings are a TFK signature: juicy chicken wings tossed in your choice of glaze. The BBQ version is smoky, sweet and tangy; the Pesto version is herby and garlicky, with basil and Parmesan. Both are sticky, finger-licking starters that are great for sharing with French Fries or Garlic Bread. The wings come in two options, BBQ or Pesto. Note that the pesto glaze contains nuts and cheese.",
+   "ingredients": [
+    "chicken wings",
+    "bbq sauce",
+    "pesto",
+    "basil",
+    "pine nuts",
+    "garlic",
+    "parmesan cheese"
+   ],
+   "allergens": [
+    "dairy",
+    "nuts"
+   ],
+   "tags": [
+    "signature",
+    "shareable",
+    "kids-favourite"
+   ],
+   "spice_level": "mild",
+   "variants": [
+    {
+     "name": "BBQ",
+     "price": 470
+    },
+    {
+     "name": "Pesto",
+     "price": 510
+    }
+   ],
+   "knowledge_status": "ai_draft",
+   "is_bestseller": true,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Non Veg",
+   "name": "Jamaica Jerk Prawns",
+   "price": 590,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Vegetables Sauteed",
+    "Garlic Bread",
+    "Green Apple Salad",
+    "Camarones Cerveza"
+   ],
+   "sort_order": 21,
+   "short_description": "Prawns marinated in bold Jamaican jerk spices and grilled, smoky and spicy.",
+   "long_description": "Jamaica Jerk Prawns are prawns marinated in bold Jamaican jerk spices and grilled. Jerk seasoning is warm and peppery, built on allspice, thyme and chilli, so the prawns come out smoky, juicy and spicy with a charred edge. Enjoy them as a starter with Vegetables Sauteed, Garlic Bread or a fresh salad to balance the heat. A good pick for seafood lovers who like bold flavour.",
+   "ingredients": [
+    "prawns",
+    "jerk spice marinade",
+    "allspice",
+    "thyme",
+    "chilli",
+    "garlic",
+    "lime"
+   ],
+   "allergens": [
+    "shellfish"
+   ],
+   "tags": [
+    "seafood"
+   ],
+   "spice_level": "hot",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Non Veg",
+   "name": "Bluepea Chicken Sushi",
+   "price": 330,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Prawns Tempura Sushi",
+    "Manchow Soup",
+    "Green Apple Salad",
+    "Avocado Fusion Veg"
+   ],
+   "sort_order": 22,
+   "short_description": "Blue pea-infused sushi rice rolled with chicken, cucumber and asparagus in nori.",
+   "long_description": "Bluepea Chicken Sushi is a sushi roll made with sushi rice infused with blue pea flower, which tints it blue, rolled around tender chicken, crisp cucumber and asparagus and wrapped in nori. It is mild and fresh, with a soft bite from the chicken and crunch from the vegetables, and sushi is usually eaten dipped in soy sauce. A good sushi for guests who prefer chicken to seafood. It comes in two sizes, four pieces or eight pieces.",
+   "ingredients": [
+    "sushi rice",
+    "blue pea flower",
+    "chicken",
+    "cucumber",
+    "asparagus",
+    "nori"
+   ],
+   "allergens": [
+    "soy"
+   ],
+   "tags": [
+    "sushi",
+    "japanese"
+   ],
+   "spice_level": "mild",
+   "variants": [
+    {
+     "name": "4 pcs",
+     "price": 330
+    },
+    {
+     "name": "8 pcs",
+     "price": 580
+    }
+   ],
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Non Veg",
+   "name": "Chicken Tikka Nachos",
+   "price": 350,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Roasted Tomato & Bell Pepper Soup",
+    "French Fries",
+    "BBQ/Pesto Chicken Wings",
+    "Camarones Cerveza"
+   ],
+   "sort_order": 23,
+   "short_description": "Crispy spinach nachos with shredded chicken tikka, peppers, olives and cheese sauce, plus tomato salsa.",
+   "long_description": "Chicken Tikka Nachos is a TFK signature that brings Indian and Mexican flavours together: crispy spinach flavoured nachos topped with shredded chicken tikka, bell peppers, olives and cheese sauce, served with tomato salsa. It is crunchy, cheesy and smoky-spiced, with the tangy salsa cutting through. Perfect for sharing at the start of a meal. It comes in two sizes, a Small Plate and a Regular portion.",
+   "ingredients": [
+    "spinach nachos",
+    "chicken tikka",
+    "bell peppers",
+    "olives",
+    "cheese sauce",
+    "tomato salsa"
+   ],
+   "allergens": [
+    "dairy",
+    "gluten"
+   ],
+   "tags": [
+    "signature",
+    "mexican",
+    "shareable"
+   ],
+   "spice_level": "medium",
+   "variants": [
+    {
+     "name": "Small Plate",
+     "price": 350
+    },
+    {
+     "name": "Regular",
+     "price": 610
+    }
+   ],
+   "knowledge_status": "ai_draft",
+   "is_bestseller": true,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Non Veg",
+   "name": "Sriracha Chicken / Fish",
+   "price": 470,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Manchow Soup",
+    "French Fries",
+    "Chicken Thai Curry & Steam Rice",
+    "Prawns Tempura Sushi"
+   ],
+   "sort_order": 24,
+   "short_description": "Fried chicken or fish coated with peri peri and hot, spicy Thai Sriracha sauce.",
+   "long_description": "Sriracha Chicken / Fish is fried chicken or fish, your choice, coated with peri peri seasoning and a hot and spicy Thai Sriracha sauce. The pieces are crisp and juicy under a sticky, fiery, garlicky glaze with a hint of sweetness. It is one of the hotter starters, so it goes well with Manchow Soup or French Fries. It comes in two options, Chicken or Fish.",
+   "ingredients": [
+    "chicken or fish",
+    "sriracha sauce",
+    "peri peri seasoning",
+    "cornflour",
+    "flour",
+    "garlic",
+    "oil"
+   ],
+   "allergens": [
+    "gluten",
+    "fish"
+   ],
+   "tags": [
+    "thai"
+   ],
+   "spice_level": "hot",
+   "variants": [
+    {
+     "name": "Chicken",
+     "price": 470
+    },
+    {
+     "name": "Fish",
+     "price": 510
+    }
+   ],
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Non Veg",
+   "name": "Prawns Tempura Sushi",
+   "price": 350,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Bluepea Chicken Sushi",
+    "Manchow Soup",
+    "Green Apple Salad",
+    "Tangy Garden Maki"
+   ],
+   "sort_order": 25,
+   "short_description": "Crispy tempura prawns with lettuce, cucumber and carrot, rolled in sushi rice and nori.",
+   "long_description": "Prawns Tempura Sushi is a sushi roll with crispy tempura prawns, lettuce, cucumber and carrot, rolled in sushi rice and nori. The crunch of the tempura contrasts with the cool, fresh vegetables and soft rice. It is mild and satisfying, and sushi is usually eaten dipped in soy sauce. A favourite for seafood lovers and a good first sushi for guests who like something crispy. It comes in two sizes, four pieces or eight pieces.",
+   "ingredients": [
+    "prawns",
+    "tempura batter",
+    "sushi rice",
+    "nori",
+    "lettuce",
+    "cucumber",
+    "carrot"
+   ],
+   "allergens": [
+    "shellfish",
+    "gluten",
+    "egg",
+    "soy"
+   ],
+   "tags": [
+    "sushi",
+    "japanese",
+    "seafood"
+   ],
+   "spice_level": "mild",
+   "variants": [
+    {
+     "name": "4 pcs",
+     "price": 350
+    },
+    {
+     "name": "8 pcs",
+     "price": 610
+    }
+   ],
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Appetizers - Non Veg",
+   "name": "Chicken Roulade",
+   "price": 430,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Broccoli & Cream Soup",
+    "Vegetables Sauteed",
+    "Green Apple Salad"
+   ],
+   "sort_order": 26,
+   "short_description": "Chicken breast rolled with chicken salami, cheese and spinach, roasted, with butter garlic sauce.",
+   "long_description": "Chicken Roulade is tender chicken breast filled with chicken salami, cheese and spinach, rolled up and roasted. It is served with a butter garlic sauce and a dill mayonnaise. Each slice is juicy and savoury, with melting cheese and a fresh, herby dip on the side. It makes an elegant starter, good with Garlic Bread or a light soup. A good pick for guests who want something rich but not spicy.",
+   "ingredients": [
+    "chicken breast",
+    "chicken salami",
+    "cheese",
+    "spinach",
+    "butter",
+    "garlic",
+    "dill mayonnaise"
+   ],
+   "allergens": [
+    "dairy",
+    "egg"
+   ],
+   "tags": [
+    "rich"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Veg",
+   "name": "Saltado Vegetariano",
+   "price": 550,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Papas Ala Huancaina",
+    "Tiramisu"
+   ],
+   "sort_order": 27,
+   "short_description": "Peruvian sautéed mushrooms, red pepper and carrots with parsley rice, baby potatoes and mushroom sauce.",
+   "long_description": "Saltado Vegetariano is a Peruvian-style sauté of mushrooms, red pepper and carrots, served with parsley rice, baby potatoes and a garlic mushroom sauce. The vegetables are tender with a slight char, the rice is fresh and herby, and the sauce is savoury and earthy. It is a complete, comforting plate; start with a soup or salad. A good pick for vegetarians who love mushrooms.",
+   "ingredients": [
+    "mushrooms",
+    "red bell pepper",
+    "carrots",
+    "parsley rice",
+    "baby potatoes",
+    "garlic mushroom sauce",
+    "onion"
+   ],
+   "allergens": [
+    "dairy",
+    "soy"
+   ],
+   "tags": [
+    "peruvian",
+    "comfort-food"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Veg",
+   "name": "Mexican Burrito Bowl",
+   "price": 590,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Over Laden Nachos",
+    "Flower Pot Surprise"
+   ],
+   "sort_order": 28,
+   "short_description": "Black beans, avocado salad, fajitas, corn and cheese, lemon coriander rice and spinach nachos in a bowl.",
+   "long_description": "Mexican Burrito Bowl is a TFK signature: the makings of a burrito served in a bowl. It has seasoned black beans, avocado salad, sizzling fajitas, corn and cheese, lemon coriander rice and crispy spinach nachos. Every spoonful is fresh, tangy and filling, with soft, creamy and crunchy textures together. A complete one-bowl meal for vegetarians, and it can be made Jain on request.",
+   "ingredients": [
+    "black beans",
+    "avocado salad",
+    "fajita vegetables",
+    "corn",
+    "cheese",
+    "lemon coriander rice",
+    "spinach nachos"
+   ],
+   "allergens": [
+    "dairy",
+    "gluten"
+   ],
+   "tags": [
+    "signature",
+    "jain-available",
+    "mexican"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": true,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Veg",
+   "name": "Shashlik Paneer Steak",
+   "price": 550,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Broccoli & Cream Soup",
+    "Green Apple Salad",
+    "Garlic Bread",
+    "Chocolate Noir"
+   ],
+   "sort_order": 29,
+   "short_description": "Grilled paneer steak with in-house Shashlik sauce, served with your choice of one side.",
+   "long_description": "Shashlik Paneer Steak is a thick paneer steak grilled until lightly charred, served with TFK's in-house Shashlik sauce, which is tangy, a little sweet and peppery. The paneer is soft inside with a smoky edge. It comes with your choice of one side: Vegetables, Mashed Potato, Garlic Bread or French Fries, all at the same price. A filling vegetarian main for guests who want a steakhouse-style plate.",
+   "ingredients": [
+    "paneer",
+    "shashlik sauce",
+    "bell peppers",
+    "onion",
+    "tomato",
+    "choice of side"
+   ],
+   "allergens": [
+    "dairy",
+    "gluten",
+    "soy"
+   ],
+   "tags": [
+    "rich"
+   ],
+   "spice_level": "medium",
+   "variants": [
+    {
+     "name": "Vegetables",
+     "price": 550
+    },
+    {
+     "name": "Mashed Potato",
+     "price": 550
+    },
+    {
+     "name": "Garlic Bread",
+     "price": 550
+    },
+    {
+     "name": "French Fries",
+     "price": 550
+    }
+   ],
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Veg",
+   "name": "Veg Paprika",
+   "price": 550,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 30,
+   "short_description": "Assorted vegetables in paprika sauce, with peppered rice and mashed potato.",
+   "long_description": "Veg Paprika is assorted vegetables cooked in a paprika sauce, served with peppered rice and mashed potato. The sauce is smoky, warm and slightly sweet from the paprika, the rice has a peppery bite, and the mash is soft and buttery. It is a balanced, complete plate; pair it with Garlic Bread or a soup. It suits vegetarians who want something hearty and warm rather than fiery, and it can be made Jain on request.",
+   "ingredients": [
+    "assorted vegetables",
+    "paprika sauce",
+    "peppered rice",
+    "mashed potato",
+    "butter"
+   ],
+   "allergens": [
+    "dairy"
+   ],
+   "tags": [
+    "jain-available",
+    "comfort-food"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Veg",
+   "name": "Spicy Thai Paneer with Beetroot Rice",
+   "price": 590,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Manchow Soup",
+    "Vegetables Sauteed",
+    "Lotus Stem Chilli",
+    "Chocolate Noir"
+   ],
+   "sort_order": 31,
+   "short_description": "Thai chilli-infused paneer served with vivid, mildly sweet beetroot rice.",
+   "long_description": "Spicy Thai Paneer with Beetroot Rice is a TFK signature: paneer infused with Thai chilli, served with beetroot rice. The paneer is soft and fiery with a fragrant Thai heat, and the bright beetroot rice is mildly sweet and earthy, balancing the spice. It is a striking, filling plate. Start with Manchow Soup or add Vegetables Sauteed on the side. A great pick for paneer lovers who enjoy bold heat.",
+   "ingredients": [
+    "paneer",
+    "thai chilli paste",
+    "garlic",
+    "herbs",
+    "beetroot",
+    "rice"
+   ],
+   "allergens": [
+    "dairy",
+    "soy"
+   ],
+   "tags": [
+    "signature",
+    "thai"
+   ],
+   "spice_level": "hot",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": true,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Veg",
+   "name": "Veg Thai Curry & Steam Rice",
+   "price": 640,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Manchow Soup",
+    "Vegetables Sauteed",
+    "Sriracha Paneer",
+    "Flower Pot Surprise"
+   ],
+   "sort_order": 32,
+   "short_description": "Thai green curry of vegetables in coconut milk with herbs and spices, served with steamed rice.",
+   "long_description": "Veg Thai Curry & Steam Rice is a Thai green curry of vegetables simmered in coconut milk with herbs and spices, served with plain steamed rice. The curry is creamy, fragrant and gently spicy, with fresh green herb notes; spoon it over the rice for a comforting meal. It goes well with Manchow Soup or Vegetables Sauteed. A good pick for vegetarians who like aromatic, coconut-based curries.",
+   "ingredients": [
+    "mixed vegetables",
+    "green curry paste",
+    "coconut milk",
+    "herbs",
+    "spices",
+    "steamed rice"
+   ],
+   "allergens": [],
+   "tags": [
+    "thai",
+    "comfort-food"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Veg",
+   "name": "Mountain Thukpa",
+   "price": 420,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Vegetables Sauteed",
+    "Lotus Stem Chilli",
+    "Sriracha Paneer",
+    "Chocolate Noir"
+   ],
+   "sort_order": 33,
+   "short_description": "Tibetan-style noodle soup with fresh vegetables and warming spices.",
+   "long_description": "Mountain Thukpa is a Tibetan-style noodle soup: noodles in a hot, flavourful broth with fresh vegetables and spices. It is warming and comforting, light yet filling, with gentle spice and soft noodles soaking up the broth. It makes a complete meal in a bowl, and Vegetables Sauteed or Lotus Stem Chilli go well alongside. A good choice for anyone who wants something soothing.",
+   "ingredients": [
+    "noodles",
+    "vegetable broth",
+    "mixed vegetables",
+    "garlic",
+    "ginger",
+    "spices",
+    "spring onion"
+   ],
+   "allergens": [
+    "gluten",
+    "soy"
+   ],
+   "tags": [
+    "comfort-food",
+    "light"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Non Veg",
+   "name": "Chicken Paprika",
+   "price": 660,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Broccoli & Cream Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 34,
+   "short_description": "Chicken chunks in Spanish paprika sauce with bell pepper rice and sautéed vegetables.",
+   "long_description": "Chicken Paprika is chicken chunks cooked in a Spanish paprika sauce, served with bell pepper rice and sautéed vegetables. The sauce is smoky, rich and gently spicy, the chicken tender, and the rice light and colourful. It is a complete, satisfying plate; pair it with Garlic Bread or start with a creamy soup. A good pick for guests who like hearty, warmly spiced chicken without fiery heat.",
+   "ingredients": [
+    "chicken",
+    "spanish paprika sauce",
+    "bell pepper rice",
+    "sautéed vegetables",
+    "onion",
+    "garlic"
+   ],
+   "allergens": [
+    "dairy"
+   ],
+   "tags": [
+    "comfort-food"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Non Veg",
+   "name": "Chicken Kiev with Blue Pea Mash",
+   "price": 640,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Broccoli & Cream Soup",
+    "Garlic Bread",
+    "Green Apple Salad",
+    "Chocolate Noir"
+   ],
+   "sort_order": 35,
+   "short_description": "Crispy crumbed chicken with a garlic herb butter centre, on blue pea mash with vegetables.",
+   "long_description": "Chicken Kiev with Blue Pea Mash is a TFK signature, printed on the menu as Chicken Keiv. Chicken breast is wrapped around garlic herb butter and coated so it turns crispy outside, and the buttery centre melts out when you cut in. It sits on a vivid blue pea mash with vegetables. Rich, crunchy and garlicky, it pairs well with a light soup or salad. A great pick for guests who want comfort food that is not spicy.",
+   "ingredients": [
+    "chicken breast",
+    "garlic herb butter",
+    "breadcrumbs",
+    "egg",
+    "flour",
+    "mashed potato",
+    "blue pea flower",
+    "vegetables"
+   ],
+   "allergens": [
+    "dairy",
+    "gluten",
+    "egg"
+   ],
+   "tags": [
+    "signature",
+    "rich",
+    "comfort-food"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": true,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Non Veg",
+   "name": "Chicken Thai Curry & Steam Rice",
+   "price": 690,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Manchow Soup",
+    "Vegetables Sauteed",
+    "Sriracha Chicken / Fish",
+    "Flower Pot Surprise"
+   ],
+   "sort_order": 36,
+   "short_description": "Thai green curry of chicken in coconut milk with chillies and lemongrass, with steamed rice.",
+   "long_description": "Chicken Thai Curry & Steam Rice is a Thai green curry of chicken simmered in coconut milk with chillies, onion, garlic, lemongrass and herbs, served with plain steamed rice. The curry is creamy and fragrant, with a fresh, lively heat; spoon it over the rice for a comforting meal. It goes well with Manchow Soup or Vegetables Sauteed. A good pick for anyone who enjoys aromatic, coconut-based curries.",
+   "ingredients": [
+    "chicken",
+    "green curry paste",
+    "coconut milk",
+    "green chillies",
+    "onion",
+    "garlic",
+    "lemongrass",
+    "herbs",
+    "steamed rice"
+   ],
+   "allergens": [
+    "fish"
+   ],
+   "tags": [
+    "thai",
+    "comfort-food"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Non Veg",
+   "name": "Mojo Criollo Chicken Steak",
+   "price": 640,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Roasted Tomato & Bell Pepper Soup",
+    "Garlic Bread",
+    "Greek Salad",
+    "Pollo Ala Huancaina",
+    "Tiramisu"
+   ],
+   "sort_order": 37,
+   "short_description": "Cuban-style grilled chicken steak on broccoli purée with mashed potatoes and grilled vegetables.",
+   "long_description": "Mojo Criollo Chicken Steak is a Cuban-style grilled chicken steak served on a broccoli purée with mashed potatoes and grilled vegetables. Mojo criollo is a Cuban marinade of citrus, garlic and herbs, so the chicken is juicy, zesty and garlicky with a grilled edge, while the purée and mash keep it smooth and comforting. Start with a soup or salad. A good pick for guests who want a fresh, not-too-spicy steak.",
+   "ingredients": [
+    "chicken breast",
+    "mojo criollo marinade",
+    "citrus",
+    "garlic",
+    "herbs",
+    "broccoli purée",
+    "mashed potatoes",
+    "grilled vegetables"
+   ],
+   "allergens": [
+    "dairy"
+   ],
+   "tags": [
+    "comfort-food"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Non Veg",
+   "name": "Zesty Lemon Chicken",
+   "price": 650,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Broccoli & Cream Soup",
+    "Garlic Bread",
+    "Green Apple Salad",
+    "Nutella Burnt Basque Cheesecake"
+   ],
+   "sort_order": 38,
+   "short_description": "Chicken in a zesty lemon gravy with spicy Sriracha mashed potatoes, rice and broccoli.",
+   "long_description": "Zesty Lemon Chicken is a TFK signature: chicken cooked in a zesty lemon gravy, served with spicy Sriracha mashed potatoes, rice and broccoli. The gravy is bright and tangy, the mash creamy with a chilli kick, and the broccoli adds freshness. It is a full, well-balanced plate; start with a creamy soup or a salad. A great pick for guests who like tangy, lively flavours.",
+   "ingredients": [
+    "chicken",
+    "lemon",
+    "butter",
+    "garlic",
+    "sriracha",
+    "mashed potatoes",
+    "rice",
+    "broccoli"
+   ],
+   "allergens": [
+    "dairy"
+   ],
+   "tags": [
+    "signature",
+    "tangy"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": true,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Non Veg",
+   "name": "Classic Fish & Chips",
+   "price": 620,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Greek Salad",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Garlic Bread",
+    "Tiramisu"
+   ],
+   "sort_order": 39,
+   "short_description": "Crisp battered fish with golden chips, a classic comfort plate.",
+   "long_description": "Classic Fish & Chips is fish fried in a crisp batter and served with golden chips. The coating is crunchy, the fish inside is soft, flaky and mild, and the chips are fluffy in the middle. It is simple, filling comfort food that suits kids and anyone who wants a meal without spice. Add a Greek Salad or a soup to round it out.",
+   "ingredients": [
+    "fish",
+    "batter",
+    "flour",
+    "potatoes",
+    "oil",
+    "salt"
+   ],
+   "allergens": [
+    "fish",
+    "gluten"
+   ],
+   "tags": [
+    "seafood",
+    "comfort-food",
+    "kids-favourite"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Non Veg",
+   "name": "Poulet Farci Aux Champignons",
+   "price": 640,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Broccoli & Cream Soup",
+    "Garlic Bread",
+    "Green Apple Salad",
+    "Chocolate Noir"
+   ],
+   "sort_order": 40,
+   "short_description": "Chicken breast stuffed with mushroom, jalapeño and cheese, with parsley rice, mash and brown sauce.",
+   "long_description": "Poulet Farci Aux Champignons is a TFK signature; the French name means chicken stuffed with mushrooms. A beaten chicken breast is filled with mushroom, jalapeño and cheese, and served with parsley rice, mashed potato and a brown sauce. It is juicy and savoury, with an earthy, cheesy filling and a little jalapeño warmth. Start with a soup or salad. A good pick for guests who want a rich, elegant main.",
+   "ingredients": [
+    "chicken breast",
+    "mushroom",
+    "jalapeño",
+    "cheese",
+    "parsley rice",
+    "mashed potato",
+    "brown sauce"
+   ],
+   "allergens": [
+    "dairy",
+    "gluten"
+   ],
+   "tags": [
+    "signature",
+    "rich"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": true,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Non Veg",
+   "name": "Grilled Fish With Veggies",
+   "price": 650,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Roasted Tomato & Bell Pepper Soup",
+    "French Fries",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 41,
+   "short_description": "Grilled basa in a spicy tomato sauce with grilled vegetables and mashed potato.",
+   "long_description": "Grilled Fish With Veggies is basa fish grilled and served in a spicy tomato sauce, with grilled vegetables and mashed potato. The basa is soft and flaky, the sauce tangy with a chilli warmth, and the mash smooth and comforting. It is a lighter main that still fills you up; add a soup or salad to start. A good pick for fish lovers who like a little spice.",
+   "ingredients": [
+    "basa fish",
+    "tomato sauce",
+    "chilli",
+    "garlic",
+    "grilled vegetables",
+    "mashed potato"
+   ],
+   "allergens": [
+    "fish",
+    "dairy"
+   ],
+   "tags": [
+    "seafood"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Main Course - Non Veg",
+   "name": "Wine Glazed Chicken Steak",
+   "price": 610,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Broccoli & Cream Soup",
+    "Garlic Bread",
+    "Green Apple Salad",
+    "Chocolate Noir"
+   ],
+   "sort_order": 42,
+   "short_description": "Pan-seared chicken steak with a wine demi-glace, beetroot mashed potato and greens.",
+   "long_description": "Wine Glazed Chicken Steak is a pan-seared chicken steak finished with a wine demi-glace, served with beetroot mashed potato and greens. The chicken is juicy with a golden crust, the glossy sauce is rich and deep, and the beetroot mash is soft and gently sweet. Note that the sauce is made with wine, so it contains alcohol. Start with a creamy soup. A good pick for an elegant main without spice.",
+   "ingredients": [
+    "chicken breast",
+    "wine demi-glace",
+    "beetroot",
+    "mashed potato",
+    "butter",
+    "greens"
+   ],
+   "allergens": [
+    "alcohol",
+    "dairy"
+   ],
+   "tags": [
+    "rich"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Sizzlers",
+   "name": "Chipotle Sizzler",
+   "price": 860,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Garlic Bread",
+    "Nutella Burnt Basque Cheesecake"
+   ],
+   "sort_order": 43,
+   "short_description": "Sizzling plate of pesto rice, mashed potatoes, vegetables and French fries with chipotle sauce.",
+   "long_description": "Chipotle Sizzler arrives on a hot, sizzling plate with French fries, pesto rice, mashed potatoes and assorted vegetables, brought together with a smoky chipotle sauce. It is smoky, herby and filling, with crisp fries and soft mash on the same plate. A hearty meal on its own, best after a soup or salad. It is vegetarian as served; chicken, fish or prawns can be added to it. It can be made Jain on request.",
+   "ingredients": [
+    "french fries",
+    "chipotle sauce",
+    "pesto rice",
+    "mashed potatoes",
+    "assorted vegetables"
+   ],
+   "allergens": [
+    "dairy",
+    "nuts"
+   ],
+   "tags": [
+    "jain-available",
+    "mexican",
+    "comfort-food"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Sizzlers",
+   "name": "Shashlik Sizzler",
+   "price": 860,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Manchow Soup",
+    "Green Apple Salad",
+    "Garlic Bread",
+    "Chocolate Noir"
+   ],
+   "sort_order": 44,
+   "short_description": "Sizzling plate of pepper rice, grilled vegetables, French fries and a corn and cheese dip.",
+   "long_description": "Shashlik Sizzler, printed on the menu as Shaslik Sizzler, comes on a hot, sizzling plate with pepper rice, a corn and cheese dip, grilled vegetables and French fries. It is peppery, cheesy and satisfying, with smoky grilled vegetables and crisp fries. A hearty meal on its own, best after a soup or salad. It is vegetarian as served; chicken, fish or prawns can be added to it. It can be made Jain on request.",
+   "ingredients": [
+    "pepper rice",
+    "corn",
+    "cheese dip",
+    "grilled vegetables",
+    "french fries"
+   ],
+   "allergens": [
+    "dairy"
+   ],
+   "tags": [
+    "jain-available",
+    "comfort-food"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Sizzlers",
+   "name": "Mexican Sizzler",
+   "price": 860,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Over Laden Nachos",
+    "Flower Pot Surprise"
+   ],
+   "sort_order": 45,
+   "short_description": "Sizzling plate of Mexican rice with corn, beans and peppers, peri peri fries, mash and vegetables.",
+   "long_description": "Mexican Sizzler is served on a hot, sizzling plate with Mexican rice cooked with corn, beans and bell peppers, peri peri fries, mashed potato and exotic vegetables. It is lively and gently spicy, with soft rice, crisp fries and creamy mash all on one plate. A hearty meal on its own, best after a soup or salad. It is vegetarian as served; chicken, fish or prawns can be added to it.",
+   "ingredients": [
+    "mexican rice",
+    "corn",
+    "beans",
+    "bell peppers",
+    "peri peri fries",
+    "mashed potato",
+    "exotic vegetables"
+   ],
+   "allergens": [
+    "dairy"
+   ],
+   "tags": [
+    "mexican",
+    "comfort-food"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Veg Alfredo Pasta",
+   "price": 510,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 46,
+   "short_description": "Penne or spaghetti with vegetables in a creamy, cheesy white Alfredo sauce.",
+   "long_description": "Veg Alfredo Pasta is pasta with vegetables, tossed in a creamy and cheesy white sauce. It is rich, smooth and mild, with the sauce clinging to every bite. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A comforting choice for kids and anyone who prefers no spice. It can be made Jain on request.",
+   "ingredients": [
+    "penne or spaghetti",
+    "cream",
+    "butter",
+    "cheese",
+    "garlic",
+    "mixed vegetables"
+   ],
+   "allergens": [
+    "gluten",
+    "dairy"
+   ],
+   "tags": [
+    "jain-available",
+    "italian",
+    "rich",
+    "kids-favourite"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Chicken Alfredo Pasta",
+   "price": 590,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 47,
+   "short_description": "Penne or spaghetti with chicken in a creamy, cheesy white Alfredo sauce.",
+   "long_description": "Chicken Alfredo Pasta is pasta with chicken, tossed in a creamy and cheesy white sauce. It is rich, smooth and mild, with the sauce clinging to every bite. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A comforting choice for kids and anyone who prefers no spice.",
+   "ingredients": [
+    "penne or spaghetti",
+    "cream",
+    "butter",
+    "cheese",
+    "garlic",
+    "chicken"
+   ],
+   "allergens": [
+    "gluten",
+    "dairy"
+   ],
+   "tags": [
+    "italian",
+    "rich",
+    "kids-favourite"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Prawns Alfredo Pasta",
+   "price": 640,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 48,
+   "short_description": "Penne or spaghetti with prawns in a creamy, cheesy white Alfredo sauce.",
+   "long_description": "Prawns Alfredo Pasta is pasta with prawns, tossed in a creamy and cheesy white sauce. It is rich, smooth and mild, with the sauce clinging to every bite. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A comforting choice for kids and anyone who prefers no spice.",
+   "ingredients": [
+    "penne or spaghetti",
+    "cream",
+    "butter",
+    "cheese",
+    "garlic",
+    "prawns"
+   ],
+   "allergens": [
+    "gluten",
+    "dairy",
+    "shellfish"
+   ],
+   "tags": [
+    "italian",
+    "rich",
+    "kids-favourite",
+    "seafood"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Veg Pink Pasta",
+   "price": 510,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Broccoli & Cream Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 49,
+   "short_description": "Penne or spaghetti with vegetables in a pink sauce of red and white sauce mixed.",
+   "long_description": "Veg Pink Pasta is pasta with vegetables, tossed in a pink sauce, a mix of tomato red sauce and creamy white sauce. It is creamy with a gentle tang from the tomato, a balance of both sauces. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A good middle path for guests who can't decide between red and white sauce. It can be made Jain on request.",
+   "ingredients": [
+    "penne or spaghetti",
+    "tomato sauce",
+    "cream",
+    "cheese",
+    "garlic",
+    "mixed vegetables"
+   ],
+   "allergens": [
+    "gluten",
+    "dairy"
+   ],
+   "tags": [
+    "jain-available",
+    "italian",
+    "comfort-food"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Chicken Pink Pasta",
+   "price": 590,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Broccoli & Cream Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 50,
+   "short_description": "Penne or spaghetti with chicken in a pink sauce of red and white sauce mixed.",
+   "long_description": "Chicken Pink Pasta is pasta with chicken, tossed in a pink sauce, a mix of tomato red sauce and creamy white sauce. It is creamy with a gentle tang from the tomato, a balance of both sauces. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A good middle path for guests who can't decide between red and white sauce.",
+   "ingredients": [
+    "penne or spaghetti",
+    "tomato sauce",
+    "cream",
+    "cheese",
+    "garlic",
+    "chicken"
+   ],
+   "allergens": [
+    "gluten",
+    "dairy"
+   ],
+   "tags": [
+    "italian",
+    "comfort-food"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Prawns Pink Pasta",
+   "price": 640,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Broccoli & Cream Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 51,
+   "short_description": "Penne or spaghetti with prawns in a pink sauce of red and white sauce mixed.",
+   "long_description": "Prawns Pink Pasta is pasta with prawns, tossed in a pink sauce, a mix of tomato red sauce and creamy white sauce. It is creamy with a gentle tang from the tomato, a balance of both sauces. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A good middle path for guests who can't decide between red and white sauce.",
+   "ingredients": [
+    "penne or spaghetti",
+    "tomato sauce",
+    "cream",
+    "cheese",
+    "garlic",
+    "prawns"
+   ],
+   "allergens": [
+    "gluten",
+    "dairy",
+    "shellfish"
+   ],
+   "tags": [
+    "italian",
+    "comfort-food",
+    "seafood"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Veg Paprika Pasta",
+   "price": 550,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Broccoli & Cream Soup",
+    "Green Apple Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 52,
+   "short_description": "Penne or spaghetti with vegetables in a red pepper, chilli and cheese sauce.",
+   "long_description": "Veg Paprika Pasta is pasta with vegetables, tossed in a sauce of red pepper, chilli and cheese. It is smoky, cheesy and warmly spiced, with a little kick from the chilli. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A good pick for guests who like their pasta with some heat. It can be made Jain on request.",
+   "ingredients": [
+    "penne or spaghetti",
+    "red bell pepper",
+    "chilli",
+    "cheese",
+    "garlic",
+    "mixed vegetables"
+   ],
+   "allergens": [
+    "gluten",
+    "dairy"
+   ],
+   "tags": [
+    "jain-available",
+    "italian"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Chicken Paprika Pasta",
+   "price": 590,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Broccoli & Cream Soup",
+    "Green Apple Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 53,
+   "short_description": "Penne or spaghetti with chicken in a red pepper, chilli and cheese sauce.",
+   "long_description": "Chicken Paprika Pasta is pasta with chicken, tossed in a sauce of red pepper, chilli and cheese. It is smoky, cheesy and warmly spiced, with a little kick from the chilli. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A good pick for guests who like their pasta with some heat.",
+   "ingredients": [
+    "penne or spaghetti",
+    "red bell pepper",
+    "chilli",
+    "cheese",
+    "garlic",
+    "chicken"
+   ],
+   "allergens": [
+    "gluten",
+    "dairy"
+   ],
+   "tags": [
+    "italian"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Prawns Paprika Pasta",
+   "price": 640,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Broccoli & Cream Soup",
+    "Green Apple Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 54,
+   "short_description": "Penne or spaghetti with prawns in a red pepper, chilli and cheese sauce.",
+   "long_description": "Prawns Paprika Pasta is pasta with prawns, tossed in a sauce of red pepper, chilli and cheese. It is smoky, cheesy and warmly spiced, with a little kick from the chilli. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A good pick for guests who like their pasta with some heat.",
+   "ingredients": [
+    "penne or spaghetti",
+    "red bell pepper",
+    "chilli",
+    "cheese",
+    "garlic",
+    "prawns"
+   ],
+   "allergens": [
+    "gluten",
+    "dairy",
+    "shellfish"
+   ],
+   "tags": [
+    "italian",
+    "seafood"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Veg Pesto Pasta",
+   "price": 570,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 55,
+   "short_description": "Penne or spaghetti with vegetables in basil pesto with pine nuts, garlic and Parmesan.",
+   "long_description": "Veg Pesto Pasta is pasta with vegetables, tossed in a basil pesto made with pine nuts, garlic, oil and Parmesan. It is herby, garlicky and fragrant, with a nutty, cheesy finish. Note that pesto contains nuts. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A fresh-tasting choice for herb lovers. It can be made Jain on request.",
+   "ingredients": [
+    "penne or spaghetti",
+    "basil",
+    "pine nuts",
+    "garlic",
+    "olive oil",
+    "parmesan cheese",
+    "mixed vegetables"
+   ],
+   "allergens": [
+    "gluten",
+    "dairy",
+    "nuts"
+   ],
+   "tags": [
+    "jain-available",
+    "italian"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Chicken Pesto Pasta",
+   "price": 610,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 56,
+   "short_description": "Penne or spaghetti with chicken in basil pesto with pine nuts, garlic and Parmesan.",
+   "long_description": "Chicken Pesto Pasta is pasta with chicken, tossed in a basil pesto made with pine nuts, garlic, oil and Parmesan. It is herby, garlicky and fragrant, with a nutty, cheesy finish. Note that pesto contains nuts. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A fresh-tasting choice for herb lovers.",
+   "ingredients": [
+    "penne or spaghetti",
+    "basil",
+    "pine nuts",
+    "garlic",
+    "olive oil",
+    "parmesan cheese",
+    "chicken"
+   ],
+   "allergens": [
+    "gluten",
+    "dairy",
+    "nuts"
+   ],
+   "tags": [
+    "italian"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Prawns Pesto Pasta",
+   "price": 660,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 57,
+   "short_description": "Penne or spaghetti with prawns in basil pesto with pine nuts, garlic and Parmesan.",
+   "long_description": "Prawns Pesto Pasta is pasta with prawns, tossed in a basil pesto made with pine nuts, garlic, oil and Parmesan. It is herby, garlicky and fragrant, with a nutty, cheesy finish. Note that pesto contains nuts. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A fresh-tasting choice for herb lovers.",
+   "ingredients": [
+    "penne or spaghetti",
+    "basil",
+    "pine nuts",
+    "garlic",
+    "olive oil",
+    "parmesan cheese",
+    "prawns"
+   ],
+   "allergens": [
+    "gluten",
+    "dairy",
+    "nuts",
+    "shellfish"
+   ],
+   "tags": [
+    "italian",
+    "seafood"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Veg Arrabbiata Pasta",
+   "price": 490,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Broccoli & Cream Soup",
+    "Green Apple Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 58,
+   "short_description": "Penne or spaghetti with vegetables in a spicy garlic, tomato and dried red chilli sauce.",
+   "long_description": "Veg Arrabbiata Pasta is pasta with vegetables, tossed in an arrabbiata sauce of spicy garlic, tomato and dried red chilli in olive oil. It is tangy, garlicky and properly spicy, with no cream at all. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A good pick for guests who like a fiery, tomato-based pasta.",
+   "ingredients": [
+    "penne or spaghetti",
+    "tomato",
+    "garlic",
+    "dried red chilli",
+    "olive oil",
+    "mixed vegetables"
+   ],
+   "allergens": [
+    "gluten"
+   ],
+   "tags": [
+    "italian",
+    "tangy"
+   ],
+   "spice_level": "hot",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Chicken Arrabbiata Pasta",
+   "price": 590,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Broccoli & Cream Soup",
+    "Green Apple Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 59,
+   "short_description": "Penne or spaghetti with chicken in a spicy garlic, tomato and dried red chilli sauce.",
+   "long_description": "Chicken Arrabbiata Pasta is pasta with chicken, tossed in an arrabbiata sauce of spicy garlic, tomato and dried red chilli in olive oil. It is tangy, garlicky and properly spicy, with no cream at all. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A good pick for guests who like a fiery, tomato-based pasta.",
+   "ingredients": [
+    "penne or spaghetti",
+    "tomato",
+    "garlic",
+    "dried red chilli",
+    "olive oil",
+    "chicken"
+   ],
+   "allergens": [
+    "gluten"
+   ],
+   "tags": [
+    "italian",
+    "tangy"
+   ],
+   "spice_level": "hot",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Prawns Arrabbiata Pasta",
+   "price": 640,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Broccoli & Cream Soup",
+    "Green Apple Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 60,
+   "short_description": "Penne or spaghetti with prawns in a spicy garlic, tomato and dried red chilli sauce.",
+   "long_description": "Prawns Arrabbiata Pasta is pasta with prawns, tossed in an arrabbiata sauce of spicy garlic, tomato and dried red chilli in olive oil. It is tangy, garlicky and properly spicy, with no cream at all. You can choose penne or spaghetti; mention it in the item note. It goes well with Garlic Bread and a soup or salad. A good pick for guests who like a fiery, tomato-based pasta.",
+   "ingredients": [
+    "penne or spaghetti",
+    "tomato",
+    "garlic",
+    "dried red chilli",
+    "olive oil",
+    "prawns"
+   ],
+   "allergens": [
+    "gluten",
+    "shellfish"
+   ],
+   "tags": [
+    "italian",
+    "tangy",
+    "seafood"
+   ],
+   "spice_level": "hot",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Veg Spaghetti Aglio E Olio",
+   "price": 520,
+   "is_veg": true,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 61,
+   "short_description": "Spaghetti with vegetables, tossed simply in olive oil, garlic, chilli flakes and basil.",
+   "long_description": "Veg Spaghetti Aglio E Olio is spaghetti with vegetables tossed in olive oil, garlic, chilli flakes and basil. It is light and simple, garlicky and fragrant with a gentle chilli warmth and no heavy sauce. It is served as spaghetti, as the name says; penne can be chosen instead, so mention it in the item note. It goes well with Garlic Bread and a soup or salad. A good pick for guests who want a lighter pasta.",
+   "ingredients": [
+    "penne or spaghetti",
+    "olive oil",
+    "garlic",
+    "chilli flakes",
+    "basil",
+    "mixed vegetables"
+   ],
+   "allergens": [
+    "gluten"
+   ],
+   "tags": [
+    "italian",
+    "light"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Chicken Spaghetti Aglio E Olio",
+   "price": 590,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 62,
+   "short_description": "Spaghetti with chicken, tossed simply in olive oil, garlic, chilli flakes and basil.",
+   "long_description": "Chicken Spaghetti Aglio E Olio is spaghetti with chicken tossed in olive oil, garlic, chilli flakes and basil. It is light and simple, garlicky and fragrant with a gentle chilli warmth and no heavy sauce. It is served as spaghetti, as the name says; penne can be chosen instead, so mention it in the item note. It goes well with Garlic Bread and a soup or salad. A good pick for guests who want a lighter pasta.",
+   "ingredients": [
+    "penne or spaghetti",
+    "olive oil",
+    "garlic",
+    "chilli flakes",
+    "basil",
+    "chicken"
+   ],
+   "allergens": [
+    "gluten"
+   ],
+   "tags": [
+    "italian",
+    "light"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Pasta",
+   "name": "Prawns Spaghetti Aglio E Olio",
+   "price": 640,
+   "is_veg": false,
+   "order_role": "food",
+   "pairs_with": [
+    "Garlic Bread",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Greek Salad",
+    "Tiramisu"
+   ],
+   "sort_order": 63,
+   "short_description": "Spaghetti with prawns, tossed simply in olive oil, garlic, chilli flakes and basil.",
+   "long_description": "Prawns Spaghetti Aglio E Olio is spaghetti with prawns tossed in olive oil, garlic, chilli flakes and basil. It is light and simple, garlicky and fragrant with a gentle chilli warmth and no heavy sauce. It is served as spaghetti, as the name says; penne can be chosen instead, so mention it in the item note. It goes well with Garlic Bread and a soup or salad. A good pick for guests who want a lighter pasta.",
+   "ingredients": [
+    "penne or spaghetti",
+    "olive oil",
+    "garlic",
+    "chilli flakes",
+    "basil",
+    "prawns"
+   ],
+   "allergens": [
+    "gluten",
+    "shellfish"
+   ],
+   "tags": [
+    "italian",
+    "light",
+    "seafood"
+   ],
+   "spice_level": "medium",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Desserts",
+   "name": "Tiramisu",
+   "price": 470,
+   "is_veg": true,
+   "order_role": "dessert",
+   "pairs_with": [
+    "Veg Alfredo Pasta",
+    "Veg Pink Pasta",
+    "Veg Paprika",
+    "Saltado Vegetariano"
+   ],
+   "sort_order": 64,
+   "short_description": "Coffee-soaked sponge layered with light, creamy cheese cream and dusted with cocoa; eggless.",
+   "long_description": "Tiramisu is the classic Italian layered dessert: coffee-soaked sponge between layers of light, creamy cheese cream, finished with a dusting of cocoa. It is soft, creamy and gently bitter-sweet from the coffee and cocoa. Like all TFK desserts, it is eggless and made fresh in-house. A lovely way to finish a pasta or any rich meal, and a good pick for coffee lovers.",
+   "ingredients": [
+    "sponge fingers",
+    "coffee",
+    "cream cheese",
+    "whipped cream",
+    "sugar",
+    "cocoa powder"
+   ],
+   "allergens": [
+    "dairy",
+    "gluten"
+   ],
+   "tags": [
+    "eggless",
+    "italian",
+    "sweet"
+   ],
+   "spice_level": "none",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Desserts",
+   "name": "Flower Pot Surprise",
+   "price": 550,
+   "is_veg": true,
+   "order_role": "dessert",
+   "pairs_with": [
+    "Mexican Burrito Bowl",
+    "Mexican Sizzler",
+    "Veg Thai Curry & Steam Rice",
+    "Over Laden Nachos"
+   ],
+   "sort_order": 65,
+   "short_description": "A playful dessert presented like a little flower pot; eggless and made fresh in-house.",
+   "long_description": "Flower Pot Surprise is a playful dessert presented to look like a little flower pot. Desserts served this way are usually a creamy chocolate layer under crumbled chocolate cookie soil; the staff can tell you exactly what is inside. Like all TFK desserts, it is eggless and made fresh in-house. A fun pick for kids, celebrations and anyone who likes a dessert with a sense of theatre.",
+   "ingredients": [
+    "chocolate",
+    "cream",
+    "chocolate cookie crumbs",
+    "sugar"
+   ],
+   "allergens": [
+    "dairy",
+    "gluten"
+   ],
+   "tags": [
+    "eggless",
+    "sweet",
+    "kids-favourite"
+   ],
+   "spice_level": "none",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Desserts",
+   "name": "Nutella Burnt Basque Cheesecake",
+   "price": 530,
+   "is_veg": true,
+   "order_role": "dessert",
+   "pairs_with": [
+    "Chipotle Sizzler",
+    "Spicy Thai Paneer with Beetroot Rice",
+    "Veg Arrabbiata Pasta",
+    "Shashlik Paneer Steak"
+   ],
+   "sort_order": 66,
+   "short_description": "Crustless burnt Basque-style cheesecake made with Nutella, caramelised outside and creamy inside; eggless.",
+   "long_description": "Nutella Burnt Basque Cheesecake is a Basque-style cheesecake baked hot so the top caramelises to a deep, almost burnt brown while the centre stays soft and creamy. It is made with Nutella, the chocolate hazelnut spread, for a rich, nutty chocolate flavour. Like all TFK desserts, it is eggless and made fresh in-house. Note that it contains hazelnuts. Perfect for cheesecake and chocolate lovers.",
+   "ingredients": [
+    "cream cheese",
+    "cream",
+    "sugar",
+    "nutella (hazelnut chocolate spread)",
+    "flour"
+   ],
+   "allergens": [
+    "dairy",
+    "nuts",
+    "gluten"
+   ],
+   "tags": [
+    "eggless",
+    "sweet",
+    "rich"
+   ],
+   "spice_level": "none",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Desserts",
+   "name": "Chocolate Noir",
+   "price": 530,
+   "is_veg": true,
+   "order_role": "dessert",
+   "pairs_with": [
+    "Shashlik Sizzler",
+    "Shashlik Paneer Steak",
+    "Veg Pesto Pasta",
+    "Spicy Thai Paneer with Beetroot Rice"
+   ],
+   "sort_order": 67,
+   "short_description": "A rich dark chocolate dessert for serious chocolate lovers; eggless and made in-house.",
+   "long_description": "Chocolate Noir is a dessert built around dark chocolate; noir is French for black, a nod to its deep, intense colour and flavour. Expect it to be rich, smooth and bitter-sweet rather than sugary. Like all TFK desserts, it is eggless and made fresh in-house. It is the dessert to pick for serious chocolate lovers, and a fitting end to a steak or a sizzler.",
+   "ingredients": [
+    "dark chocolate",
+    "cocoa",
+    "cream",
+    "butter",
+    "sugar"
+   ],
+   "allergens": [
+    "dairy",
+    "gluten"
+   ],
+   "tags": [
+    "eggless",
+    "sweet",
+    "rich"
+   ],
+   "spice_level": "none",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Add-ons",
+   "name": "Add Chicken to Soup",
+   "price": 40,
+   "is_veg": false,
+   "order_role": "side",
+   "pairs_with": [
+    "Broccoli & Cream Soup",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Manchow Soup"
+   ],
+   "sort_order": 68,
+   "short_description": "Add-on: chicken added to any of the soups, ordered along with one.",
+   "long_description": "Add Chicken to Soup is an add-on, not a dish on its own: chicken is added to the soup you order, whether that is the Broccoli & Cream Soup, Roasted Tomato & Bell Pepper Soup or Manchow Soup. It makes the soup more filling and adds protein. Order it together with a soup and say which one it is for.",
+   "ingredients": [
+    "chicken"
+   ],
+   "allergens": [],
+   "tags": [
+    "add-on"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Add-ons",
+   "name": "Add Prawns to Soup",
+   "price": 60,
+   "is_veg": false,
+   "order_role": "side",
+   "pairs_with": [
+    "Broccoli & Cream Soup",
+    "Roasted Tomato & Bell Pepper Soup",
+    "Manchow Soup"
+   ],
+   "sort_order": 69,
+   "short_description": "Add-on: prawns added to any of the soups, ordered along with one.",
+   "long_description": "Add Prawns to Soup is an add-on, not a dish on its own: prawns is added to the soup you order, whether that is the Broccoli & Cream Soup, Roasted Tomato & Bell Pepper Soup or Manchow Soup. It makes the soup more filling and adds protein. Order it together with a soup and say which one it is for.",
+   "ingredients": [
+    "prawns"
+   ],
+   "allergens": [
+    "shellfish"
+   ],
+   "tags": [
+    "add-on"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Add-ons",
+   "name": "Add Chicken to Salad",
+   "price": 90,
+   "is_veg": false,
+   "order_role": "side",
+   "pairs_with": [
+    "Greek Salad",
+    "Green Apple Salad"
+   ],
+   "sort_order": 70,
+   "short_description": "Add-on: chicken added to the Greek Salad or Green Apple Salad, ordered along with the salad.",
+   "long_description": "Add Chicken to Salad is an add-on, not a dish on its own: chicken is added to the salad you order, whether that is the Greek Salad or Green Apple Salad. It makes the salad more filling and adds protein. Order it together with a salad and say which one it is for.",
+   "ingredients": [
+    "chicken"
+   ],
+   "allergens": [],
+   "tags": [
+    "add-on"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Add-ons",
+   "name": "Add Chicken to Sizzler",
+   "price": 20,
+   "is_veg": false,
+   "order_role": "side",
+   "pairs_with": [
+    "Chipotle Sizzler",
+    "Shashlik Sizzler",
+    "Mexican Sizzler"
+   ],
+   "sort_order": 71,
+   "short_description": "Add-on: chicken added to any of the sizzlers, ordered along with one.",
+   "long_description": "Add Chicken to Sizzler is an add-on for the sizzlers, not a dish on its own. The Chipotle Sizzler, Shashlik Sizzler and Mexican Sizzler are vegetarian as they come, and adding chicken turns any of them into a chicken sizzler, served on the same hot plate. Order it together with a sizzler and say which one it is for.",
+   "ingredients": [
+    "chicken"
+   ],
+   "allergens": [],
+   "tags": [
+    "add-on"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Add-ons",
+   "name": "Add Fish to Sizzler",
+   "price": 60,
+   "is_veg": false,
+   "order_role": "side",
+   "pairs_with": [
+    "Chipotle Sizzler",
+    "Shashlik Sizzler",
+    "Mexican Sizzler"
+   ],
+   "sort_order": 72,
+   "short_description": "Add-on: fish added to any of the sizzlers, ordered along with one.",
+   "long_description": "Add Fish to Sizzler is an add-on for the sizzlers, not a dish on its own. The Chipotle Sizzler, Shashlik Sizzler and Mexican Sizzler are vegetarian as they come, and adding fish turns any of them into a fish sizzler, served on the same hot plate. Order it together with a sizzler and say which one it is for.",
+   "ingredients": [
+    "fish"
+   ],
+   "allergens": [
+    "fish"
+   ],
+   "tags": [
+    "add-on"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  },
+  {
+   "category": "Add-ons",
+   "name": "Add Prawns to Sizzler",
+   "price": 60,
+   "is_veg": false,
+   "order_role": "side",
+   "pairs_with": [
+    "Chipotle Sizzler",
+    "Shashlik Sizzler",
+    "Mexican Sizzler"
+   ],
+   "sort_order": 73,
+   "short_description": "Add-on: prawns added to any of the sizzlers, ordered along with one.",
+   "long_description": "Add Prawns to Sizzler is an add-on for the sizzlers, not a dish on its own. The Chipotle Sizzler, Shashlik Sizzler and Mexican Sizzler are vegetarian as they come, and adding prawns turns any of them into a prawns sizzler, served on the same hot plate. Order it together with a sizzler and say which one it is for.",
+   "ingredients": [
+    "prawns"
+   ],
+   "allergens": [
+    "shellfish"
+   ],
+   "tags": [
+    "add-on"
+   ],
+   "spice_level": "mild",
+   "knowledge_status": "ai_draft",
+   "is_bestseller": false,
+   "is_new": false,
+   "promo_note": ""
+  }
+ ]
+}

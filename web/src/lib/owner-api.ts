@@ -294,3 +294,25 @@ export const fetchCustomerVisits = (restaurantId: string, customerId: string) =>
   ownerFetch<{ customer: Customer; visits: CustomerVisit[] }>(`restaurants/${restaurantId}/customers/${customerId}/visits`).then(
     (r) => r.visits
   );
+
+// The voice agent's own settings for one restaurant: its rule book and its WhatsApp numbers (app/agent_config.py).
+export type AgentSettings = {
+  rules: string;
+  rules_updated_at: string | null;
+  rules_limit: number;
+  calls: {
+    answering: boolean;
+    calls_number: string | null;
+    agent_name: string | null;
+    alert_whatsapp: string | null;
+    upi_id: string | null;
+    upi_payee_name: string | null;
+  } | null;
+  whatsapp_sender: { own_number: boolean; number: string | null };
+};
+
+export const fetchAgentSettings = (restaurantId: string) =>
+  ownerFetch<AgentSettings>(`restaurants/${restaurantId}/agent`);
+
+export const saveAgentSettings = (restaurantId: string, patch: { rules?: string; alert_whatsapp?: string; upi_id?: string; upi_payee_name?: string }) =>
+  ownerFetch<AgentSettings>(`restaurants/${restaurantId}/agent`, { method: "PUT", body: patch });

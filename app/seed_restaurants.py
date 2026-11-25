@@ -13,6 +13,7 @@ printed menu by bbc_menu.py); the demo stores are a kirana and a pharmacy.
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -26,7 +27,7 @@ DATA = Path(__file__).resolve().parent / "data"
 RESTAURANTS_DIR = DATA / "restaurants"
 STORES_DIR = DATA / "stores"
 
-RESTAURANT_FILES = ("borivali-biryani-centre",)  # the restaurants seeded from app/data/restaurants/{slug}.json
+RESTAURANT_FILES = ("borivali-biryani-centre", "the-fusion-kitchen")  # the restaurants seeded from app/data/restaurants/{slug}.json
 
 KIRANA = {
     "slug": "gupta-general-store",
@@ -170,6 +171,16 @@ def seed(slug: str, spec: dict, owner_email: str | None) -> None:
         if restaurant is None
         else repository.update_restaurant(restaurant["id"], fields)
     )
+    rules = spec["restaurant"].get("agent_rules")
+    if rules and not (restaurant.get("agent_rules") or "").strip():
+        # A starting rule book, only while the restaurant has none: once the owner edits theirs, it is theirs.
+        from app import agent_config
+
+        try:
+            repository.update_restaurant(restaurant["id"], {"agent_rules": agent_config.clean_rules(rules), "agent_rules_updated_at": datetime.now(timezone.utc).isoformat()})
+            print(f"  {slug}: starting rule book saved")
+        except Exception as exc:
+            print(f"  {slug}: rule book NOT saved ({str(exc)[:80]}). Run migration 010, then re-run this.")
     service.ensure_categories(restaurant, spec["categories"])
     result = service.bulk_upsert_dishes(restaurant, spec["dishes"], source="manual")
     print(f"  {slug}: {result['written']} dishes written, {result['embedded']} embedded, {result['unchanged']} unchanged")

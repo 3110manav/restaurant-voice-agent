@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
-from app import db, owner_board, transcripts
+from app import agent_config, db, owner_board, transcripts
 from app.menu import repository, service
 from app.menu.snapshot import menu_cache
 from app.table import repository as table_repository, service as table_service
@@ -263,6 +263,32 @@ def list_orders(restaurant_id: str, user_id: str = Depends(current_user_id)) -> 
 def calls_board(restaurant_id: str, user_id: str = Depends(current_user_id)) -> dict:
     """Orders with who placed them, their requests and the call; carts callers left; drop-off numbers."""
     return owner_board.build(_restaurant_for(user_id, restaurant_id))
+
+
+class AgentSettingsIn(BaseModel):
+    rules: str | None = None
+    alert_whatsapp: str | None = None
+    upi_id: str | None = None
+    upi_payee_name: str | None = None
+
+
+@router.get("/restaurants/{restaurant_id}/agent")
+def agent_settings(restaurant_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    """The rule book, where order alerts go and which number bills come from. Owners and managers only: it
+    shows the owner's own phone number."""
+    return agent_config.view(_restaurant_for(user_id, restaurant_id, editor=True))
+
+
+@router.put("/restaurants/{restaurant_id}/agent")
+def save_agent_settings(restaurant_id: str, body: AgentSettingsIn, user_id: str = Depends(current_user_id)) -> dict:
+    restaurant = _restaurant_for(user_id, restaurant_id, editor=True)
+    try:
+        return agent_config.update(
+            restaurant, rules=body.rules, alert_whatsapp=body.alert_whatsapp,
+            upi_id=body.upi_id, upi_payee_name=body.upi_payee_name,
+        )
+    except agent_config.ConfigError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
 
 
 @router.get("/restaurants/{restaurant_id}/requests")
