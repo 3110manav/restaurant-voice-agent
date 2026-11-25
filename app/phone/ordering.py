@@ -279,7 +279,7 @@ class PhoneOrder:
         # Spaced, so "3210" is read digit by digit and not as a number in the thousands.
         ending = " ".join(numbers.last_four(self.whatsapp))
         hindi, english, _ = self._summary()
-        bill_hi, bill_en = ("बिल और पेमेंट QR", "bill and payment QR") if self.takes_upi else ("बिल", "bill")
+        bill_hi, bill_en = ("बिल और UPI ID", "bill and UPI ID") if self.takes_upi else ("बिल", "bill")
         if self.collect_contact:
             # The guest has just told us where the bill goes: only a number they gave is read out (to catch a
             # misheard digit), and their own number isn't spelt out again.
@@ -370,8 +370,8 @@ class PhoneOrder:
         outbox.flush_in_background()
         if self.takes_upi:
             self._say(
-                "ऑर्डर पक्का हो गया। बिल और पेमेंट QR व्हाट्सएप पर भेज दिया है। धन्यवाद!",
-                "Your order is placed. The bill and payment QR are on WhatsApp. Thank you!",
+                "ऑर्डर पक्का हो गया। बिल और UPI ID व्हाट्सएप पर भेज दिया है। धन्यवाद!",
+                "Your order is placed. The bill and UPI ID are on WhatsApp. Thank you!",
             )
         else:
             self._say(

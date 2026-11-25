@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { OrdersTab, RequestsTab } from "@/components/owner/activity-tabs";
+import { AgentSettingsTab } from "@/components/owner/agent-settings";
 import { CallsBoardTab, DroppedCartsTab } from "@/components/owner/calls-board";
 import { ConversationsTab } from "@/components/owner/conversations-tab";
 import { LoginForm } from "@/components/owner/login-form";
@@ -23,6 +24,7 @@ const ALL_TABS = [
   { key: "tonight", label: "Tonight", table: true },
   { key: "customers", label: "Customers", table: true },
   { key: "conversations", label: "Conversations" },
+  { key: "agent", label: "AI agent" },
   { key: "report", label: "Monthly report", table: true },
   { key: "orders", label: "Orders", table: true },
   { key: "requests", label: "Table requests", table: true },
@@ -133,6 +135,12 @@ function Console({ id }: { id: string }) {
           <p className="text-sm text-muted-foreground">Only owners and managers can edit the menu.</p>
         ))}
       {tab === "board" && <CallsBoardTab restaurantId={restaurant.id} />}
+      {tab === "agent" &&
+        (canEdit ? (
+          <AgentSettingsTab restaurantId={restaurant.id} />
+        ) : (
+          <p className="text-sm text-muted-foreground">Only owners and managers can see the agent&apos;s settings.</p>
+        ))}
       {tab === "dropped" && <DroppedCartsTab restaurantId={restaurant.id} />}
       {tab === "tonight" && <TonightTab restaurant={restaurant} />}
       {tab === "orders" && <OrdersTab restaurantId={restaurant.id} />}

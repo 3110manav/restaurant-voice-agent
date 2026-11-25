@@ -57,12 +57,12 @@ def sent(monkeypatch):
     monkeypatch.delenv("WHATSAPP_ACCESS_TOKEN", raising=False)
     monkeypatch.setenv("WHATSAPP_TOKEN", "token")
     monkeypatch.setenv("WHATSAPP_PHONE_NUMBER_ID", "12345")
-    monkeypatch.setattr(whatsapp, "send_text", lambda to, text: log.append((to, "text", text)) or f"wa-{len(log)}")
+    monkeypatch.setattr(whatsapp, "send_text", lambda to, text, sender=None: log.append((to, "text", text)) or f"wa-{len(log)}")
     monkeypatch.setattr(
-        whatsapp, "send_buttons", lambda to, text, buttons: log.append((to, "buttons", text, buttons)) or f"wa-{len(log)}"
+        whatsapp, "send_buttons", lambda to, text, buttons, sender=None: log.append((to, "buttons", text, buttons)) or f"wa-{len(log)}"
     )
     monkeypatch.setattr(
-        whatsapp, "send_image", lambda to, png, caption: log.append((to, "image", png, caption)) or f"wa-{len(log)}"
+        whatsapp, "send_image", lambda to, png, caption, sender=None: log.append((to, "image", png, caption)) or f"wa-{len(log)}"
     )
     return log
 
@@ -196,14 +196,15 @@ def test_the_order_queues_both_messages_from_saved_figures(fake, store):
     assert [b["title"] for b in owner["body"]["buttons"]] == ["Accept", "Out of stock", "Paid"]
     assert "12 MG Road" in owner["body"]["text"] and CUSTOMER in owner["body"]["text"]
     assert customer["recipient"] == CUSTOMER and customer["kind"] == "customer_bill"
-    assert "am=96.00" in customer["body"]["upi_uri"]
+    bill = customer["body"]
+    assert bill["type"] == "text" and "₹96" in bill["text"]
+    assert f"{store['upi_id']} ({store['upi_payee_name']})" in bill["text"]  # the UPI ID as text, no QR
 
 
-def test_flush_sends_a_bill_with_its_qr_and_marks_sent(fake, store, sent):
+def test_flush_sends_a_text_bill_and_marks_sent(fake, store, sent):
     placed_order(store, fake)
     outbox.flush()
-    assert [entry[1] for entry in sent] == ["buttons", "image"]
-    assert sent[1][2].startswith(b"\x89PNG")
+    assert [entry[1] for entry in sent] == ["buttons", "text"]
     assert all(m["status"] == "sent" and m["wa_message_id"] for m in fake.tables["message_outbox"])
     outbox.flush()
     assert len(sent) == 2  # nothing is sent twice
@@ -224,15 +225,15 @@ def test_a_failed_send_keeps_the_order_and_is_retried(fake, store, sent, monkeyp
         raise whatsapp.WhatsAppError("500: down")
 
     monkeypatch.setattr(whatsapp, "send_buttons", boom)
-    monkeypatch.setattr(whatsapp, "send_image", boom)
+    monkeypatch.setattr(whatsapp, "send_text", boom)
     outbox.flush()
     assert len(fake.tables["orders"]) == 1
     messages = fake.tables["message_outbox"]
     assert all(m["status"] == "pending" and m["attempts"] == 1 and "down" in m["last_error"] for m in messages)
     assert outbox.flush() == 0  # the backoff hasn't passed
 
-    monkeypatch.setattr(whatsapp, "send_image", lambda to, png, caption: "wa-ok")
-    monkeypatch.setattr(whatsapp, "send_buttons", lambda to, text, buttons: "wa-ok")
+    monkeypatch.setattr(whatsapp, "send_text", lambda to, text, sender=None: "wa-ok")
+    monkeypatch.setattr(whatsapp, "send_buttons", lambda to, text, buttons, sender=None: "wa-ok")
     for message in messages:
         message["next_attempt_at"] = "2000-01-01T00:00:00+00:00"
     outbox.flush()
@@ -245,7 +246,7 @@ def test_a_bill_that_can_never_arrive_tells_the_owner(fake, store, sent, monkeyp
     def closed_window(*_):
         raise whatsapp.WhatsAppError("131047: window closed", retryable=False)
 
-    monkeypatch.setattr(whatsapp, "send_image", closed_window)
+    monkeypatch.setattr(whatsapp, "send_text", closed_window)
     outbox.flush()
     bill = next(m for m in fake.tables["message_outbox"] if m["kind"] == "customer_bill")
     assert bill["status"] == "failed" and bill["attempts"] == 1
@@ -518,15 +519,15 @@ def test_the_requests_sent_to_whatsapp(monkeypatch):
     assert requests[-1][1]["json"]["image"] == {"id": "media-1", "caption": "bill"}
 
 
-def test_a_very_long_bill_goes_as_text_then_qr(fake, store, sent):
+def test_a_very_long_bill_is_one_text_with_the_upi_id(fake, store, sent):
     order = {"id": "1", "items": [dict(LINE, name=f"Item {i}" * 8) for i in range(30)], "total": 1, "order_type": "pickup", "address": None, "payment_ref": "AB"}
     from app.phone import messages
 
-    body = messages.customer_bill(order, store, "upi://pay?pa=a@b", None, "en")
-    assert len(body["caption"]) <= messages.CAPTION_LIMIT and "Item 0" in body["text_first"]
+    body = messages.customer_bill(order, store, "upi://pay?pa=a@b", None, "hi")
+    assert body["type"] == "text" and "Item 29" in body["text"] and store["upi_id"] in body["text"]
     repository.queue_message(CUSTOMER, "customer_bill", body)
     outbox.flush()
-    assert [entry[1] for entry in sent] == ["text", "image"]
+    assert [entry[1] for entry in sent] == ["text"]
 
 
 def test_the_retry_loop_stops_when_told(fake, store, monkeypatch):

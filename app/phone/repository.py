@@ -39,6 +39,44 @@ def get_store_by_slug(slug: str) -> dict | None:
     return _first(_c().table("phone_stores").select("*").eq("slug", slug).limit(1).execute())
 
 
+def store_for_restaurant(restaurant_slug: str) -> dict | None:
+    """The phone store that answers calls for a restaurant (its owner's WhatsApp, its dialled number)."""
+    return _first(
+        _c().table("phone_stores").select("*").eq("restaurant_slug", restaurant_slug).order("created_at").limit(1).execute()
+    )
+
+
+def update_store(store_id: str, fields: dict) -> dict:
+    return _c().table("phone_stores").update(fields).eq("id", store_id).execute().data[0]
+
+
+def store_id_of(order_id: str | None, call_id: str | None) -> str | None:
+    """Which phone store an outbox message belongs to, from its order or else its call."""
+    if order_id:
+        row = _first(_c().table("orders").select("store_id").eq("id", order_id).limit(1).execute())
+        if row and row.get("store_id"):
+            return row["store_id"]
+    if call_id:
+        row = _first(_c().table("phone_calls").select("store_id").eq("id", call_id).limit(1).execute())
+        if row:
+            return row.get("store_id")
+    return None
+
+
+def whatsapp_channel_of_store(store_id: str) -> dict | None:
+    """The restaurant's own WhatsApp Business number (migration 003's store_channels), if it has one."""
+    store = get_store(store_id)
+    if not store or not store.get("restaurant_slug"):
+        return None
+    restaurant = _first(_c().table("restaurants").select("id").eq("slug", store["restaurant_slug"]).limit(1).execute())
+    if not restaurant:
+        return None
+    return _first(
+        _c().table("store_channels").select("*").eq("restaurant_id", restaurant["id"]).eq("enabled", True)
+        .order("created_at").limit(1).execute()
+    )
+
+
 def save_store(fields: dict) -> dict:
     return _c().table("phone_stores").upsert(fields, on_conflict="slug").execute().data[0]
 
