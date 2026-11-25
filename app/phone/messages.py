@@ -57,17 +57,16 @@ def customer_bill(order: dict, store: dict, upi_uri: str | None, pay_link: str |
         else:
             text = f"{store['name']}\nOrder {order['payment_ref']}\n\n{_item_lines(order)}\n\nTotal: {total}\n{_fulfilment(order)}\n\nPay on delivery or at pickup."
         return {"type": "text", "text": text}
+    # The UPI ID as text, not a QR image: a guest pays from any UPI app by pasting it, and a text bill is what a
+    # WhatsApp template can carry once the guest's 24-hour window has closed.
+    upi_id, payee = store.get("upi_id"), store.get("upi_payee_name") or store["name"]
     if language == "hi":
-        pay = f"QR स्कैन करके {total} दीजिए।" + (f"\nइसी फ़ोन से देने के लिए: {pay_link}" if pay_link else "")
-        text = f"{store['name']}\nऑर्डर {order['payment_ref']}\n\n{_item_lines(order)}\n\nकुल: {total}\n{_fulfilment(order, 'hi')}"
+        text = (f"{store['name']}\nऑर्डर {order['payment_ref']}\n\n{_item_lines(order)}\n\nकुल: {total}\n{_fulfilment(order, 'hi')}"
+                f"\n\nUPI से {total} भेजें: {upi_id} ({payee})\nनोट में ऑर्डर {order['payment_ref']} लिखें।")
     else:
-        pay = f"Scan the QR to pay {total}." + (f"\nPaying from this phone? {pay_link}" if pay_link else "")
-        text = f"{store['name']}\nOrder {order['payment_ref']}\n\n{_item_lines(order)}\n\nTotal: {total}\n{_fulfilment(order)}"
-    caption = f"{text}\n\n{pay}"
-    if len(caption) <= CAPTION_LIMIT:
-        return {"type": "qr", "upi_uri": upi_uri, "caption": caption}
-    # A very long order: the outbox sends the bill as a text first, then the QR.
-    return {"type": "qr", "upi_uri": upi_uri, "caption": pay, "text_first": text}
+        text = (f"{store['name']}\nOrder {order['payment_ref']}\n\n{_item_lines(order)}\n\nTotal: {total}\n{_fulfilment(order)}"
+                f"\n\nPay {total} by UPI to {upi_id} ({payee})\nPut order {order['payment_ref']} in the note.")
+    return {"type": "text", "text": text}
 
 
 def callback_alert(caller: str | None, reason: str, store_name: str) -> dict:

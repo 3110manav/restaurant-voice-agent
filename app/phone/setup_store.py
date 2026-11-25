@@ -13,15 +13,26 @@ Add or update a store (run again to change anything):
 Point a dialled number at a store. With one test number, this is how you switch between the two:
 
     python -m app.phone.setup_store use kirana-demo +91XXXXXXXXXX
+
+Send a restaurant's bills and alerts from its own WhatsApp Business number instead of Sarthi's shared one. The
+number must already be on WhatsApp Cloud API in Meta (WhatsApp Manager > Phone numbers), with this app's webhook.
+The token goes in an environment variable on the API; only that variable's NAME is stored:
+
+    python -m app.phone.setup_store whatsapp the-fusion-kitchen --phone-number-id 1234567890 \
+        --display +91XXXXXXXXXX --token-env WHATSAPP_TOKEN_TFK
+
+    python -m app.phone.setup_store whatsapp the-fusion-kitchen --off     # back to Sarthi's shared number
 """
 import argparse
 import json
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
+from app.menu import repository as menu_repository  # noqa: E402
 from app.phone import numbers, repository  # noqa: E402
 
 
@@ -64,6 +75,39 @@ def use(args: argparse.Namespace) -> None:
     print(f"Calls to {number} now reach {args.slug}.")
 
 
+def whatsapp(args: argparse.Namespace) -> None:
+    restaurant = menu_repository.get_restaurant_by_slug(args.restaurant)
+    if restaurant is None:
+        raise SystemExit(f"No restaurant '{args.restaurant}'")
+    table = repository._c().table("store_channels")
+    if args.off:
+        table.update({"enabled": False}).eq("restaurant_id", restaurant["id"]).execute()
+        print(f"{args.restaurant} now sends from Sarthi's shared WhatsApp number.")
+        return
+    if not (args.phone_number_id and args.phone_number_id.isdigit()):
+        raise SystemExit("--phone-number-id is Meta's id for the number (digits only, from WhatsApp Manager), not the number")
+    display = numbers.canonical(args.display) if args.display else None
+    if args.display and not display:
+        raise SystemExit("--display must be a phone number")
+    if not os.environ.get(args.token_env):
+        print(f"Note: {args.token_env} isn't set here. Set it on the API (Render) before this number can send.")
+    existing = table.select("id, restaurant_id").eq("phone_number_id", args.phone_number_id).execute().data
+    if existing and existing[0]["restaurant_id"] != restaurant["id"]:
+        raise SystemExit("That number is already connected to another restaurant")
+    store = repository.store_for_restaurant(restaurant["slug"])
+    notify = [store["owner_whatsapp"]] if store else []
+    # One sending number per restaurant: switch the others off, then add or update this one.
+    table.update({"enabled": False}).eq("restaurant_id", restaurant["id"]).neq("phone_number_id", args.phone_number_id).execute()
+    table.upsert(
+        {
+            "restaurant_id": restaurant["id"], "phone_number_id": args.phone_number_id, "display_number": display,
+            "token_env": args.token_env, "notify_numbers": notify, "enabled": True,
+        },
+        on_conflict="phone_number_id",
+    ).execute()
+    print(f"{args.restaurant} now sends bills and alerts from {display or args.phone_number_id} (within 5 minutes).")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(required=True)
@@ -85,6 +129,14 @@ def main() -> None:
     use_parser.add_argument("slug")
     use_parser.add_argument("number")
     use_parser.set_defaults(run=use)
+
+    wa_parser = commands.add_parser("whatsapp", help="send a restaurant's messages from its own WhatsApp number")
+    wa_parser.add_argument("restaurant", help="the restaurant's slug")
+    wa_parser.add_argument("--phone-number-id", help="Meta's id for the number")
+    wa_parser.add_argument("--display", help="the number itself, +91..., shown to the owner")
+    wa_parser.add_argument("--token-env", default="WHATSAPP_ACCESS_TOKEN", help="the env variable holding its token")
+    wa_parser.add_argument("--off", action="store_true", help="go back to Sarthi's shared number")
+    wa_parser.set_defaults(run=whatsapp)
 
     args = parser.parse_args()
     args.run(args)

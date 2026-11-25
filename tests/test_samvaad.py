@@ -516,3 +516,16 @@ def test_a_name_and_number_given_up_front_skip_the_question(api):
     tool(api, "add_to_cart", item_name="Butter Naan")
     body = tool(api, "set_order_details", order_type="pickup", customer_name="Ravi", whatsapp_number="9876543210")
     assert "नाम" not in (body.get("say") or "") and "इसी नंबर" not in (body.get("say") or "")
+
+
+def test_each_call_starts_with_its_restaurants_rule_book(api, fake):
+    fake.tables.setdefault("restaurants", []).append(
+        {"id": "rest-1", "slug": "spice-route", "agent_rules": "Pasta comes in penne or spaghetti: always ask which."}
+    )
+    body = api.post("/samvaad/start", json={"interaction_id": "c9", "store_slug": "spice-route"}, headers=AUTH).json()
+    assert body["house_rules"] == "Pasta comes in penne or spaghetti: always ask which."
+
+
+def test_a_restaurant_without_a_rule_book_starts_with_none(api):
+    body = api.post("/samvaad/start", json={"interaction_id": "c10", "store_slug": "spice-route"}, headers=AUTH).json()
+    assert body["house_rules"] == "none"

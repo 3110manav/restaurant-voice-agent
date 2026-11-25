@@ -5,7 +5,9 @@ also runs `run_forever`, which picks up whatever is left: retries, messages queu
 was configured, and anything a crashed sender left half done.
 """
 import logging
+import os
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 
 from app.phone import repository, upi, whatsapp
@@ -16,17 +18,56 @@ MAX_ATTEMPTS = 5
 _BACKOFF_SECONDS = [10, 30, 60, 300]
 _STALE_AFTER = timedelta(minutes=2)
 POLL_SECONDS = 10
+SENDER_TTL_SECONDS = 300  # a restaurant's WhatsApp number changed in the database is used within five minutes
+
+_senders: dict[str, tuple[float, "whatsapp.Sender | None"]] = {}
+_senders_lock = threading.Lock()
+
+
+def sender_for(message: dict) -> "whatsapp.Sender | None":
+    """The restaurant's own WhatsApp number this message goes out from, or None for Sarthi's shared number.
+
+    Found from the message's order or call, so the bill, the owner's ticket, a callback alert and the replies to
+    the owner's taps all come from the same number. Anything that goes wrong here falls back to the shared
+    number: a message from Sarthi's number beats no message."""
+    try:
+        store_id = repository.store_id_of(message.get("order_id"), message.get("call_id"))
+    except Exception:
+        logger.warning("couldn't find the store of message %s", message.get("id"), exc_info=True)
+        return None
+    if not store_id:
+        return None
+    now = time.monotonic()
+    with _senders_lock:
+        cached = _senders.get(store_id)
+    if cached and cached[0] > now:
+        return cached[1]
+    sender = None
+    try:
+        channel = repository.whatsapp_channel_of_store(store_id)
+        if channel:
+            token = os.environ.get(channel.get("token_env") or "WHATSAPP_ACCESS_TOKEN")
+            if token:
+                sender = whatsapp.Sender(channel["phone_number_id"], token)
+            else:
+                logger.error("store %s: no WhatsApp token in %s, sending from the shared number", store_id, channel.get("token_env"))
+    except Exception:
+        logger.warning("couldn't read the WhatsApp number of store %s", store_id, exc_info=True)
+    with _senders_lock:
+        _senders[store_id] = (now + SENDER_TTL_SECONDS, sender)
+    return sender
 
 
 def _send(message: dict) -> str:
     to, body = message["recipient"], message["body"]
+    sender = sender_for(message)
     if body["type"] == "text":
-        return whatsapp.send_text(to, body["text"])
+        return whatsapp.send_text(to, body["text"], sender)
     if body["type"] == "buttons":
-        return whatsapp.send_buttons(to, body["text"], body["buttons"])
+        return whatsapp.send_buttons(to, body["text"], body["buttons"], sender)
     if body.get("text_first"):
-        whatsapp.send_text(to, body["text_first"])
-    return whatsapp.send_image(to, upi.qr_png(body["upi_uri"]), body["caption"])
+        whatsapp.send_text(to, body["text_first"], sender)
+    return whatsapp.send_image(to, upi.qr_png(body["upi_uri"]), body["caption"], sender)
 
 
 def _warn_owner_bill_failed(message: dict) -> None:

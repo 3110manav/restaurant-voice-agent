@@ -1,17 +1,27 @@
 """WhatsApp Cloud API: sending messages, and reading what Meta sends back to our webhook.
 
-Needs WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID. Free-form messages and buttons only reach someone
+Needs WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID: Sarthi's own number, which sends for every restaurant that has no
+WhatsApp Business number of its own. A restaurant with one (a store_channels row) sends from it: pass its `Sender`.
+Free-form messages and buttons only reach someone
 inside WhatsApp's 24-hour service window; outside it Meta answers 131047, which the outbox records as
 a permanent failure. Reaching people who have never messaged us needs approved templates (pilot work).
 """
 import hashlib
 import hmac
 import os
+from dataclasses import dataclass
 
 import httpx
 
 _TIMEOUT = 15.0
 _PERMANENT_CODES = {131047, 131026, 131030, 131051, 132000, 132001}
+
+
+@dataclass(frozen=True)
+class Sender:
+    """A restaurant's own WhatsApp Business number: Meta's id for it and the token allowed to send from it."""
+    phone_number_id: str
+    token: str
 
 
 class WhatsAppError(Exception):
@@ -29,13 +39,14 @@ def is_configured() -> bool:
     return bool(_token() and os.environ.get("WHATSAPP_PHONE_NUMBER_ID"))
 
 
-def _base_url() -> str:
+def _base_url(sender: Sender | None = None) -> str:
     version = os.environ.get("WHATSAPP_GRAPH_VERSION") or os.environ.get("WHATSAPP_API_VERSION", "v23.0")
-    return f"https://graph.facebook.com/{version}/{os.environ['WHATSAPP_PHONE_NUMBER_ID']}"
+    number_id = sender.phone_number_id if sender else os.environ["WHATSAPP_PHONE_NUMBER_ID"]
+    return f"https://graph.facebook.com/{version}/{number_id}"
 
 
-def _headers() -> dict:
-    return {"Authorization": f"Bearer {_token()}"}
+def _headers(sender: Sender | None = None) -> dict:
+    return {"Authorization": f"Bearer {sender.token if sender else _token()}"}
 
 
 def _checked(response: httpx.Response) -> dict:
@@ -51,11 +62,11 @@ def _checked(response: httpx.Response) -> dict:
     raise WhatsAppError(f"{code or response.status_code}: {details}", retryable=retryable)
 
 
-def _post_message(payload: dict) -> str:
+def _post_message(payload: dict, sender: Sender | None = None) -> str:
     try:
         response = httpx.post(
-            f"{_base_url()}/messages",
-            headers=_headers(),
+            f"{_base_url(sender)}/messages",
+            headers=_headers(sender),
             json={"messaging_product": "whatsapp", "recipient_type": "individual", **payload},
             timeout=_TIMEOUT,
         )
@@ -64,11 +75,11 @@ def _post_message(payload: dict) -> str:
     return _checked(response)["messages"][0]["id"]
 
 
-def send_text(to: str, text: str) -> str:
-    return _post_message({"to": to, "type": "text", "text": {"body": text}})
+def send_text(to: str, text: str, sender: Sender | None = None) -> str:
+    return _post_message({"to": to, "type": "text", "text": {"body": text}}, sender)
 
 
-def send_buttons(to: str, text: str, buttons: list[dict]) -> str:
+def send_buttons(to: str, text: str, buttons: list[dict], sender: Sender | None = None) -> str:
     """At most three buttons, each {"id", "title"} with a title of at most 20 characters."""
     return _post_message(
         {
@@ -81,15 +92,16 @@ def send_buttons(to: str, text: str, buttons: list[dict]) -> str:
                     "buttons": [{"type": "reply", "reply": button} for button in buttons]
                 },
             },
-        }
+        },
+        sender,
     )
 
 
-def send_image(to: str, png: bytes, caption: str) -> str:
+def send_image(to: str, png: bytes, caption: str, sender: Sender | None = None) -> str:
     try:
         upload = httpx.post(
-            f"{_base_url()}/media",
-            headers=_headers(),
+            f"{_base_url(sender)}/media",
+            headers=_headers(sender),
             data={"messaging_product": "whatsapp", "type": "image/png"},
             files={"file": ("payment-qr.png", png, "image/png")},
             timeout=_TIMEOUT,
@@ -97,7 +109,7 @@ def send_image(to: str, png: bytes, caption: str) -> str:
     except httpx.HTTPError as exc:
         raise WhatsAppError(f"network: {exc}") from exc
     media_id = _checked(upload)["id"]
-    return _post_message({"to": to, "type": "image", "image": {"id": media_id, "caption": caption}})
+    return _post_message({"to": to, "type": "image", "image": {"id": media_id, "caption": caption}}, sender)
 
 
 # ------------------------------------------------------------------ webhook --
