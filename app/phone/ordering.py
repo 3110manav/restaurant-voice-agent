@@ -37,6 +37,13 @@ def _payment_ref() -> str:
     return "".join(secrets.choice(_REF_ALPHABET) for _ in range(6))
 
 
+def _short_address(address: str, words: int = 4) -> str:
+    """The start of the address, enough for the guest to recognise it, in the read-back. They have just said it in
+    full and it is saved in full; reading all of it back again took 7 s of a 2 minute call (scenario 2PBTR9)."""
+    parts = address.replace(",", " ").split()
+    return address.strip() if len(parts) <= words + 1 else " ".join(parts[:words])
+
+
 def pay_link(token: str) -> str | None:
     base = os.environ.get("PUBLIC_BASE_URL", "").rstrip("/")
     return f"{base}/pay/{token}" if base else None
@@ -78,7 +85,8 @@ class PhoneOrder:
         # The WhatsApp number is asked for once. A guest without one (or who won't give it) still gets their order:
         # it is saved and the store is told, only the bill isn't sent. An order is never lost for want of a number.
         self.whatsapp_asked = False
-        self.total_unconfirmed = False  # the call transcript never had the total in it (see SamvaadSession.place)
+        self.total_unconfirmed = False
+        self.ticket_id: str | None = None  # the support ticket a call back opened (owner's Callbacks tab)  # the call transcript never had the total in it (see SamvaadSession.place)
 
     @property
     def takes_upi(self) -> bool:
@@ -201,7 +209,8 @@ class PhoneOrder:
             for line in self.cart
         )
         if self.order_type == "delivery":
-            where_hi, where_en = f"{self.address} पर डिलीवरी", f"Delivery to {self.address}"
+            where = _short_address(self.address)
+            where_hi, where_en = f"{where} पर डिलीवरी", f"Delivery to {where}"
         else:
             where_hi, where_en = "दुकान से पिकअप", "Pickup from the store"
         total = round(self._total())
@@ -235,13 +244,21 @@ class PhoneOrder:
                 "Shall I place the order?",
             )
             return f"Read back to the customer: {self.spoken} Only call checkout after they say yes in their next message."
-        # Spaced, so "3210" is read digit by digit and not as a number in the thousands.
-        ending = " ".join(numbers.last_four(self.whatsapp))
         bill_hi, bill_en = ("बिल और पेमेंट QR", "bill and payment QR") if self.takes_upi else ("बिल", "bill")
-        self._say(
-            f"{hindi} {bill_hi} व्हाट्सएप पर {ending} वाले नंबर पर आएगा। ऑर्डर पक्का कर दूँ?",
-            f"{english} The {bill_en} will come on WhatsApp to the number ending {ending}. Shall I place the order?",
-        )
+        if self.whatsapp == numbers.whatsapp_number(self.caller):
+            # The number they're calling from: no digits to read out.
+            self._say(
+                f"{hindi} {bill_hi} इसी नंबर पर व्हाट्सएप पर आएगा। ऑर्डर पक्का कर दूँ?",
+                f"{english} The {bill_en} will come on WhatsApp to this number. Shall I place the order?",
+            )
+        else:
+            # A number the guest told us: its last four digits, spaced so "3210" is read digit by digit, catch a
+            # number misheard.
+            ending = " ".join(numbers.last_four(self.whatsapp))
+            self._say(
+                f"{hindi} {bill_hi} व्हाट्सएप पर {ending} वाले नंबर पर आएगा। ऑर्डर पक्का कर दूँ?",
+                f"{english} The {bill_en} will come on WhatsApp to the number ending {ending}. Shall I place the order?",
+            )
         return f"Read back to the customer: {self.spoken} Only call checkout after they say yes in their next message."
 
     def checkout(self) -> str:
@@ -309,6 +326,7 @@ class PhoneOrder:
         else:
             # Never tell a customer an order is placed when it isn't. The store still has to hear about them.
             self.callback_reason = "their order couldn't be saved by the system"
+            self._open_ticket(f"Order couldn't be saved ({format_price(order['total'])}): call them back to take it")
             outbox.send_alert_now(
                 self.store["owner_whatsapp"],
                 f"An order couldn't be saved. Please call {self.whatsapp} right away.",
@@ -322,24 +340,34 @@ class PhoneOrder:
         outbox.flush_in_background()
         if not self.whatsapp:
             self._say("ऑर्डर पक्का हो गया। दुकान आपका ऑर्डर तैयार करेगी। धन्यवाद!", "Your order is placed, and the store will prepare it. Thank you!")
-        elif self.takes_upi:
-            self._say(
-                "ऑर्डर पक्का हो गया। बिल और पेमेंट QR व्हाट्सएप पर भेज दिया है। धन्यवाद!",
-                "Your order is placed. The bill and payment QR are on WhatsApp. Thank you!",
-            )
         else:
-            self._say(
-                "ऑर्डर पक्का हो गया। बिल व्हाट्सएप पर भेज दिया है, भुगतान डिलीवरी या पिकअप पर। धन्यवाद!",
-                "Your order is placed. The bill is on WhatsApp, and you pay on delivery or at pickup. Thank you!",
-            )
+            # Short: what to pay and how is on the bill itself.
+            self._say("ऑर्डर पक्का हो गया, बिल व्हाट्सएप पर भेज दिया है। धन्यवाद!", "Your order is placed, and the bill is on WhatsApp. Thank you!")
         return f"Order placed: {order['payment_ref']}. Total: {format_price(order['total'])}."
+
+    def _open_ticket(self, reason: str) -> None:
+        """A support ticket on the owner's dashboard (Callbacks tab), so a call back isn't lost in WhatsApp."""
+        try:
+            self.ticket_id = repository.open_ticket({
+                "session_id": self.session_id or (self.call_id or ""),
+                "persona": self.persona,
+                "details": reason,
+                "restaurant_id": self.restaurant_id,
+                "call_id": self.call_id,
+                "customer_id": self.customer_id,
+                "order_id": self.order_id,
+                "customer_phone": normalize_phone(self.whatsapp or self.caller) or self.whatsapp or self.caller,
+            })
+        except Exception:
+            logger.exception("couldn't open a support ticket for call %s", self.call_id)
 
     def request_callback(self, reason: str) -> str:
         if self.callback_reason:
             self._say("दुकान को बता दिया है, आपको जल्द फ़ोन आएगा।", "I've told the store, and they'll call you soon.")
             return "The store has already been asked to call back."
         self.callback_reason = reason.strip()[:200] or "the customer asked"
-        body = messages.callback_alert(self.caller, self.callback_reason, self.store["name"])
+        self._open_ticket(self.callback_reason)
+        body = messages.callback_alert(self.whatsapp or self.caller, self.callback_reason, self.store["name"])
         try:
             repository.queue_message(self.store["owner_whatsapp"], "callback_alert", body, call_id=self.call_id)
             outbox.flush_in_background()

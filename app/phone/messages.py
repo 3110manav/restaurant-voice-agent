@@ -72,7 +72,11 @@ def customer_bill(order: dict, store: dict, upi_uri: str | None, pay_link: str |
 
 def callback_alert(caller: str | None, reason: str, store_name: str) -> dict:
     who = caller or "a caller whose number wasn't available"
-    return {"type": "text", "text": f"Please call back: {who}\nReason: {reason}\nCalled {store_name} just now."}
+    return {
+        "type": "text",
+        "text": f"Please call back: {who}\nReason: {reason}\nCalled {store_name} just now.\n"
+                "It's on your dashboard under Callbacks: mark it resolved once you've called.",
+    }
 
 
 _CUSTOMER_UPDATES = {

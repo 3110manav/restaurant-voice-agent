@@ -165,11 +165,29 @@ export interface FunnelDay {
   dropped_value: number;
 }
 
+/** A support ticket: a caller who asked for a person, or whose order couldn't be saved. */
+export interface CallbackTicket {
+  id: string;
+  status: "open" | "resolved";
+  created_at: string;
+  resolved_at: string | null;
+  reason: string;
+  /** Masked; the full number comes only from fetchCallbackPhone, when the owner presses Call. */
+  customer: BoardCustomer;
+  can_call: boolean;
+  order_ref: string | null;
+  call_outcome: string | null;
+}
+
 export interface CallsBoard {
   orders: BoardOrder[];
   dropped_carts: DroppedCart[];
   funnel: FunnelDay[];
+  callbacks?: CallbackTicket[];
 }
+
+export const fetchCallbackPhone = (restaurantId: string, ticketId: string) =>
+  ownerFetch<{ phone: string }>(`restaurants/${restaurantId}/callbacks/${ticketId}/phone`).then((r) => r.phone);
 
 export const fetchCallsBoard = (restaurantId: string) => ownerFetch<CallsBoard>(`restaurants/${restaurantId}/board`);
 

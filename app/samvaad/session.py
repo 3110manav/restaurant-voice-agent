@@ -48,6 +48,10 @@ _NOT_FOUND = re.compile(r"^Couldn't find '(.+)' on the menu\.")
 _COULD_MEAN = re.compile(r"^'(.+)' could mean: (.+)\. Ask the customer which one they want\.$")
 
 
+_NON_VEG = re.compile(
+    r"\b(chicken|chikan|mutton|matan|lamb|gosht|keema|kheema|fish|machli|prawns?|jhinga|crab|egg|eggs|anda|"
+    r"omelette|meat|beef|pork|bacon|ham|sausage|pepperoni|salami|tuna|seafood|murgh|tangdi)\b"
+)
 _DEVANAGARI_DIGITS = str.maketrans("०१२३४५६७८९", "0123456789")
 
 
@@ -406,10 +410,13 @@ class SamvaadSession:
             for line in self.cart
             if line["quantity"] > before.get((line["id"], line.get("variant")), 0)
         ]
+        # Two at most, said in one breath; and veg ones for a dish that sounds veg (Butter Naan was offered
+        # Butter Chicken).
         alternatives = []
         for name in missing:
-            for dish in self.menu.search(name, k=3):
-                if dish["name"] not in alternatives and len(alternatives) < 3:
+            meat = bool(_NON_VEG.search(_norm(name)))
+            for dish in self.menu.search(name, k=5):
+                if dish["name"] not in alternatives and len(alternatives) < 2 and (meat or dish.get("veg")):
                     alternatives.append(dish["name"])
         names = ", ".join(missing)
         if self.language == "hi":
@@ -449,6 +456,8 @@ class SamvaadSession:
             return None
         if self.order.read_back is None and self.order.spoken:
             return None  # a question for the guest (their WhatsApp number) comes first; the dessert can wait
+        if "first_order" in self.sales.offered:
+            return None  # one suggestion per phone call: a drink and side were already offered, minutes cost money
         offer = dessert_offer(self.sales, self.menu.menu, self.menu.get, self.cart)
         if not offer:
             return None

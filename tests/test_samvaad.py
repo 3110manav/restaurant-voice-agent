@@ -70,7 +70,8 @@ def tool(api, name, **body):
 def order_to_read_back(api) -> dict:
     tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 2}, {"name": "Butter Naan", "quantity": 4}])
     held = tool(api, "set_order_details", order_type="delivery", address="12 MG Road")
-    assert "dessert" in held["result"] and "Gulab Jamun" in held["result"]  # suggested once, before the read-back
+    # The drink suggestion came with the first dishes, so no dessert as well: one suggestion per call.
+    assert "dessert" not in held["result"] and held["result"].startswith("Read back")
     return tool(api, "read_back_order")
 
 
@@ -221,6 +222,13 @@ def test_a_callback_alerts_the_owner(api, fake):
     tool(api, "request_callback", reason="wants to book a party")
     alert = fake.tables["message_outbox"][0]
     assert alert["kind"] == "callback_alert" and alert["recipient"] == OWNER
+    assert "Callbacks" in alert["body"]["text"]
+    # ...and a support ticket on the owner's dashboard, with the number to call back.
+    ticket = fake.tables["requests"][0]
+    assert ticket["type"] == "callback" and ticket["status"] == "open" and ticket["details"] == "wants to book a party"
+    assert ticket["restaurant_id"] == "rest-1" and ticket["customer_phone"] == f"+{CUSTOMER}" and ticket["call_id"]
+    tool(api, "request_callback", reason="again")
+    assert len(fake.tables["requests"]) == 1  # asked twice in one call: still one ticket
 
 
 def test_the_end_hook_closes_the_call_log(api, fake):
@@ -343,7 +351,8 @@ def test_a_store_without_upi_bills_as_text_paid_on_delivery(api, fake):
     tool(api, "set_order_details", order_type="pickup", language="English")
     said = tool(api, "read_back_order", language="English")["say"]
     assert "QR" not in said and "The bill will come on WhatsApp" in said
-    assert "pay on delivery" in tool(api, "checkout", language="English")["say"]
+    # Said briefly on the call; how to pay is on the bill itself.
+    assert tool(api, "checkout", language="English")["say"] == "Your order is placed, and the bill is on WhatsApp. Thank you!"
     bill = next(m for m in fake.tables["message_outbox"] if m["kind"] == "customer_bill")
     assert bill["body"]["type"] == "text" and "Pay on delivery or at pickup" in bill["body"]["text"]
 
@@ -529,3 +538,31 @@ def test_amounts_are_found_as_whole_numbers():
     says = samvaad_session._says_amount
     assert says("कुल 6380 रुपये", 6380) and says("total ₹6,380.", 6380) and says("1 190 rupees", 1190)
     assert not says("total 16380", 6380) and not says("2,400 rupees", 6380) and not says("₹7200", 720)
+
+
+
+# ---------------------------------------------------------- saying less --
+
+
+def test_the_read_back_says_the_start_of_a_long_address_and_no_digits_for_the_callers_own_number(api):
+    tool(api, "add_to_cart", item_name="paneer makhani")  # a main dish: its drink suggestion is the call's one offer
+    address = "1902 A Wing, Modi Space, Ganges, opposite Bhagwati Hospital, Borivali West"
+    said = tool(api, "set_order_details", order_type="delivery", address=address)["say"]
+    assert "1902 A Wing Modi पर डिलीवरी" in said and "Bhagwati" not in said
+    assert "इसी नंबर पर व्हाट्सएप पर आएगा" in said and "वाले नंबर" not in said
+
+
+def test_a_dessert_is_offered_only_when_nothing_else_was(api):
+    tool(api, "add_to_cart", item_name="Sweet Lassi")  # a drink on its own: no drink-and-side suggestion
+    tool(api, "add_to_cart", item_name="Paneer Butter Masala")
+    samvaad_session.sessions.get("call-1").sales.offered.discard("first_order")
+    held = tool(api, "set_order_details", order_type="pickup")
+    assert "dessert" in held["result"] and "Gulab Jamun" in held["result"]
+
+
+def test_alternatives_for_a_missing_dish_are_two_at_most_and_veg_for_a_veg_dish(api):
+    said = tool(api, "add_to_cart", item_name="Garlic Naan")["say"]
+    assert "Garlic Naan हमारे मेन्यू में नहीं है" in said
+    offered = said.split("इसकी जगह ")[1].split(" ले सकते")[0].split(", ") if "इसकी जगह" in said else []
+    assert len(offered) <= 2 and all(name in {"Paneer Butter Masala", "Butter Naan", "Sweet Lassi", "Gulab Jamun",
+                                              "Margherita Pizza"} for name in offered)

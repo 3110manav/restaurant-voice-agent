@@ -117,6 +117,19 @@ def move_order(order_id: str, expected: dict, changes: dict) -> dict | None:
 # ----------------------------------------------------------------- messages --
 
 
+def open_ticket(fields: dict) -> str | None:
+    """A support ticket (a `requests` row of type 'callback') for the owner's Callbacks tab; returns its id.
+    Before migration 011 there is no customer_phone column, so the ticket is saved without the number."""
+    row = {"type": "callback", "status": "open", **fields}
+    try:
+        return _c().table("requests").insert(row).execute().data[0]["id"]
+    except Exception:
+        if "customer_phone" not in row:
+            raise
+        row.pop("customer_phone")
+        return _c().table("requests").insert(row).execute().data[0]["id"]
+
+
 def queue_message(recipient: str, kind: str, body: dict, order_id: str | None = None, call_id: str | None = None) -> None:
     _c().table("message_outbox").insert(
         {"recipient": recipient, "kind": kind, "body": body, "order_id": order_id, "call_id": call_id}

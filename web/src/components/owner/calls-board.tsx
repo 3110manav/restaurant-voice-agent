@@ -1,12 +1,22 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 import { usePolling } from "@/components/owner/activity-tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { CartLine } from "@/lib/api";
-import { fetchCallsBoard, type BoardCustomer, type BoardOrder, type CallsBoard, type FunnelDay } from "@/lib/owner-api";
+import {
+  fetchCallbackPhone,
+  fetchCallsBoard,
+  resolveOwnerRequest,
+  type BoardCustomer,
+  type BoardOrder,
+  type CallbackTicket,
+  type CallsBoard,
+  type FunnelDay,
+} from "@/lib/owner-api";
 import { formatPrice, formatRequestType, formatTime } from "@/lib/utils";
 
 /** The table-QR pilot is parked: its orders only show when this is switched on for the build. */
@@ -250,6 +260,133 @@ export function DroppedCartsView({ data, error }: { data: CallsBoard | null; err
                     </Badge>
                     {c.recovery_attempts > 0 && (
                       <span className="mt-1 block text-xs text-muted-foreground">{c.recovery_attempts} follow-up(s)</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+function waited(since: string): string {
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(since).getTime()) / 60000));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 24 ? `${hours} h ${minutes % 60} min` : `${Math.floor(hours / 24)} d`;
+}
+
+/** Support tickets: callers waiting for the restaurant to call them back. */
+export function CallbacksTab({ restaurantId }: { restaurantId: string }) {
+  const load = useCallback(() => fetchCallsBoard(restaurantId), [restaurantId]);
+  const { data, error, refresh } = usePolling<CallsBoard>(load);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function call(ticket: CallbackTicket) {
+    setBusy(ticket.id);
+    setActionError(null);
+    try {
+      const phone = await fetchCallbackPhone(restaurantId, ticket.id);
+      window.location.href = `tel:${phone}`;
+    } catch (err) {
+      setActionError((err as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function resolve(ticket: CallbackTicket) {
+    setBusy(ticket.id);
+    setActionError(null);
+    try {
+      await resolveOwnerRequest(restaurantId, ticket.id);
+      await refresh();
+    } catch (err) {
+      setActionError((err as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return <CallbacksView data={data} error={error ?? actionError} busy={busy} onCall={call} onResolve={resolve} />;
+}
+
+export function CallbacksView({
+  data,
+  error,
+  busy,
+  onCall,
+  onResolve,
+}: {
+  data: CallsBoard | null;
+  error: string | null;
+  busy: string | null;
+  onCall: (ticket: CallbackTicket) => void;
+  onResolve: (ticket: CallbackTicket) => void;
+}) {
+  const tickets = data?.callbacks ?? [];
+  const open = tickets.filter((t) => t.status === "open");
+
+  return (
+    <div className="flex flex-col gap-3">
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <p className="text-sm text-muted-foreground">
+        Callers who asked to speak to someone, or whose order couldn&apos;t be saved. Call them back, then mark it resolved.
+        {data && ` ${open.length} waiting.`}
+      </p>
+      <div className="rounded-lg border bg-background">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Raised</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Reason</TableHead>
+              <TableHead>Waiting</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {tickets.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  {data ? "No callback requests. They appear here when a caller asks for a person." : "Loading…"}
+                </TableCell>
+              </TableRow>
+            ) : (
+              tickets.map((t) => (
+                <TableRow key={t.id} className="align-top">
+                  <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
+                    {formatTime(t.created_at)}
+                    {t.order_ref && <span className="block font-mono">{t.order_ref}</span>}
+                  </TableCell>
+                  <TableCell>
+                    <Customer customer={t.customer} />
+                  </TableCell>
+                  <TableCell className="max-w-72 text-sm font-medium text-amber-700 dark:text-amber-400">{t.reason || "—"}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">
+                    {t.status === "open" ? waited(t.created_at) : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={t.status === "open" ? "destructive" : "outline"}>
+                      {t.status === "open" ? "Call back" : "Resolved"}
+                    </Badge>
+                    {t.resolved_at && <span className="mt-1 block text-xs text-muted-foreground">{formatTime(t.resolved_at)}</span>}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {t.status === "open" && (
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" disabled={!t.can_call || busy === t.id} onClick={() => onCall(t)}>
+                          Call
+                        </Button>
+                        <Button size="sm" variant="outline" disabled={busy === t.id} onClick={() => onResolve(t)}>
+                          Resolved
+                        </Button>
+                      </div>
                     )}
                   </TableCell>
                 </TableRow>

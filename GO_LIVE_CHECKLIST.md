@@ -102,7 +102,7 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
 - [ ] Returning customers: saved address and name from the `customers` table (backend, then the Samvaad
       variables `customer_name`, `saved_address`, `last_order`, which are already in the instructions)
 - [ ] A guide for each restaurant (`@restaurant_guide` from `/samvaad/start`)
-- [ ] Upsell settings for each restaurant (promoted dishes, pairings, combos)
+- [x] Upsell settings for each restaurant: Bestseller / New flags and pairing switches (Manav, 21 Nov)
 - [ ] Order status messages to the customer
 - [ ] Dashboard for owners and for us (calls, orders, cost per call)
 - [ ] Alerts when tools or WhatsApp fail
@@ -116,7 +116,7 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
       Transcript and Call Length variables (still empty on 20 Nov). Needed for the read-back check and for cost
 - [x] Not-on-the-menu dishes: search hint reworded, instruction lines added (Maggiano's Pizza, Veg Kolhapuri)
 - [ ] Not on the menu, asked as a question ("Shahi Paneer hai?"): `get_item_details` still answers "could mean…"
-- [ ] Alternatives for a missing dish should match veg / non-veg (Butter Naan was offered Butter Chicken)
+- [x] Alternatives for a missing dish: at most 2, veg for a veg dish (22 Nov)
 - [ ] Parallel tool calls: Samvaad sends one add_to_cart per dish at the same moment, so a reply can show a stale
       cart ("empty") and a suggestion for a dish being added alongside. Answer them in order, from one cart
 - [ ] Kabir swapped Paneer Tikka Pizza for Paneer Tikka on its own (20 Nov call): check it's fixed by the
@@ -124,6 +124,31 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
 - [ ] Jain and other diet tags on dishes ("veg mein jain chahiye" had nothing to go on)
 - [ ] Cost per Samvaad call in `phone_calls.metrics` (minutes × plan rate + telephony pulses + WhatsApp), once
       `call_length` arrives. A 95 s call was ≈ ₹6–8
+- [x] **Shorter speech, no repeats** (scenario [2PBTR9](scenarios/2026-11-20-verbose-readback-2PBTR9.md), 22 Nov):
+      WhatsApp question in one line, only the start of the address in the read-back, "इसी नंबर पर" instead of
+      digits for the caller's own number, one suggestion per call (no dessert after a drink), a short closing line
+- [ ] Samvaad side of shorter speech: instruction lines "always speak the guest's language" and "don't repeat what
+      the guest said"; end the call right after "order placed"
+- [ ] Tool-call logging for Render: one log line per tool call, and a table + timeline page per call (like ngrok)
+
+### Team pointers (21 Nov)
+
+- [x] **Support tickets** (22 Nov): every `request_callback`, and an order that couldn't be saved, opens a ticket
+      in `requests` (type "callback"). The owner's **Callbacks** tab lists them (open ones first, oldest first) with
+      the masked number, reason and waiting time, a **Call** button that fetches that one number, and **Resolved**.
+      The WhatsApp alert still goes out and points to the tab. To do: run migration `011_support_tickets.sql`
+- [x] **Owner view**: no table number for phone orders, channel shown, numbers masked (Manav's Calls & orders board)
+- [x] **Dish relevance settings**: Bestseller / New and pairing switches (Manav)
+- [ ] **DB cleanup**: remove test data before go-live (test orders such as 9X3RQ8, "abandoned" rows from API tests)
+- [ ] **Chat context**: needs a definition from the team
+- [ ] **Order link instead of a table**: a direct link to order (web or WhatsApp), not tied to a table number
+- [ ] **Restaurant onboarding setup**: menu, prices, sizes, hours, owner WhatsApp, number and Samvaad mapping in one
+      flow (today `setup_store` on the command line)
+- [ ] **Use the restaurant's existing WhatsApp number** for bills and alerts
+- [ ] **Samvaad config** written down in the repo (instructions, tools, block 3 fields, variables, voice, LLM)
+
+Merged into other items: short speech → above · call transcript → `end_call_log` item · the agent stops when the
+guest speaks → background-noise item · return order → returning customers (if it means a repeat order).
 
 ### P2: after the pilot
 
