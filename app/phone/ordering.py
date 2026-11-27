@@ -38,6 +38,13 @@ def _payment_ref() -> str:
     return "".join(secrets.choice(_REF_ALPHABET) for _ in range(6))
 
 
+def _short_address(address: str, words: int = 4) -> str:
+    """The start of the address, enough for the guest to recognise it, in the read-back. They have just said it in
+    full and it is saved in full; reading all of it back again took 7 s of a 2 minute call (scenario 2PBTR9)."""
+    parts = address.replace(",", " ").split()
+    return address.strip() if len(parts) <= words + 1 else " ".join(parts[:words])
+
+
 def pay_link(token: str) -> str | None:
     base = os.environ.get("PUBLIC_BASE_URL", "").rstrip("/")
     return f"{base}/pay/{token}" if base else None
@@ -81,6 +88,11 @@ class PhoneOrder:
         self.bill_number_given = False  # the guest chose or confirmed the bill's number themselves
         self.cart: list[dict] = []
         self.spoken: str | None = None  # this turn's reply, when these rules decided what to say
+        # The WhatsApp number is asked for once. A guest without one (or who won't give it) still gets their order:
+        # it is saved and the store is told, only the bill isn't sent. An order is never lost for want of a number.
+        self.whatsapp_asked = False
+        self.total_unconfirmed = False  # the call transcript never had the total in it (see SamvaadSession.place)
+        self.ticket_id: str | None = None  # the support ticket a call back opened (owner's Callbacks tab)
 
     @property
     def takes_upi(self) -> bool:
@@ -198,13 +210,14 @@ class PhoneOrder:
             return "Ask for the delivery address, then call set_order_details."
         if self.collect_contact:
             return _CONTACT if self._needs_contact() else None
-        if not self.whatsapp:
+        if not self.whatsapp and not self.whatsapp_asked:
             return "This caller's number can't receive WhatsApp. Ask for a mobile number that has WhatsApp, then call set_order_details."
         return None
 
     def _needs_contact(self) -> bool:
         if not self.whatsapp:
-            return True  # no bill without a number, however often it takes
+            # Asked once. A guest without WhatsApp (or who won't say) still gets their order, only not the bill.
+            return not self.contact_asked
         return not self.contact_asked and not (self.customer_name and self.bill_number_given)
 
     def _contact_question(self) -> tuple[str, str]:
@@ -226,16 +239,21 @@ class PhoneOrder:
     def _ask_contact(self) -> str:
         self._say(*self._contact_question())
         self.contact_asked = True
-        return f"{_CONTACT} Say exactly this to the guest: {self.spoken}"
+        hint = (
+            " If the guest has no WhatsApp number or won't give one, call read_back_order: the order can still be "
+            "placed, only the bill isn't sent."
+        ) if not self.whatsapp else ""
+        return f"{_CONTACT}{hint} Say exactly this to the guest: {self.spoken}"
 
     def _ask_for_whatsapp(self, blocker: str) -> None:
         """The exact question, so a voice agent asks for the number instead of stalling on the instruction."""
         if blocker == _CONTACT:
             self._ask_contact()
         elif not self.whatsapp and blocker.startswith("This caller's number"):
+            self.whatsapp_asked = True
             self._say(
-                "बिल व्हाट्सएप पर भेजना है। आपका व्हाट्सएप नंबर बता दीजिए?",
-                "I'll send the bill on WhatsApp. What's your WhatsApp number?",
+                "बिल के लिए अपना व्हाट्सएप नंबर बता दीजिए?",
+                "What's your WhatsApp number for the bill?",
             )
 
     def _summary(self) -> tuple[str, str, int]:
@@ -246,7 +264,8 @@ class PhoneOrder:
             for line in self.cart
         )
         if self.order_type == "delivery":
-            where_hi, where_en = f"{self.address} पर डिलीवरी", f"Delivery to {self.address}"
+            where = _short_address(self.address)
+            where_hi, where_en = f"{where} पर डिलीवरी", f"Delivery to {where}"
         else:
             where_hi, where_en = "दुकान से पिकअप", "Pickup from the store"
         total = round(self._total())
@@ -263,38 +282,40 @@ class PhoneOrder:
         if blocker == _CONTACT:
             return self._ask_contact()
         if blocker and blocker.startswith("This caller's number"):
-            # Only the WhatsApp number is missing: read the real order back now and ask for the number in the
-            # same breath, so a voice agent has the true items and total instead of composing its own.
-            # Nothing counts as read back yet: once the number is given, the full read-back comes next.
-            hindi, english, _ = self._summary()
-            self._say(
-                f"{hindi} बिल व्हाट्सएप पर भेजना है। आपका व्हाट्सएप नंबर बता दीजिए?",
-                f"{english} I'll send the bill on WhatsApp. What's your WhatsApp number?",
+            # Only the WhatsApp number is missing: ask for it in one short line. The full read-back follows once it
+            # is given, so the order isn't read out twice. Asked once only: after that the order goes ahead without it.
+            self._ask_for_whatsapp(blocker)
+            return (
+                f"{blocker} If the guest has no WhatsApp number or won't give one, call read_back_order: the order "
+                f"can still be placed, only the bill isn't sent. Say exactly this to the guest: {self.spoken}"
             )
-            return f"{blocker} Say exactly this to the guest: {self.spoken}"
         if blocker:
             return blocker
         self.read_back = copy.deepcopy(self.cart)
         self.read_back_turn = self.turn
-        # Spaced, so "3210" is read digit by digit and not as a number in the thousands.
-        ending = " ".join(numbers.last_four(self.whatsapp))
         hindi, english, _ = self._summary()
+        if not self.whatsapp:
+            self._say(
+                f"{hindi} बिल व्हाट्सएप पर नहीं आ पाएगा, दुकान आपका ऑर्डर तैयार करेगी। ऑर्डर पक्का कर दूँ?",
+                f"{english} I can't send the bill on WhatsApp, but the store will still prepare your order. "
+                "Shall I place the order?",
+            )
+            return f"Read back to the customer: {self.spoken} Only call checkout after they say yes in their next message."
         bill_hi, bill_en = ("बिल और UPI ID", "bill and UPI ID") if self.takes_upi else ("बिल", "bill")
-        if self.collect_contact:
-            # The guest has just told us where the bill goes: only a number they gave is read out (to catch a
-            # misheard digit), and their own number isn't spelt out again.
-            own = self.whatsapp == numbers.whatsapp_number(self.caller)
-            to_hi, to_en = ("इसी नंबर पर", "to this number") if own else (f"{ending} वाले नंबर पर", f"to the number ending {ending}")
-            hi_name, en_name = (f"{self.customer_name} जी, ", f"{self.customer_name}, ") if self.customer_name else ("", "")
-            self._say(
-                f"{hi_name}{hindi} {bill_hi} व्हाट्सएप पर {to_hi} आएगा। ऑर्डर पक्का कर दूँ?",
-                f"{en_name}{english[0].lower() if en_name else english[0]}{english[1:]} The {bill_en} will come on WhatsApp {to_en}. Shall I place the order?",
-            )
+        if self.whatsapp == numbers.whatsapp_number(self.caller):
+            # The number they're calling from: no digits to read out.
+            to_hi, to_en = "इसी नंबर पर", "to this number"
         else:
-            self._say(
-                f"{hindi} {bill_hi} व्हाट्सएप पर {ending} वाले नंबर पर आएगा। ऑर्डर पक्का कर दूँ?",
-                f"{english} The {bill_en} will come on WhatsApp to the number ending {ending}. Shall I place the order?",
-            )
+            # A number the guest told us: its last four digits, spaced so "3210" is read digit by digit, to catch a
+            # number misheard.
+            ending = " ".join(numbers.last_four(self.whatsapp))
+            to_hi, to_en = f"{ending} वाले नंबर पर", f"to the number ending {ending}"
+        name = self.customer_name if self.collect_contact else ""
+        hi_name, en_name = (f"{name} जी, ", f"{name}, ") if name else ("", "")
+        self._say(
+            f"{hi_name}{hindi} {bill_hi} व्हाट्सएप पर {to_hi} आएगा। ऑर्डर पक्का कर दूँ?",
+            f"{en_name}{english[0].lower() if en_name else english[0]}{english[1:]} The {bill_en} will come on WhatsApp {to_en}. Shall I place the order?",
+        )
         return f"Read back to the customer: {self.spoken} Only call checkout after they say yes in their next message."
 
     def checkout(self) -> str:
@@ -321,7 +342,8 @@ class PhoneOrder:
             "restaurant_id": self.restaurant_id,
             "store_id": self.store["id"],
             "call_id": self.call_id,
-            "customer_phone": normalize_phone(self.whatsapp) or self.whatsapp,  # +91..., like the customers table
+            # +91..., like the customers table. Without a WhatsApp number, the caller ID still lets the store call back.
+            "customer_phone": normalize_phone(self.whatsapp or self.caller) or self.whatsapp or self.caller,
             "customer_id": self.customer_id,
             "customer_name": self.customer_name or None,
             "phone_verified": self.caller_verified,
@@ -334,16 +356,20 @@ class PhoneOrder:
             "pay_token": secrets.token_urlsafe(16),
         }
         uri = upi.payment_uri(self.store, order["total"], order["payment_ref"]) if self.takes_upi else None
-        outgoing = [
-            {"recipient": self.store["owner_whatsapp"], "kind": "owner_order", "body": messages.owner_order(order)},
-            {
+        owner = messages.owner_order(order)
+        if not self.whatsapp:
+            owner["text"] += "\n\nNo WhatsApp number: the customer did NOT get a bill. Please confirm the order with them."
+        if self.total_unconfirmed:
+            owner["text"] += f"\n\nThe customer may not have heard this total. Please confirm {format_price(order['total'])} with them."
+        outgoing = [{"recipient": self.store["owner_whatsapp"], "kind": "owner_order", "body": owner}]
+        if self.whatsapp:
+            outgoing.append({
                 "recipient": self.whatsapp,
                 "kind": "customer_bill",
                 "body": messages.customer_bill(
                     order, self.store, uri, pay_link(order["pay_token"]) if uri else None, self.language
                 ),
-            },
-        ]
+            })
         return order, outgoing
 
     def _save(self) -> str:
@@ -357,6 +383,7 @@ class PhoneOrder:
         else:
             # Never tell a customer an order is placed when it isn't. The store still has to hear about them.
             self.callback_reason = "their order couldn't be saved by the system"
+            self._open_ticket(f"Order couldn't be saved ({format_price(order['total'])}): call them back to take it")
             outbox.send_alert_now(
                 self.store["owner_whatsapp"],
                 f"An order couldn't be saved. Please call {self.whatsapp} right away.",
@@ -368,24 +395,41 @@ class PhoneOrder:
             return "The order could NOT be saved because of a system problem. The store will call them back."
         self.order_id = order["id"]
         outbox.flush_in_background()
-        if self.takes_upi:
+        if not self.whatsapp:
+            self._say("ऑर्डर पक्का हो गया। दुकान आपका ऑर्डर तैयार करेगी। धन्यवाद!", "Your order is placed, and the store will prepare it. Thank you!")
+        elif self.takes_upi:
             self._say(
                 "ऑर्डर पक्का हो गया। बिल और UPI ID व्हाट्सएप पर भेज दिया है। धन्यवाद!",
                 "Your order is placed. The bill and UPI ID are on WhatsApp. Thank you!",
             )
         else:
-            self._say(
-                "ऑर्डर पक्का हो गया। बिल व्हाट्सएप पर भेज दिया है, भुगतान डिलीवरी या पिकअप पर। धन्यवाद!",
-                "Your order is placed. The bill is on WhatsApp, and you pay on delivery or at pickup. Thank you!",
-            )
+            # Short: what to pay and how is on the bill itself.
+            self._say("ऑर्डर पक्का हो गया, बिल व्हाट्सएप पर भेज दिया है। धन्यवाद!", "Your order is placed, and the bill is on WhatsApp. Thank you!")
         return f"Order placed: {order['payment_ref']}. Total: {format_price(order['total'])}."
+
+    def _open_ticket(self, reason: str) -> None:
+        """A support ticket on the owner's dashboard (Callbacks tab), so a call back isn't lost in WhatsApp."""
+        try:
+            self.ticket_id = repository.open_ticket({
+                "session_id": self.session_id or (self.call_id or ""),
+                "persona": self.persona,
+                "details": reason,
+                "restaurant_id": self.restaurant_id,
+                "call_id": self.call_id,
+                "customer_id": self.customer_id,
+                "order_id": self.order_id,
+                "customer_phone": normalize_phone(self.whatsapp or self.caller) or self.whatsapp or self.caller,
+            })
+        except Exception:
+            logger.exception("couldn't open a support ticket for call %s", self.call_id)
 
     def request_callback(self, reason: str) -> str:
         if self.callback_reason:
             self._say("दुकान को बता दिया है, आपको जल्द फ़ोन आएगा।", "I've told the store, and they'll call you soon.")
             return "The store has already been asked to call back."
         self.callback_reason = reason.strip()[:200] or "the customer asked"
-        body = messages.callback_alert(self.caller, self.callback_reason, self.store["name"])
+        self._open_ticket(self.callback_reason)
+        body = messages.callback_alert(self.whatsapp or self.caller, self.callback_reason, self.store["name"])
         try:
             repository.queue_message(self.store["owner_whatsapp"], "callback_alert", body, call_id=self.call_id)
             outbox.flush_in_background()

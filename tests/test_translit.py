@@ -43,3 +43,12 @@ def test_a_vague_or_unknown_hindi_name_is_not_guessed():
     assert m.find_by_name("मैसूर डोसा") is None  # two dosas could be meant
     assert "Mysore Masala Dosa" in [d["name"] for d in m.candidates("मैसूर डोसा")]
     assert m.find_by_name("मैंगो लस्सी") is None  # not on this menu: never swapped for Sweet Lassi
+
+
+def test_a_longer_dish_that_sounds_exactly_right_beats_a_shorter_fuzzy_spelling():
+    # Borivali Biryani Centre: spelled roughly, the Hindi matched the kebab instead of the kebab biryani.
+    dishes = [{"id": str(i), "name": n, "category": "Menu", "sort_order": i}
+              for i, n in enumerate(["Mutton Seekh Kebab", "Mutton Seekh Kebab Biryani", "Chicken Dum Biryani"])]
+    m = RestaurantMenu({"id": "r"}, [], dishes, 1)
+    assert m.find_by_name("मटन सीख कबाब बिरयानी")["name"] == "Mutton Seekh Kebab Biryani"
+    assert m.find_by_name("मटन सीख कबाब")["name"] == "Mutton Seekh Kebab"

@@ -72,7 +72,8 @@ def order_to_read_back(api) -> dict:
     asked = tool(api, "set_order_details", order_type="delivery", address="12 MG Road")
     assert asked["say"] == "आपका नाम बता दीजिए? और बिल व्हाट्सएप पर इसी नंबर पर भेज दूँ, या किसी और नंबर पर?"
     held = tool(api, "set_order_details", order_type="delivery", customer_name="Priya")  # "Priya, isi pe"
-    assert "dessert" in held["result"] and "Gulab Jamun" in held["result"]  # suggested once, before the read-back
+    # The drink suggestion came with the first dishes, so no dessert as well: one suggestion per call.
+    assert "dessert" not in held["result"] and held["result"].startswith("Read back")
     return tool(api, "read_back_order")
 
 
@@ -230,6 +231,13 @@ def test_a_callback_alerts_the_owner(api, fake):
     tool(api, "request_callback", reason="wants to book a party")
     alert = fake.tables["message_outbox"][0]
     assert alert["kind"] == "callback_alert" and alert["recipient"] == OWNER
+    assert "Callbacks" in alert["body"]["text"]
+    # ...and a support ticket on the owner's dashboard, with the number to call back.
+    ticket = fake.tables["requests"][0]
+    assert ticket["type"] == "callback" and ticket["status"] == "open" and ticket["details"] == "wants to book a party"
+    assert ticket["restaurant_id"] == "rest-1" and ticket["customer_phone"] == f"+{CUSTOMER}" and ticket["call_id"]
+    tool(api, "request_callback", reason="again")
+    assert len(fake.tables["requests"]) == 1  # asked twice in one call: still one ticket
 
 
 def test_the_end_hook_closes_the_call_log(api, fake):
@@ -294,11 +302,55 @@ def test_a_caller_without_a_whatsapp_number_is_asked_for_one(api, fake):
     held = tool(api, "set_order_details", caller="tester@example.com", order_type="pickup")
     assert held["say"] == "आपका नाम और व्हाट्सएप नंबर बता दीजिए? बिल उसी पर भेजूँगा।"
     assert "Say exactly this to the guest: " + held["say"] in held["result"]  # visible through {{result}}
+    assert "आपका ऑर्डर" not in held["say"]  # asked in one short line: the order is read back once, later
     refused = tool(api, "checkout", caller="tester@example.com")
-    assert refused["result"].startswith("Order not placed") and "व्हाट्सएप नंबर" in refused["say"]
+    assert refused["result"].startswith("Order not placed")
     tool(api, "set_order_details", order_type="pickup", whatsapp_number="9876543210")
     said = tool(api, "read_back_order")["say"]
     assert said.startswith("आपका ऑर्डर") and "3 2 1 0 वाले नंबर पर" in said  # a number they told us is read out
+
+
+def test_an_order_is_never_dropped_for_want_of_a_whatsapp_number(api, fake):
+    caller = "tester@example.com"
+    tool(api, "add_to_cart", caller=caller, item_name="Butter Naan")
+    assert "व्हाट्सएप नंबर" in tool(api, "set_order_details", caller=caller, order_type="pickup")["say"]
+    # The guest has no WhatsApp: asked once, the order goes ahead without the bill.
+    read_back = tool(api, "read_back_order", caller=caller)
+    if "dessert" in read_back["result"]:
+        read_back = tool(api, "read_back_order", caller=caller)
+    assert "बिल व्हाट्सएप पर नहीं आ पाएगा" in read_back["say"]
+    placed = tool(api, "checkout", caller=caller)
+    assert placed["result"].startswith("Order placed") and "व्हाट्सएप" not in placed["say"]
+    assert [m["kind"] for m in fake.tables["message_outbox"]] == ["owner_order"]  # the store hears; no bill
+    assert "did NOT get a bill" in fake.tables["message_outbox"][0]["body"]["text"]
+
+
+# ------------------------------------------------------------- repeated calls --
+
+
+def test_the_same_add_sent_again_is_not_repeated(api):
+    # A real call: "4 Paneer Tikka" sent five times in 13 seconds became 17.
+    tool(api, "add_to_cart", item_name="Butter Naan", quantity=4)
+    again = tool(api, "add_to_cart", item_name="butter naan", quantity=4)
+    assert again["cart_summary"] == "4 x Butter Naan" and again["result"].startswith("NOT DONE AGAIN")
+    both = tool(api, "add_to_cart", items=[{"name": "Butter Naan", "quantity": 4}, {"name": "Sweet Lassi"}])
+    assert both["cart_summary"] == "4 x Butter Naan, 1 x Sweet Lassi"
+    # A different amount is a different request, and goes through.
+    assert tool(api, "add_to_cart", item_name="Butter Naan", quantity=1)["cart_summary"].startswith("5 x Butter Naan")
+
+
+def test_the_same_add_later_on_goes_through(api, monkeypatch):
+    monkeypatch.setattr(samvaad_session, "DUPLICATE_SECONDS", 0)
+    tool(api, "add_to_cart", item_name="Butter Naan", quantity=2)
+    assert tool(api, "add_to_cart", item_name="Butter Naan", quantity=2)["cart_summary"] == "4 x Butter Naan"
+
+
+def test_the_same_remove_sent_again_does_not_take_away_a_whole_dish(api):
+    # "Ek hi karo" sent twice once took Margherita from 2 to 0.
+    tool(api, "add_to_cart", item_name="Butter Naan", quantity=2)
+    assert tool(api, "remove_from_cart", item_name="Butter Naan", quantity=1)["cart_summary"] == "1 x Butter Naan"
+    again = tool(api, "remove_from_cart", item_name="Butter Naan", quantity=1)
+    assert again["cart_summary"] == "1 x Butter Naan" and again["result"].startswith("NOT DONE AGAIN")
 
 
 def test_a_store_without_upi_bills_as_text_paid_on_delivery(api, fake):
@@ -308,7 +360,8 @@ def test_a_store_without_upi_bills_as_text_paid_on_delivery(api, fake):
     details(api, order_type="pickup", language="English")
     said = tool(api, "read_back_order", language="English")["say"]
     assert "QR" not in said and "The bill will come on WhatsApp" in said
-    assert "pay on delivery" in tool(api, "checkout", language="English")["say"]
+    # Said briefly on the call; how to pay is on the bill itself.
+    assert tool(api, "checkout", language="English")["say"] == "Your order is placed, and the bill is on WhatsApp. Thank you!"
     bill = next(m for m in fake.tables["message_outbox"] if m["kind"] == "customer_bill")
     assert bill["body"]["type"] == "text" and "Pay on delivery or at pickup" in bill["body"]["text"]
 
@@ -460,13 +513,12 @@ def test_a_whole_call_has_one_read_back(api, fake):
         ("add_special_request", {"request": "no cutlery"}),
         ("set_order_details", {"order_type": "delivery", "address": "12 MG Road"}),
         ("set_order_details", {"order_type": "delivery", "customer_name": "Priya"}),  # past the one question
-        ("read_back_order", {}),                                                     # past the dessert question
         ("set_order_details", {"order_type": "delivery", "customer_name": "Priya Shah"}),  # the model resends
         ("checkout", {}),
     ]:
         said.append(tool(api, name, **body).get("say") or "")
     assert sum(READ_BACK in s for s in said) == 1
-    assert "no cutlery" in said[4] and fake.tables["orders"][0]["customer_name"] == "Priya Shah"
+    assert "no cutlery" in said[3] and fake.tables["orders"][0]["customer_name"] == "Priya Shah"
 
 
 def test_a_special_request_before_the_read_back_is_only_noted(api):
@@ -529,3 +581,80 @@ def test_each_call_starts_with_its_restaurants_rule_book(api, fake):
 def test_a_restaurant_without_a_rule_book_starts_with_none(api):
     body = api.post("/samvaad/start", json={"interaction_id": "c10", "store_slug": "spice-route"}, headers=AUTH).json()
     assert body["house_rules"] == "none"
+# ------------------------------------------------------------- opening hours --
+
+
+def test_a_closed_store_takes_no_new_order_and_says_when_it_opens(api, monkeypatch):
+    monkeypatch.setattr(samvaad_session.hours, "is_open", lambda store, now=None: False)
+    body = tool(api, "add_to_cart", item_name="Butter Naan")
+    assert body["result"].startswith("NOT ADDED: the store is closed") and body["cart_summary"] == "empty"
+    assert body["say"].startswith("माफ़ कीजिए, Spice Route")  # the hours module words it (tests/test_hours.py)
+
+
+def test_an_order_under_way_at_closing_time_is_finished(api, monkeypatch):
+    tool(api, "add_to_cart", item_name="Butter Naan")
+    monkeypatch.setattr(samvaad_session.hours, "is_open", lambda store, now=None: False)
+    assert tool(api, "add_to_cart", item_name="Sweet Lassi")["cart_summary"] == "1 x Butter Naan, 1 x Sweet Lassi"
+
+
+# ------------------------------------------------------- the total the guest heard --
+
+
+def test_checkout_goes_through_when_the_guest_heard_the_real_total(api, fake):
+    order_to_read_back(api)  # ₹800
+    heard = "Kabir: आपका ऑर्डर: 2 Paneer Butter Masala, 4 Butter Naan। कुल ८०० रुपये। ऑर्डर पक्का कर दूँ?\nGuest: haan"
+    assert tool(api, "checkout", transcript=heard)["result"].startswith("Order placed")
+
+
+def test_a_made_up_total_sends_the_order_back_for_a_true_read_back(api, fake):
+    # A real call: Kabir read back ₹2,400; the cart was ₹6,380; the guest's "haan" placed the real cart.
+    order_to_read_back(api)
+    heard = [{"role": "agent", "text": "Your order comes to 2,400 rupees. Shall I place it?"}, {"role": "user", "text": "haan"}]
+    refused = tool(api, "checkout", transcript=heard)
+    assert refused["result"].startswith("Order not placed yet: the guest has not heard the real total, 800")
+    assert "कुल 800 रुपये" in refused["say"] and not fake.tables.get("orders")
+    # Still not heard the second time: placed, never a loop, and the owner is asked to confirm the total.
+    placed = tool(api, "checkout", transcript=heard)
+    assert placed["result"].startswith("Order placed")
+    owner = next(m for m in fake.tables["message_outbox"] if m["kind"] == "owner_order")
+    assert "may not have heard this total" in owner["body"]["text"]
+
+
+def test_without_a_transcript_checkout_is_unchanged(api, fake):
+    order_to_read_back(api)
+    assert tool(api, "checkout", transcript="@Call Transcript")["result"].startswith("Order placed")
+
+
+def test_amounts_are_found_as_whole_numbers():
+    says = samvaad_session._says_amount
+    assert says("कुल 6380 रुपये", 6380) and says("total ₹6,380.", 6380) and says("1 190 rupees", 1190)
+    assert not says("total 16380", 6380) and not says("2,400 rupees", 6380) and not says("₹7200", 720)
+
+
+
+# ---------------------------------------------------------- saying less --
+
+
+def test_the_read_back_says_the_start_of_a_long_address_and_no_digits_for_the_callers_own_number(api):
+    tool(api, "add_to_cart", item_name="paneer makhani")  # a main dish: its drink suggestion is the call's one offer
+    address = "1902 A Wing, Modi Space, Ganges, opposite Bhagwati Hospital, Borivali West"
+    tool(api, "set_order_details", order_type="delivery", address=address)  # the name-and-number question
+    said = tool(api, "set_order_details", order_type="delivery", customer_name="Priya")["say"]  # "Priya, isi pe"
+    assert "1902 A Wing Modi पर डिलीवरी" in said and "Bhagwati" not in said
+    assert "व्हाट्सएप पर इसी नंबर पर आएगा" in said and "वाले नंबर" not in said
+
+
+def test_a_dessert_is_offered_only_when_nothing_else_was(api):
+    tool(api, "add_to_cart", item_name="Sweet Lassi")  # a drink on its own: no drink-and-side suggestion
+    tool(api, "add_to_cart", item_name="Paneer Butter Masala")
+    samvaad_session.sessions.get("call-1").sales.offered.discard("first_order")
+    held = details(api, order_type="pickup")
+    assert "dessert" in held["result"] and "Gulab Jamun" in held["result"]
+
+
+def test_alternatives_for_a_missing_dish_are_two_at_most_and_veg_for_a_veg_dish(api):
+    said = tool(api, "add_to_cart", item_name="Garlic Naan")["say"]
+    assert "Garlic Naan हमारे मेन्यू में नहीं है" in said
+    offered = said.split("इसकी जगह ")[1].split(" ले सकते")[0].split(", ") if "इसकी जगह" in said else []
+    assert len(offered) <= 2 and all(name in {"Paneer Butter Masala", "Butter Naan", "Sweet Lassi", "Gulab Jamun",
+                                              "Margherita Pizza"} for name in offered)
