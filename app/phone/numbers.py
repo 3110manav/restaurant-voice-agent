@@ -27,3 +27,10 @@ def whatsapp_number(raw: str | None) -> str | None:
 
 def last_four(raw: str | None) -> str:
     return _digits(raw)[-4:]
+
+
+def spoken(raw: str | None) -> str:
+    """A mobile number to say out loud: its ten digits one by one, in two groups ("9 8 7 6 5, 4 3 2 1 0"), so a
+    voice says each digit instead of "ninety-eight thousand…" and the guest can check every one."""
+    digits = _digits(raw)[-10:]
+    return f"{' '.join(digits[:5])}, {' '.join(digits[5:])}"

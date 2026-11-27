@@ -11,7 +11,7 @@ def _tell_customer(order: dict, store: dict, kind: str) -> None:
     recipient = numbers.whatsapp_number(order.get("customer_phone"))
     if not recipient:
         return
-    body = messages.customer_update(kind, store["name"], order["payment_ref"], order.get("language") or "hi")
+    body = messages.customer_update(kind, store["name"], order["payment_ref"])
     repository.queue_message(recipient, f"customer_{kind}", body, order["id"], order.get("call_id"))
 
 

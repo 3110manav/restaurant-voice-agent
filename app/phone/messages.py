@@ -1,9 +1,10 @@
 """The words of every WhatsApp message. Totals and items come from the saved order, never from the LLM.
 
-The owner's messages are in English with the button labels WhatsApp shows; customers get the language
-their call was in.
+Every message is in English, the owner's and the customer's alike, whatever language the call was in: a bill is
+read and forwarded, and a Hindi bill came out half translated ("पता: 1902, having Modi's face").
 """
 from app.currency import format_price
+from app.menu.translit import has_devanagari, to_roman
 
 CAPTION_LIMIT = 1024  # WhatsApp's limit on an image caption
 
@@ -21,22 +22,38 @@ def _item_lines(order: dict) -> str:
     return f"{lines}\nSpecial request: {order['special_requests']}" if order.get("special_requests") else lines
 
 
-def _fulfilment(order: dict, language: str = "en") -> str:
+def english(text: str | None) -> str:
+    """Text a guest said, in English letters for a WhatsApp message: speech-to-text sometimes writes an address or
+    name in Hindi script ("बोरीवली वेस्ट"). The agent is asked to write them in English letters; this catches the rest."""
+    if not text or not has_devanagari(text):
+        return text or ""
+    words = to_roman(text).split(" ")
+    # Menus and maps end a word in "i", not "ee" (Borivali, not Boreevalee).
+    return " ".join(w[:-2] + "i" if w.endswith("ee") else w for w in words).title()
+
+
+def mobile(phone: str | None) -> str:
+    """+919876543210 as +91 98765 43210, easy to read and tap; anything else as it is."""
+    digits = "".join(ch for ch in phone or "" if ch.isdigit())
+    if len(digits) == 12 and digits.startswith("91"):
+        return f"+91 {digits[2:7]} {digits[7:]}"
+    return phone or "not available"
+
+
+def _fulfilment(order: dict) -> str:
     if order["order_type"] == "pickup":
-        return "दुकान से ले जाएँगे" if language == "hi" else "Pickup from store"
-    return f"{'पता' if language == 'hi' else 'Deliver to'}: {order['address']}"
+        return "Pickup from store"
+    return f"Deliver to: {english(order['address'])}"
 
 
 def owner_order(order: dict) -> dict:
-    customer = order.get("customer_phone") or "number not available"
-    if order.get("customer_name"):
-        customer = f"{order['customer_name']}, {customer}"
+    name = f"Name: {english(order['customer_name'])}\n" if order.get("customer_name") else ""
     text = (
-        f"New phone order {order['payment_ref']}\n\n"
+        f"Order {order['payment_ref']}\n\n"
         f"{_item_lines(order)}\n\n"
         f"Total: {format_price(float(order['total']))}\n"
         f"{_fulfilment(order)}\n"
-        f"Customer: {customer}"
+        f"{name}Mobile: {mobile(order.get('customer_phone'))}"
     )
     return {
         "type": "buttons",
@@ -49,49 +66,35 @@ def owner_order(order: dict) -> dict:
     }
 
 
-def customer_bill(order: dict, store: dict, upi_uri: str | None, pay_link: str | None, language: str) -> dict:
+def customer_bill(order: dict, store: dict, upi_uri: str | None, pay_link: str | None) -> dict:
     total = format_price(float(order["total"]))
+    text = f"{store['name']}\nOrder {order['payment_ref']}\n\n{_item_lines(order)}\n\nTotal: {total}\n{_fulfilment(order)}"
     if not upi_uri:  # a store without UPI set up: the bill is paid on delivery or at pickup
-        if language == "hi":
-            text = f"{store['name']}\nऑर्डर {order['payment_ref']}\n\n{_item_lines(order)}\n\nकुल: {total}\n{_fulfilment(order, 'hi')}\n\nभुगतान डिलीवरी या पिकअप पर।"
-        else:
-            text = f"{store['name']}\nOrder {order['payment_ref']}\n\n{_item_lines(order)}\n\nTotal: {total}\n{_fulfilment(order)}\n\nPay on delivery or at pickup."
-        return {"type": "text", "text": text}
+        return {"type": "text", "text": f"{text}\n\nPay on delivery or at pickup."}
     # The UPI ID as text, not a QR image: a guest pays from any UPI app by pasting it, and a text bill is what a
     # WhatsApp template can carry once the guest's 24-hour window has closed.
     upi_id, payee = store.get("upi_id"), store.get("upi_payee_name") or store["name"]
-    if language == "hi":
-        text = (f"{store['name']}\nऑर्डर {order['payment_ref']}\n\n{_item_lines(order)}\n\nकुल: {total}\n{_fulfilment(order, 'hi')}"
-                f"\n\nUPI से {total} भेजें: {upi_id} ({payee})\nनोट में ऑर्डर {order['payment_ref']} लिखें।")
-    else:
-        text = (f"{store['name']}\nOrder {order['payment_ref']}\n\n{_item_lines(order)}\n\nTotal: {total}\n{_fulfilment(order)}"
-                f"\n\nPay {total} by UPI to {upi_id} ({payee})\nPut order {order['payment_ref']} in the note.")
-    return {"type": "text", "text": text}
+    return {"type": "text", "text": f"{text}\n\nPay {total} by UPI to {upi_id} ({payee})\nPut order {order['payment_ref']} in the note."}
 
 
 def callback_alert(caller: str | None, reason: str, store_name: str) -> dict:
     who = caller or "a caller whose number wasn't available"
-    return {"type": "text", "text": f"Please call back: {who}\nReason: {reason}\nCalled {store_name} just now."}
+    return {
+        "type": "text",
+        "text": f"Please call back: {who}\nReason: {reason}\nCalled {store_name} just now.\n"
+                "It's on your dashboard under Callbacks: mark it resolved once you've called.",
+    }
 
 
 _CUSTOMER_UPDATES = {
-    "accepted": {
-        "en": "{store}: your order {ref} is accepted. Thank you!",
-        "hi": "{store}: आपका ऑर्डर {ref} स्वीकार हो गया है। धन्यवाद!",
-    },
-    "out_of_stock": {
-        "en": "{store}: sorry, an item in order {ref} is out of stock. Please don't pay this bill. The store will call you.",
-        "hi": "{store}: माफ़ कीजिए, ऑर्डर {ref} का एक सामान उपलब्ध नहीं है। कृपया यह बिल न चुकाएँ। दुकान से आपको फ़ोन आएगा।",
-    },
-    "paid": {
-        "en": "{store}: payment received for order {ref}. Thank you!",
-        "hi": "{store}: ऑर्डर {ref} का भुगतान मिल गया। धन्यवाद!",
-    },
+    "accepted": "{store}: your order {ref} is accepted. Thank you!",
+    "out_of_stock": "{store}: sorry, an item in order {ref} is out of stock. Please don't pay this bill. The store will call you.",
+    "paid": "{store}: payment received for order {ref}. Thank you!",
 }
 
 
-def customer_update(kind: str, store_name: str, ref: str, language: str) -> dict:
-    wording = _CUSTOMER_UPDATES[kind]["hi" if language == "hi" else "en"]
+def customer_update(kind: str, store_name: str, ref: str) -> dict:
+    wording = _CUSTOMER_UPDATES[kind]
     return {"type": "text", "text": wording.format(store=store_name, ref=ref)}
 
 

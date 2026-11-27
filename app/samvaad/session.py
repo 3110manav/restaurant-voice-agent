@@ -20,6 +20,7 @@ import re
 import threading
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 
 from app.agent import promotions
 from app.agent.salesflow import HINT_PREFIX, SalesState, dessert_offer
@@ -29,8 +30,8 @@ from app.currency import format_price
 from app.customers import repository as customers
 from app.customers.phone import normalize_phone
 from app.menu import repository as menu_repository
-from app.menu.snapshot import _sound
-from app.phone import carts, numbers, repository
+from app.menu.snapshot import _norm, _sound
+from app.phone import carts, hours, numbers, repository
 from app.phone.call import _menu_and_restaurant, is_database_store
 from app.phone.ordering import PhoneOrder
 
@@ -42,9 +43,52 @@ CUSTOMER_RETRY_SECONDS = 30  # after a failed customer save, wait this long befo
 # Reading the order back and hearing a yes takes a person several seconds. A checkout sooner than this after
 # the read-back means the model chained the two tools without waiting for the guest, so it is refused.
 MIN_CONFIRM_SECONDS = 3.0
+# Samvaad's LLM re-sent the same add or remove: "4 Paneer Tikka" five times in 13 s became 17 on a real call, and a
+# repeated "ek hi karo" removed a whole dish. The same change for a dish already changed this recently is not repeated.
+DUPLICATE_SECONDS = 20.0
+RESUME_MINUTES = 60  # a caller whose call dropped within this long gets their cart back on the next call
 _PERSONA = {"restaurant": "waiter", "kirana": "quick_commerce"}
 _NOT_FOUND = re.compile(r"^Couldn't find '(.+)' on the menu\.")
 _COULD_MEAN = re.compile(r"^'(.+)' could mean: (.+)\. Ask the customer which one they want\.$")
+
+
+_NON_VEG = re.compile(
+    r"\b(chicken|chikan|mutton|matan|lamb|gosht|keema|kheema|fish|machli|prawns?|jhinga|crab|egg|eggs|anda|"
+    r"omelette|meat|beef|pork|bacon|ham|sausage|pepperoni|salami|tuna|seafood|murgh|tangdi)\b"
+)
+_DEVANAGARI_DIGITS = str.maketrans("०१२३४५६७८९", "0123456789")
+
+
+def _transcript_text(transcript) -> str:
+    """Samvaad's @Call Transcript as plain text, whatever shape it arrives in (text, a list of turns, JSON)."""
+    if not transcript:
+        return ""
+    if isinstance(transcript, str):
+        text = transcript
+    else:
+        text = json.dumps(transcript, ensure_ascii=False)
+    text = text.strip()
+    return "" if text.startswith("@") else text.translate(_DEVANAGARI_DIGITS)  # "@Call Transcript": never filled in
+
+
+def _says_amount(text: str, amount: int) -> bool:
+    """Whether `amount` appears as a number: 6380, 6,380, ₹6380 or 6 380, not inside a longer number."""
+    digits = str(amount)
+    pattern = f"{digits[:-3]}[,\\s]?{digits[-3:]}" if len(digits) > 3 else digits
+    return re.search(rf"(?<![\d,]){pattern}(?![\d,]?\d)", text) is not None
+
+
+# Words that say nothing about what kind of dish it is: sharing one of these doesn't make two dishes alike.
+_PLAIN_WORDS = {"veg", "nonveg", "non", "special", "spl", "masala", "fry", "dry", "gravy", "half", "full", "plate",
+                "small", "medium", "large", "regular", "with", "and", "the", "of", "ek", "do", "wala", "wali"}
+
+
+def _same_kind(said: str, dish: str) -> bool:
+    """Whether a dish shares a real word with what the guest asked for ("Veg Kolhapuri" and Paneer Kolhapuri,
+    "sabji" and Sabji Kheema Masala). On a continental menu "bhindi masala" found pasta and fish fingers: nothing
+    alike, so nothing is offered in its place."""
+    words = set(_sound(said).split()) - {_sound(w) for w in _PLAIN_WORDS}
+    return bool(words & set(_sound(dish).split()))
 
 
 def _names_every_word(said: str, options: list[str]) -> bool:
@@ -112,6 +156,10 @@ class SamvaadSession:
         self._customer_key: tuple | None = None
         self._customer_failed_at = 0.0
         self._won_back = False
+        self._recent_changes: dict[tuple, float] = {}  # (add/remove, dish id, variant, quantity) -> when it was done
+        self._readback_refused = False  # checkout already sent back once because the guest never heard the total
+        self._language_heard: str | None = None  # another language reported once; the call switches on the second
+        self.resumed_from: str | None = None  # the dropped call whose cart this call picked up
         self.sales = SalesState(settings=promotions.settings(getattr(self.menu, "restaurant", None)))
         persona = _PERSONA[self.store["business_type"]]
         try:
@@ -145,8 +193,19 @@ class SamvaadSession:
         """Each tool call counts as a turn for the order rules (a read-back and its yes are never the same)."""
         self.last_used = time.monotonic()
         if language:
-            self.language = _language(language)
+            self._switch_language(_language(language))
         self.order.start_turn(self.language)
+
+    def _switch_language(self, reported: str) -> None:
+        """The call keeps its language until the guest really changes it. One tool call reporting another language
+        (an English dish name, an "ok" or a "yes" in a Hindi call) used to turn our lines English mid-call; now it takes
+        two tool calls in a row."""
+        if reported == self.language:
+            self._language_heard = None
+        elif self._language_heard == reported:
+            self.language, self._language_heard = reported, None
+        else:
+            self._language_heard = reported
 
     def _tool(self, name: str, args: dict) -> str:
         return self._tools[name].invoke(args)
@@ -257,6 +316,33 @@ class SamvaadSession:
             self.call_id = self.order.call_id = row["call_id"]
         logger.info("restored the cart of call %s (%d lines)", self.interaction_id, len(self.cart))
 
+    def resume_dropped(self) -> None:
+        """A caller whose last call got cut off mid-order gets that cart back, so they don't order it all again. Only
+        at the start of a call, and only a cart with dishes, no order, from the last hour, at this restaurant."""
+        phone, _ = self._identity()
+        if self.cart or self.order.order_id or not (phone and self.restaurant_id):
+            return
+        since = (datetime.now(timezone.utc) - timedelta(minutes=RESUME_MINUTES)).isoformat()
+        row = carts.last_dropped(self.restaurant_id, phone, self.interaction_id, since)
+        if not row:
+            return
+        self.cart[:] = [dict(line) for line in row["items"]]
+        self.order.order_type = row.get("fulfilment")
+        self.order.address = row.get("address") or ""
+        self.order.customer_name = self.order.customer_name or row.get("customer_name") or ""
+        self.order.special_requests = [r for r in (row.get("special_requests") or "").split("; ") if r]
+        self.customer_id = self.order.customer_id = self.customer_id or row.get("customer_id")
+        self.resumed_from = row["interaction_id"]
+        carts.run_later(carts.mark_continued, row["interaction_id"], self.interaction_id)
+        logger.info("call %s picked up the dropped cart of %s (%d lines)", self.interaction_id, self.resumed_from, len(self.cart))
+
+    def _resumed_text(self) -> str:
+        if not self.resumed_from:
+            return "none"
+        return ", ".join(
+            f"{line['quantity']} {line['name']}" + (f" {line['variant']}" if line.get("variant") else "") for line in self.cart
+        )
+
     def _reply(self, result: str, **extra) -> dict:
         self._persist()
         body = {"result": result, **self.snapshot(), **extra}
@@ -289,7 +375,19 @@ class SamvaadSession:
             "store_type": store["business_type"],
             "caller_known": bool(self.order.whatsapp),
             "house_rules": self._house_rules(),
+            "resumed_order": self._resumed_text(),
+            "store_open": hours.is_open(store),
+            "closed_message": "" if hours.is_open(store) else hours.closed_message(store)[0 if self.language == "hi" else 1],
         }
+
+    def _closed(self) -> str | None:
+        """Exact words when the store is shut and this would start a new order. An order already under way when it
+        closed is finished: the guest is mid-sentence, and the kitchen takes the last orders."""
+        if self.cart or self.order.order_id or hours.is_open(self.store):
+            return None
+        hindi, english = hours.closed_message(self.store)
+        self.order.spoken = hindi if self.language == "hi" else english
+        return "NOT ADDED: the store is closed now, so no order can be taken. Do not take the order."
 
     def search_menu(self, query: str, language: str | None = None) -> dict:
         self._turn(language)
@@ -299,8 +397,10 @@ class SamvaadSession:
             result += (
                 "\nThese are the only matching dishes on the menu; never suggest or promise a dish that is not in a "
                 "tool result. If the guest asked for one of these by name, call add_to_cart for it with its exact "
-                "name. If they asked for a dish that is not in this list, tell them it is not on the menu and offer "
-                "these instead; never add a different dish in its place unless they agree."
+                "name. If they asked for a dish that is not in this list, tell them it is not on the menu and ask what "
+                "else they would like. Offer one of these only if it is the same kind of food (a curry for a curry, a "
+                "pasta for a pasta); never jump to a different kind (a sabji is never answered with a sandwich or a "
+                "pasta), and never add a different dish in its place unless they agree."
             )
         return self._reply(result)
 
@@ -317,9 +417,49 @@ class SamvaadSession:
         ]
         if not lines:
             return self._reply("No item name was given. Ask the guest what they would like.")
+        closed = self._closed()
+        if closed:
+            return self._reply(closed)
+        repeats = [line for line in lines if self._repeated("add", line["name"], line["variant"], line["quantity"])]
+        lines = [line for line in lines if line not in repeats]
+        note = self._repeat_note(repeats, "added")
+        if not lines:
+            return self._reply(note)
         before = {(line["id"], line.get("variant")): line["quantity"] for line in self.cart}
-        result = self._tool("add_to_cart", {"items": lines})
-        return self._reply(self._not_on_menu(result, before))
+        result = self._not_on_menu(self._tool("add_to_cart", {"items": lines}), before)
+        for line in lines:
+            self._remember("add", line["name"], line["variant"], line["quantity"])
+        return self._reply(f"{note}\n{result}" if note else result)
+
+    def _change_key(self, kind: str, name: str, variant: str, quantity: int) -> tuple | None:
+        """What identifies one cart change, by the dish it lands on, so "paneer tikka" and "Paneer Tikka" match.
+        None for a dish that isn't in the cart: nothing to protect, so a retry goes through."""
+        dish = self.menu.find_by_name(name)
+        wanted = (variant or "").strip().lower()
+        for line in self.cart:
+            same_dish = (dish and line.get("id") == dish["id"]) or _norm(line["name"]) == _norm(name)
+            if same_dish and (not wanted or (line.get("variant") or "").lower() == wanted):
+                return kind, line["id"], wanted, int(quantity)
+        return None
+
+    def _repeated(self, kind: str, name: str, variant: str, quantity: int) -> bool:
+        key = self._change_key(kind, name, variant, quantity)
+        done_at = self._recent_changes.get(key) if key else None
+        return done_at is not None and time.monotonic() - done_at < DUPLICATE_SECONDS
+
+    def _remember(self, kind: str, name: str, variant: str, quantity: int) -> None:
+        key = self._change_key(kind, name, variant, quantity)
+        if key:
+            self._recent_changes[key] = time.monotonic()
+
+    def _repeat_note(self, repeats: list[dict], done: str) -> str:
+        if not repeats:
+            return ""
+        names = ", ".join(f"{line['quantity']} x {line['name']}" for line in repeats)
+        return (
+            f"NOT DONE AGAIN: {names} was already {done} a moment ago, so it was not repeated. Do not mention this to "
+            "the guest. If the guest clearly asks for that change once more, confirm it with them first."
+        )
 
     def _not_on_menu(self, result: str, before: dict) -> str:
         """Samvaad's LLM told guests "added" for dishes the menu doesn't have (a real call: Veg Kolhapuri,
@@ -344,18 +484,26 @@ class SamvaadSession:
             for line in self.cart
             if line["quantity"] > before.get((line["id"], line.get("variant")), 0)
         ]
+        # Two at most, said in one breath; veg ones for a dish that sounds veg (Butter Naan was offered Butter
+        # Chicken); and only the same kind of dish (a sabji was answered with a sandwich). Among those, the owner's
+        # picks come first: a dish's `featured` is set only for the Bestseller / New switches that are on
+        # (app/agent/promotions.py), so a switch turned off changes nothing here.
         alternatives = []
         for name in missing:
-            for dish in self.menu.search(name, k=3):
-                if dish["name"] not in alternatives and len(alternatives) < 3:
+            meat = bool(_NON_VEG.search(_norm(name)))
+            close = [d for d in self.menu.search(name, k=8)
+                     if (meat or d.get("veg")) and d.get("is_available", True) and _same_kind(name, d["name"])]
+            close.sort(key=lambda d: 0 if d.get("featured") else 1)  # stable: otherwise the search's own order
+            for dish in close:
+                if dish["name"] not in alternatives and len(alternatives) < 2:
                     alternatives.append(dish["name"])
         names = ", ".join(missing)
         if self.language == "hi":
             words = (f"{', '.join(added)} जोड़ दिया। " if added else "") + f"माफ़ कीजिए, {names} हमारे मेन्यू में नहीं है।"
-            words += f" इसकी जगह {', '.join(alternatives)} ले सकते हैं।" if alternatives else ""
+            words += f" इसकी जगह {', '.join(alternatives)} ले सकते हैं।" if alternatives else " और कुछ लेंगे?"
         else:
             words = (f"I've added {', '.join(added)}. " if added else "") + f"Sorry, {names} isn't on our menu."
-            words += f" Instead, you could have {', '.join(alternatives)}." if alternatives else ""
+            words += f" Instead, you could have {', '.join(alternatives)}." if alternatives else " Anything else?"
         self.order.spoken = words
         kept.insert(0, f"NOT ADDED, not on the menu: {names}. Never tell the guest these were added.")
         return "\n".join(kept)
@@ -368,7 +516,14 @@ class SamvaadSession:
 
     def remove(self, name: str, quantity: int = 1, variant: str = "", language: str | None = None) -> dict:
         self._turn(language)
-        return self._reply(self._tool("remove_from_cart", {"name": name, "quantity": quantity, "variant": variant}))
+        line = {"name": name, "quantity": quantity, "variant": variant}
+        if self._repeated("remove", name, variant, quantity):
+            return self._reply(self._repeat_note([line], "removed"))
+        key = self._change_key("remove", name, variant, quantity)  # before removing: the dish may leave the cart
+        result = self._tool("remove_from_cart", {"name": name, "quantity": quantity, "variant": variant})
+        if key and not result.endswith("isn't in the cart."):
+            self._recent_changes[key] = time.monotonic()
+        return self._reply(result)
 
     def view(self, language: str | None = None) -> dict:
         self._turn(language)
@@ -379,6 +534,8 @@ class SamvaadSession:
         if (self.order.order_id or self.order._blocker() is not None or self.order.read_back is None
                 or self.order.read_back_turn != self.order.turn):
             return None  # only in place of a read-back that is about to be said, never over a question
+        if "first_order" in self.sales.offered:
+            return None  # one suggestion per phone call: a drink and side were already offered, minutes cost money
         offer = dessert_offer(self.sales, self.menu.menu, self.menu.get, self.cart)
         if not offer:
             return None
@@ -414,6 +571,14 @@ class SamvaadSession:
 
     def read_back(self, language: str | None = None) -> dict:
         self._turn(language)
+        if self.order.already_read_back():
+            # The order is read back once (a real complaint: the order and address were said two and three times).
+            # Samvaad's LLM calls read_back_order again on its own; only a guest who asks hears it again.
+            return self._reply(
+                "The order was already read back and has not changed: do not read it again. Wait for the guest's yes, "
+                "then call checkout. Only if the guest asked to hear the order again, repeat it word for word: "
+                f"{self.order.read_back_words}"
+            )
         result = self.order.prepare_read_back()
         held = self._dessert_first()
         if held:
@@ -421,7 +586,7 @@ class SamvaadSession:
         self._mark_read_back()
         return self._reply(result)
 
-    def place(self, language: str | None = None) -> dict:
+    def place(self, language: str | None = None, transcript=None) -> dict:
         self._turn(language)
         if (
             not self.order.order_id
@@ -432,9 +597,35 @@ class SamvaadSession:
             return self._reply(
                 "Order not placed yet. Read the order back to the guest and wait for them to say yes, then call checkout."
             )
+        unheard = self._total_unheard(transcript)
+        if unheard:
+            return self._reply(unheard)
         self._ensure_customer()  # so the order is saved with who ordered it
         result = self.order.checkout()
         return self._reply(result, order_id=self.order.order_id)
+
+    def _total_unheard(self, transcript) -> str | None:
+        """On a real call Kabir read back a made-up order (₹2,400) and the guest's "haan" placed the real cart
+        (₹6,380). With the call transcript, checkout checks the real total was said. Missing once, the order is read
+        back again in our exact words; missing twice, it is placed anyway (never trap a guest in a loop) and the
+        owner is told to confirm the total. Without a transcript nothing changes."""
+        text = _transcript_text(transcript)
+        if not text or self.order.order_id or self.order.read_back != self.cart or not self.cart:
+            return None
+        total = round(self.order._total())
+        if _says_amount(text, total):
+            return None
+        if self._readback_refused:
+            self.order.total_unconfirmed = True
+            logger.warning("call %s: the total %s was never heard; placing it flagged for the owner", self.interaction_id, total)
+            return None
+        self._readback_refused = True
+        self.order.prepare_read_back()  # the exact words again, from our cart
+        self.read_back_at = time.monotonic()
+        return (
+            f"Order not placed yet: the guest has not heard the real total, {total} rupees. Read the order back in "
+            "exactly these words and wait for their yes, then call checkout."
+        )
 
     def callback(self, reason: str, language: str | None = None) -> dict:
         self._turn(language)

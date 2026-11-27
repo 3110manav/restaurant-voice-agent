@@ -11,6 +11,7 @@ restaurant in the URL (menu and settings edits need owner or manager; reading
 orders and closing requests is open to staff too). All writes then go through
 app/menu/service.py, which re-embeds only what changed and invalidates caches.
 """
+import logging
 import re
 import threading
 import time
@@ -23,6 +24,8 @@ from app import agent_config, db, owner_board, transcripts
 from app.menu import repository, service
 from app.menu.snapshot import menu_cache
 from app.table import repository as table_repository, service as table_service
+
+logger = logging.getLogger("sarthi.owner_api")
 
 router = APIRouter(prefix="/owner", tags=["owner"])
 
@@ -295,6 +298,17 @@ def save_agent_settings(restaurant_id: str, body: AgentSettingsIn, user_id: str 
 def list_requests(restaurant_id: str, user_id: str = Depends(current_user_id)) -> dict:
     _restaurant_for(user_id, restaurant_id)
     return {"requests": repository.list_requests(restaurant_id)}
+
+
+@router.get("/restaurants/{restaurant_id}/callbacks/{request_id}/phone")
+def callback_phone(restaurant_id: str, request_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    """The full number of one support ticket, when the owner presses Call. Everywhere else numbers stay masked."""
+    _restaurant_for(user_id, restaurant_id)
+    phone = owner_board.callback_phone(restaurant_id, request_id)
+    if not phone:
+        raise HTTPException(status_code=404, detail="No number for this ticket")
+    logger.info("user %s revealed the number of support ticket %s", user_id, request_id)
+    return {"phone": phone}
 
 
 @router.post("/restaurants/{restaurant_id}/requests/{request_id}/resolve")
