@@ -276,7 +276,7 @@ def test_accept_updates_the_order_and_tells_the_customer(fake, store):
     order = placed_order(store, fake)
     assert tap(order, "accept") == "accepted"
     assert fake.tables["orders"][0]["status"] == "accepted"
-    assert "स्वीकार" in customer_messages(fake)[0]
+    assert "is accepted" in customer_messages(fake)[0]  # in English, whatever language the call was in
 
 
 def test_a_double_tap_changes_nothing_and_doesnt_message_the_customer_twice(fake, store):
@@ -295,7 +295,7 @@ def test_only_the_stores_owner_can_tap(fake, store):
 def test_out_of_stock_cancels_the_bill(fake, store):
     order = placed_order(store, fake)
     assert tap(order, "out_of_stock") == "out_of_stock"
-    assert "न चुकाएँ" in customer_messages(fake)[0]
+    assert "don't pay this bill" in customer_messages(fake)[0]
     assert tap(order, "paid") == "unchanged"
     assert fake.tables["orders"][0]["payment_status"] == "unpaid"
 
@@ -523,7 +523,7 @@ def test_a_very_long_bill_is_one_text_with_the_upi_id(fake, store, sent):
     order = {"id": "1", "items": [dict(LINE, name=f"Item {i}" * 8) for i in range(30)], "total": 1, "order_type": "pickup", "address": None, "payment_ref": "AB"}
     from app.phone import messages
 
-    body = messages.customer_bill(order, store, "upi://pay?pa=a@b", None, "hi")
+    body = messages.customer_bill(order, store, "upi://pay?pa=a@b", None)
     assert body["type"] == "text" and "Item 29" in body["text"] and store["upi_id"] in body["text"]
     repository.queue_message(CUSTOMER, "customer_bill", body)
     outbox.flush()

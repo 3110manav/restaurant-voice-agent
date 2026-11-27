@@ -658,3 +658,27 @@ def test_alternatives_for_a_missing_dish_are_two_at_most_and_veg_for_a_veg_dish(
     offered = said.split("इसकी जगह ")[1].split(" ले सकते")[0].split(", ") if "इसकी जगह" in said else []
     assert len(offered) <= 2 and all(name in {"Paneer Butter Masala", "Butter Naan", "Sweet Lassi", "Gulab Jamun",
                                               "Margherita Pizza"} for name in offered)
+
+
+# ------------------------------------------------------------------ language --
+
+
+def test_one_english_tool_call_does_not_switch_a_hindi_call(api):
+    tool(api, "add_to_cart", item_name="Butter Naan")
+    tool(api, "add_to_cart", item_name="Sweet Lassi", language="English")
+    said = tool(api, "set_order_details", order_type="pickup", language="Hindi")["say"]
+    assert "नाम" in said  # still Hindi: one "English" in the middle was noise
+
+
+def test_a_guest_who_really_switches_gets_english(api):
+    tool(api, "add_to_cart", item_name="Butter Naan", language="English")
+    said = tool(api, "set_order_details", order_type="pickup", language="English")["say"]
+    assert said.startswith("May I have your name")
+
+
+def test_the_whatsapp_bill_is_in_english_after_a_hindi_call(api, fake):
+    order_to_read_back(api)
+    tool(api, "checkout")
+    bill = next(m for m in fake.tables["message_outbox"] if m["kind"] == "customer_bill")["body"]["text"]
+    assert "Order " in bill and "Total: " in bill and "Deliver to: 12 MG Road" in bill
+    assert not any("ऀ" <= ch <= "ॿ" for ch in bill)  # no Devanagari at all

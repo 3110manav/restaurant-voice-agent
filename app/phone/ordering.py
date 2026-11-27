@@ -366,9 +366,7 @@ class PhoneOrder:
             outgoing.append({
                 "recipient": self.whatsapp,
                 "kind": "customer_bill",
-                "body": messages.customer_bill(
-                    order, self.store, uri, pay_link(order["pay_token"]) if uri else None, self.language
-                ),
+                "body": messages.customer_bill(order, self.store, uri, pay_link(order["pay_token"]) if uri else None),
             })
         return order, outgoing
 

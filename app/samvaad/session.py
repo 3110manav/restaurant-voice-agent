@@ -143,6 +143,7 @@ class SamvaadSession:
         self._won_back = False
         self._recent_changes: dict[tuple, float] = {}  # (add/remove, dish id, variant, quantity) -> when it was done
         self._readback_refused = False  # checkout already sent back once because the guest never heard the total
+        self._language_heard: str | None = None  # another language reported once; the call switches on the second
         self.sales = SalesState(settings=promotions.settings(getattr(self.menu, "restaurant", None)))
         persona = _PERSONA[self.store["business_type"]]
         try:
@@ -176,8 +177,19 @@ class SamvaadSession:
         """Each tool call counts as a turn for the order rules (a read-back and its yes are never the same)."""
         self.last_used = time.monotonic()
         if language:
-            self.language = _language(language)
+            self._switch_language(_language(language))
         self.order.start_turn(self.language)
+
+    def _switch_language(self, reported: str) -> None:
+        """The call keeps its language until the guest really changes it. One tool call reporting another language
+        (an English dish name, an "ok" or a "yes" in a Hindi call) used to turn our lines English mid-call; now it takes
+        two tool calls in a row."""
+        if reported == self.language:
+            self._language_heard = None
+        elif self._language_heard == reported:
+            self.language, self._language_heard = reported, None
+        else:
+            self._language_heard = reported
 
     def _tool(self, name: str, args: dict) -> str:
         return self._tools[name].invoke(args)
