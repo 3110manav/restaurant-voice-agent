@@ -122,7 +122,9 @@ def test_the_default_store_answers_when_nothing_names_one(api, monkeypatch):
 
 def test_an_unknown_store_is_refused(api):
     body = {"interaction_id": "c4", "store_slug": "nowhere"}
-    assert api.post("/samvaad/start", json=body, headers=AUTH).status_code == 404
+    started = api.post("/samvaad/start", json=body, headers=AUTH).json()
+    assert started["line_ready"] is False and "not connected" in started["result"]  # said politely, no order taken
+    assert api.post("/samvaad/tools/view_cart", json=body, headers=AUTH).status_code == 404
 
 
 def test_the_tool_editors_send_button_works_without_an_interaction_id(api):
@@ -765,3 +767,62 @@ def test_same_kind_alternatives_put_the_owners_picks_first(api, monkeypatch):
         dish.pop("featured", None)  # the owner turned Bestsellers off: nothing is featured, the search's own order
     session._not_on_menu("Couldn't find 'Shahi Paneer' on the menu.", {})
     assert "इसकी जगह Paneer Tikka Masala, Paneer Butter Masala ले सकते हैं" in session.order.spoken
+
+
+# ------------------------------------------------------------ the number mapper --
+# One agent, many restaurants: the number the guest dialled says which restaurant the call is for.
+
+
+@pytest.fixture
+def two_restaurants(store, fake):
+    repository.save_store({
+        "id": "store-2", "slug": "fusion", "name": "The Fusion Kitchen", "business_type": "restaurant",
+        "agent_name": "Aria", "phone_number": None, "owner_whatsapp": OWNER, "restaurant_slug": "fusion",
+    })
+    repository.assign_number("fusion", "+917965861786", "main line")
+    return fake
+
+
+def dial(api, **body):
+    return api.post("/samvaad/start", json={"interaction_id": body.pop("interaction_id", "m1"), **body}, headers=AUTH).json()
+
+
+def test_each_dialled_number_reaches_its_own_restaurant(api, two_restaurants):
+    assert dial(api, interaction_id="a", called_number="+918000000000")["store_name"] == "Spice Route"
+    fusion = dial(api, interaction_id="b", called_number="07965861786")  # the way a landline may arrive
+    assert fusion["store_name"] == "The Fusion Kitchen" and fusion["agent_name"] == "Aria" and fusion["line_ready"] is True
+    assert two_restaurants.tables["phone_calls"][-1]["called_number"] == "+917965861786"
+
+
+def test_the_dialled_number_beats_a_slug_left_in_the_agents_variables(api, two_restaurants):
+    body = dial(api, called_number="+91 79658 61786", store_slug="spice-route")
+    assert body["store_slug"] == "fusion"
+
+
+def test_a_test_chat_without_a_dialled_number_uses_the_slug(api, two_restaurants):
+    assert dial(api, store_slug="fusion")["store_name"] == "The Fusion Kitchen"
+
+
+def test_a_number_nobody_owns_never_borrows_another_restaurant(api, two_restaurants, monkeypatch):
+    monkeypatch.setenv("SAMVAAD_DEFAULT_STORE", "spice-route")
+    body = dial(api, called_number="+919999999999")
+    assert body["line_ready"] is False and body["store_slug"] == "" and "say" in body
+    assert "phone_calls" not in two_restaurants.tables or not any(
+        c.get("called_number") == "+919999999999" for c in two_restaurants.tables["phone_calls"])
+
+
+def test_a_restaurant_can_have_several_numbers_and_a_number_can_move(api, two_restaurants):
+    repository.assign_number("fusion", "+912228000000", "old number, forwarded")
+    assert dial(api, interaction_id="x", called_number="02228000000")["store_slug"] == "fusion"
+    assert repository.numbers_of_store("store-2") == ["+917965861786", "+912228000000"]
+    repository.assign_number("spice-route", "+917965861786")  # moved: it reaches one restaurant only
+    assert dial(api, interaction_id="y", called_number="7965861786")["store_slug"] == "spice-route"
+    repository.unassign_number("+912228000000")
+    assert dial(api, interaction_id="z", called_number="02228000000")["line_ready"] is False
+
+
+def test_later_tool_calls_stay_with_the_restaurant_the_call_started_with(api, two_restaurants):
+    dial(api, interaction_id="t1", called_number="7965861786")
+    body = api.post("/samvaad/tools/view_cart", json={"interaction_id": "t1", "store_slug": "spice-route"}, headers=AUTH)
+    assert body.status_code == 200
+    assert samvaad_session.sessions.get("t1").store["slug"] == "fusion"

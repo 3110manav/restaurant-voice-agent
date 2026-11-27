@@ -321,6 +321,7 @@ export type AgentSettings = {
   calls: {
     answering: boolean;
     calls_number: string | null;
+    calls_numbers: string[];
     agent_name: string | null;
     alert_whatsapp: string | null;
     upi_id: string | null;

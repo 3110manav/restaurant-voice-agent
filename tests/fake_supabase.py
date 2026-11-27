@@ -32,6 +32,14 @@ class _Query:
         self.action, self.payload = "update", fields
         return self
 
+    def delete(self):
+        self.action = "delete"
+        return self
+
+    def neq(self, column, value):
+        self.filters.append(lambda row: row.get(column) != value)
+        return self
+
     def eq(self, column, value):
         self.filters.append(lambda row: row.get(column) == value)
         return self
@@ -74,7 +82,7 @@ class _Query:
         if self.action == "insert":
             if self.table == "phone_calls" and any(r["room"] == self.payload["room"] for r in self.db.tables.get("phone_calls", [])):
                 raise RuntimeError("duplicate key value violates unique constraint phone_calls_room_key")
-            row = {**self.db.defaults(self.table), **copy.deepcopy(self.payload)}
+            row = {**self.db.defaults(self.table), "created_at": f"{next(self.db._clock):012d}", **copy.deepcopy(self.payload)}
             self.db.tables.setdefault(self.table, []).append(row)
             return _Result([copy.deepcopy(row)])
         if self.action == "upsert":
@@ -84,6 +92,10 @@ class _Query:
                     return _Result([copy.deepcopy(row)])
             self.action = "insert"
             return self.execute()
+        if self.action == "delete":
+            matched = self._matching()
+            self.db.tables[self.table] = [row for row in self.db.tables[self.table] if row not in matched]
+            return _Result(copy.deepcopy(matched))
         if self.action == "update":
             matched = self._matching()
             for row in matched:
