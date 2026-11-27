@@ -67,7 +67,9 @@ New agent, single state, named **Sarthi Restaurants**. Languages: Hindi and Engl
 
 | Name | Default | Filled by |
 |---|---|---|
-| `store_slug` | empty | browser (`agent_variables`) or the start tool |
+| `store_slug` | empty (never a restaurant's slug) | the start tool; browser (`agent_variables`) and test chats set it |
+| `called_number` | empty | telephony: the number the guest dialled. It decides the restaurant |
+| `line_ready` | `true` | start tool: `false` when the dialled number belongs to no restaurant |
 | `store_name` | `our restaurant` | start tool |
 | `agent_name` | `Kabir` | start tool |
 | `channel` | `phone` | browser sends `browser` |
@@ -77,9 +79,15 @@ New agent, single state, named **Sarthi Restaurants**. Languages: Hindi and Engl
 | `resumed_order` | `none` | start tool: the cart of this caller's call that got cut off in the last hour, already back in the cart |
 | `saved_address` | `none` | reserved for returning guests (not filled yet) |
 
-On inbound phone calls, map the caller's number into a variable `caller` (telephony metadata). If your
-telephony connection exposes the **dialled** number, map it into `called_number`. That is how one agent knows
-which restaurant was called. If it doesn't, see Step 6.
+On inbound phone calls, map the caller's number into a variable `caller` (telephony metadata), and the
+**dialled** number (often called "to", "DID" or "virtual number") into `called_number`. That is how one agent
+knows which restaurant was called: the backend's number mapper says whose number it is (Step 6).
+
+Add to the prompt:
+
+```
+If @line_ready is false, do not take an order: say the sentence start_call gave you and end the call.
+```
 
 ### Greeting
 
@@ -201,12 +209,20 @@ Microphone access needs https (localhost is fine).
 1. In Samvaad's telephony settings, connect Exotel (bring your own) or rent a number.
 2. Create an **inbound deployment** for the agent and attach the restaurant numbers.
 3. Set the deployment's webhook to `POST {API}/samvaad/end` with the same Bearer token.
-4. Make sure each restaurant's number is on its phone-store row:
-   `python -m app.phone.setup_store use slice-station +91XXXXXXXXXX`.
+4. Connect each number to its restaurant in the number mapper (migration 014's `store_numbers`). A restaurant can
+   have several numbers; a number reaches one restaurant:
+   `python -m app.phone.setup_store use the-fusion-kitchen +917965861786 --label "main line"`
+   (`unuse <number>` disconnects one, `numbers` lists them all).
 
-How the call finds its restaurant, in order: `store_slug` → the dialled number (`called_number`) →
-`SAMVAAD_DEFAULT_STORE`. If Samvaad can't pass the dialled number, use one deployment per restaurant and set
-that restaurant's `store_slug` as its default. Or, for the demo, use one number with `SAMVAAD_DEFAULT_STORE`.
+How the call finds its restaurant, in order:
+1. the dialled number (`called_number`) through the number mapper: on a real call this always decides, so a
+   `store_slug` left in the variables can't send a call to the wrong restaurant;
+2. `store_slug`, for test chats and the browser page, which have no dialled number;
+3. `SAMVAAD_DEFAULT_STORE`, only when the call gives neither.
+
+A dialled number no restaurant owns never falls back to another restaurant: start_call answers `line_ready: false`
+with a sentence saying the line isn't set up, and the agent ends the call. Each call records its dialled number
+(`phone_calls.called_number`), so a call that reached the wrong restaurant can be traced.
 
 **Check:** call the number, order, and confirm the order shows at `/admin/calls` and the WhatsApp bill arrives.
 

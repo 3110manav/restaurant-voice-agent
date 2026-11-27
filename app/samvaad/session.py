@@ -109,19 +109,27 @@ def _language(value: str | None) -> str:
 
 
 def find_store(store: str | None = None, called_number: str | None = None) -> dict:
-    """The phone store this conversation is for: by slug, else by the dialled number, else the default."""
+    """The phone store this conversation is for. In order:
+
+      1. the number the guest dialled, through the number mapper (store_numbers): on a real call this decides,
+         so one agent answers as BBC on BBC's number and as The Fusion Kitchen on theirs, and a slug left in the
+         agent's variables can't send a call to the wrong restaurant
+      2. the slug the call names: test chats and the browser page, which have no dialled number
+      3. SAMVAAD_DEFAULT_STORE, only when the call gave neither. A dialled number nobody owns never falls back to
+         another restaurant: the call hears that the line isn't set up (see the router's /start)
+    """
     row = None
     slug = (store or "").strip()
-    if slug:
+    number = numbers.canonical(called_number) if called_number else None
+    if number:
+        row = repository.store_for_number(number)
+    if row is None and slug:
         row = repository.get_store_by_slug(slug)
-    if row is None and called_number:
-        number = numbers.canonical(called_number)
-        row = repository.store_for_number(number) if number else None
-    if row is None and not slug:
+    if row is None and not slug and not number:
         default = os.environ.get("SAMVAAD_DEFAULT_STORE", "").strip()
         row = repository.get_store_by_slug(default) if default else None
     if row is None:
-        raise StoreNotFound(f"no store for slug={slug!r} number={called_number!r}")
+        raise StoreNotFound(f"no store for slug={slug!r} number={number or called_number!r}")
     if is_database_store(row):
         # Kirana and pharmacy stores in the shop database follow the store agent's flow (prescriptions,
         # saved addresses), which is not wired to Samvaad yet. Restaurants and catalog kiranas are.
@@ -145,6 +153,7 @@ class SamvaadSession:
     restaurant_id: str | None = None
     customer_id: str | None = None
     restore: bool = False  # a tool call arrived with no session (the API restarted): pick the saved cart back up
+    called_number: str | None = None  # the number the guest dialled, +91...: which restaurant this call is for
     last_used: float = field(default_factory=time.monotonic)
     lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
@@ -168,6 +177,11 @@ class SamvaadSession:
             )
         except Exception:
             logger.warning("couldn't log the start of Samvaad call %s", self.interaction_id, exc_info=True)
+        if self.call_id and self.called_number:
+            try:  # so a call that reached the wrong restaurant can be explained (migration 014)
+                repository.update_call(self.call_id, called_number=self.called_number)
+            except Exception:
+                logger.info("couldn't record the dialled number of call %s", self.interaction_id)
         self.order = PhoneOrder(
             self.store, numbers.canonical(self.caller), persona,
             call_id=self.call_id, restaurant_id=restaurant_id, session_id=f"samvaad:{self.interaction_id}",
@@ -369,6 +383,7 @@ class SamvaadSession:
     def start_variables(self) -> dict:
         store = self.store
         return {
+            "line_ready": True,
             "store_slug": store["slug"],
             "store_name": store["name"],
             "agent_name": store.get("agent_name") or "Kabir",
@@ -685,7 +700,7 @@ class SessionRegistry:
         row = find_store(store, called_number)
         session = SamvaadSession(
             interaction_id=interaction_id, store=row, caller=caller, language=_language(language), channel=channel,
-            restore=restore,
+            restore=restore, called_number=numbers.canonical(called_number) if called_number else None,
         )
         with self._lock:
             return self._sessions.setdefault(interaction_id, session)

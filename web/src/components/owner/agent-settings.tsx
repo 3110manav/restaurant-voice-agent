@@ -189,7 +189,16 @@ function WhatsAppNumbers({
         {calls && (
           <div className="flex flex-col gap-1">
             <span className={label}>Calls answered on</span>
-            <span className="font-medium">{calls.calls_number ?? "Not live yet: Sarthi will connect your number"}</span>
+            {calls.calls_numbers?.length ? (
+              <ul className="flex flex-col gap-0.5 font-medium">
+                {calls.calls_numbers.map((n) => (
+                  <li key={n}>{n}</li>
+                ))}
+              </ul>
+            ) : (
+              <span className="font-medium">Not live yet: Sarthi will connect your number</span>
+            )}
+            <span className="text-xs text-muted-foreground">To add or change a number, contact Sarthi.</span>
             {calls.agent_name && <span className="text-xs text-muted-foreground">Your agent answers as {calls.agent_name}.</span>}
           </div>
         )}

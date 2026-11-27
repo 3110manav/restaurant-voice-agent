@@ -141,12 +141,50 @@ def _items(call: ToolCall) -> list[dict]:
     return items
 
 
+UNASSIGNED_LINE = (
+    "माफ़ कीजिए, यह नंबर अभी किसी रेस्टोरेंट से जुड़ा नहीं है। कृपया रेस्टोरेंट के नंबर पर दोबारा कॉल करें। धन्यवाद!",
+    "Sorry, this number isn't connected to a restaurant yet. Please call the restaurant's own number. Thank you!",
+)
+
+
+def _masked(number: str | None) -> str:
+    digits = "".join(ch for ch in number or "" if ch.isdigit())
+    return f"...{digits[-4:]}" if digits else "none"
+
+
+def _unassigned_line(call: ToolCall) -> dict:
+    """A dialled number no restaurant owns: the agent says so and ends the call, rather than taking an order in
+    another restaurant's name. Samvaad saves line_ready=false, which the prompt checks."""
+    english = (_clean(call.language) or "").lower().startswith("en")
+    say = UNASSIGNED_LINE[1 if english else 0]
+    return {
+        "line_ready": False,
+        "store_slug": "",
+        "store_name": "Sarthi",
+        "house_rules": "none",
+        "say": say,
+        "result": f"This phone line is not connected to any restaurant. Do not take an order. Say exactly this to the guest: {say} Then end the call.",
+    }
+
+
 @router.post("/start")
 def start(call: ToolCall, authorization: str | None = Header(default=None)) -> dict:
     _authorize(authorization)
-    # Only the names of any fields we don't know, never their values: they can be a caller's details.
-    logger.info("Samvaad start: unrecognised fields %s", sorted(call.model_extra or {}))
-    session = _session(call)
+    # Only the names of any fields we don't know, never their values: they can be a caller's details. The dialled
+    # number is the restaurant's own line, logged by its last digits so a wrong routing can be traced.
+    logger.info(
+        "Samvaad start %s: called_number %s, store_slug %s, unrecognised fields %s",
+        call.interaction_id, _masked(_clean(call.called_number)), _clean(call.store_slug) or "none",
+        sorted(call.model_extra or {}),
+    )
+    try:
+        session = _session(call)
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+        logger.error("Samvaad start %s: no restaurant owns the dialled number %s", call.interaction_id,
+                     _masked(_clean(call.called_number)))
+        return _unassigned_line(call)
     with session.lock:
         session.resume_dropped()  # a call that got cut off: its cart comes back
         return {**session.start_variables(), **session.snapshot()}

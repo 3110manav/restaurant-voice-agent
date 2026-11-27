@@ -10,9 +10,12 @@ Add or update a store (run again to change anything):
         --agent Kabir --owner 9198XXXXXXXX --upi shop@okbank --payee "Slice Station" \\
         --restaurant slice-station
 
-Point a dialled number at a store. With one test number, this is how you switch between the two:
+The number mapper: which dialled number reaches which store. One Samvaad agent answers every number and becomes
+the store that owns it. A store can have several numbers; a number reaches one store (pointing it elsewhere moves it):
 
-    python -m app.phone.setup_store use kirana-demo +91XXXXXXXXXX
+    python -m app.phone.setup_store use the-fusion-kitchen +917965861786 --label "main line"
+    python -m app.phone.setup_store unuse +917965861786        # the number reaches no store
+    python -m app.phone.setup_store numbers                     # every number and its store
 
 Send a restaurant's bills and alerts from its own WhatsApp Business number instead of Sarthi's shared one. The
 number must already be on WhatsApp Cloud API in Meta (WhatsApp Manager > Phone numbers), with this app's webhook.
@@ -65,14 +68,35 @@ def add(args: argparse.Namespace) -> None:
     print(f"Saved {args.slug}.")
 
 
-def use(args: argparse.Namespace) -> None:
-    number = numbers.canonical(args.number)
+def _number(raw: str) -> str:
+    number = numbers.canonical(raw)
     if not number:
         raise SystemExit("That doesn't look like a phone number")
+    return number
+
+
+def use(args: argparse.Namespace) -> None:
+    number = _number(args.number)
     if repository.get_store_by_slug(args.slug) is None:
         raise SystemExit(f"No store '{args.slug}'")
-    repository.assign_number(args.slug, number)
-    print(f"Calls to {number} now reach {args.slug}.")
+    before = repository.store_for_number(number)
+    repository.assign_number(args.slug, number, args.label)
+    moved = f" (it was reaching {before['slug']})" if before and before["slug"] != args.slug else ""
+    print(f"Calls to {number} now reach {args.slug}{moved}.")
+
+
+def unuse(args: argparse.Namespace) -> None:
+    number = _number(args.number)
+    repository.unassign_number(number)
+    print(f"{number} reaches no store now: callers hear that the line isn't set up.")
+
+
+def list_numbers(_: argparse.Namespace) -> None:
+    rows = repository.number_map()
+    if not rows:
+        print("No numbers are connected yet.")
+    for row in rows:
+        print(f"{row['number']:>16}  ->  {row['store']}" + (f"  ({row['label']})" if row.get("label") else ""))
 
 
 def whatsapp(args: argparse.Namespace) -> None:
@@ -145,7 +169,14 @@ def main() -> None:
     use_parser = commands.add_parser("use")
     use_parser.add_argument("slug")
     use_parser.add_argument("number")
+    use_parser.add_argument("--label", help='what this number is, e.g. "main line" or "old number, forwarded"')
     use_parser.set_defaults(run=use)
+
+    unuse_parser = commands.add_parser("unuse", help="disconnect a number from its store")
+    unuse_parser.add_argument("number")
+    unuse_parser.set_defaults(run=unuse)
+
+    commands.add_parser("numbers", help="list every number and the store it reaches").set_defaults(run=list_numbers)
 
     wa_parser = commands.add_parser("whatsapp", help="send a restaurant's messages from its own WhatsApp number")
     wa_parser.add_argument("restaurant", help="the restaurant's slug")
