@@ -74,6 +74,7 @@ from app.phone import upi  # noqa: E402
 from app.phone.router import router as phone_router  # noqa: E402
 from app.rag.menu_store import GROCERY_PATH, MenuStore  # noqa: E402
 from app.samvaad.router import router as samvaad_router  # noqa: E402
+from app.pos.admin_api import router as pos_admin_router  # noqa: E402
 from app.table.service import unplaced  # noqa: E402
 from app.table.state import TableState  # noqa: E402
 from app.table.suggest import next_suggestion  # noqa: E402
@@ -118,6 +119,7 @@ app.include_router(owner_router)
 app.include_router(phone_router)
 app.include_router(whatsapp_router)
 app.include_router(samvaad_router)
+app.include_router(pos_admin_router)
 
 # Two catalogs: the food menu (waiter) and a separate grocery catalog for
 # quick_commerce (shampoo, batteries, snacks, etc.) — see

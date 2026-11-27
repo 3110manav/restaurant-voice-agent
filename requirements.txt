@@ -17,3 +17,4 @@ livekit-api
 rapidfuzz
 Pillow
 qrcode[pil]
+cryptography>=42
