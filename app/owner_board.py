@@ -124,6 +124,8 @@ def build(restaurant: dict) -> dict:
         if c.get("items") and c.get("closed_reason") != "empty"
     ]
 
+    callbacks = _callbacks(requests, {o["id"]: o for o in orders})
+
     stores = client.table("phone_stores").select("id").eq("restaurant_slug", restaurant["slug"]).execute().data
     since = (datetime.now(timezone.utc) - timedelta(days=FUNNEL_DAYS)).date().isoformat()
     funnel = (
@@ -131,4 +133,48 @@ def build(restaurant: dict) -> dict:
         .order("day", desc=True).execute().data
         if stores else []
     )
-    return {"orders": board, "dropped_carts": dropped, "funnel": funnel}
+    return {"orders": board, "dropped_carts": dropped, "funnel": funnel, "callbacks": callbacks}
+
+
+def _callbacks(requests: list[dict], orders: dict[str, dict]) -> list[dict]:
+    """Support tickets: callers who asked for a person, or whose order couldn't be saved. Open ones first, oldest
+    first, since the longest wait matters most. The number is masked; the Call button fetches it (owner_api)."""
+    calls = {c["id"]: c for c in _in("phone_calls", "id", [r.get("call_id") for r in requests if r.get("type") == "callback"])}
+    customers = {c["id"]: c for c in _in("customers", "id", [r.get("customer_id") for r in requests if r.get("type") == "callback"])}
+    tickets = []
+    for r in requests:
+        if r.get("type") != "callback":
+            continue
+        call = calls.get(r.get("call_id")) or {}
+        order = orders.get(r.get("order_id")) or {}
+        phone = r.get("customer_phone") or call.get("caller")
+        tickets.append({
+            "id": r["id"],
+            "status": r.get("status") or "open",
+            "created_at": r["created_at"],
+            "resolved_at": r.get("resolved_at"),
+            "reason": r.get("details") or "",
+            "customer": _who(customers.get(r.get("customer_id")), phone, bool(call.get("caller"))),
+            "can_call": bool(phone),
+            "order_ref": order.get("payment_ref"),
+            "call_outcome": call.get("outcome"),
+        })
+    open_first = sorted((t for t in tickets if t["status"] == "open"), key=lambda t: t["created_at"])
+    done = sorted((t for t in tickets if t["status"] != "open"), key=lambda t: t["created_at"], reverse=True)
+    return open_first + done
+
+
+def callback_phone(restaurant_id: str, request_id: str) -> str | None:
+    """The full number of one support ticket, for the owner to call back. The only place a full number is sent
+    to the dashboard, one ticket at a time, when the owner presses Call."""
+    rows = (
+        _c().table("requests").select("*").eq("id", request_id).eq("restaurant_id", restaurant_id)
+        .eq("type", "callback").limit(1).execute().data
+    )
+    if not rows:
+        return None
+    phone = rows[0].get("customer_phone")
+    if not phone and rows[0].get("call_id"):
+        call = _c().table("phone_calls").select("caller").eq("id", rows[0]["call_id"]).limit(1).execute().data
+        phone = call[0].get("caller") if call else None
+    return normalize_phone(phone) or phone

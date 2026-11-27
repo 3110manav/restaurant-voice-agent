@@ -29,8 +29,16 @@ def fake(monkeypatch):
             {"id": "o2", "restaurant_id": "r1", "created_at": "2026-11-21T09:00:00+00:00", "status": "placed", "total": 90,
              "items": [], "table_no": "5", "customer_phone": None},
         ],
-        requests=[{"id": "q1", "restaurant_id": "r1", "order_id": "o1", "type": "callback", "details": "wants a call",
-                   "status": "open", "created_at": "2026-11-21T10:06:00+00:00"}],
+        requests=[
+            {"id": "q1", "restaurant_id": "r1", "order_id": "o1", "type": "callback", "details": "wants a call",
+             "status": "open", "created_at": "2026-11-21T10:06:00+00:00", "call_id": "call1", "customer_phone": PHONE},
+            {"id": "q2", "restaurant_id": "r1", "type": "callback", "details": "complaint about yesterday",
+             "status": "resolved", "created_at": "2026-11-21T08:00:00+00:00", "customer_phone": "+919000000003"},
+            {"id": "q3", "restaurant_id": "r1", "type": "callback", "details": "wants the manager",
+             "status": "open", "created_at": "2026-11-21T09:30:00+00:00", "customer_phone": "+919000000004"},
+            {"id": "q4", "restaurant_id": "r1", "type": "water", "details": "table 5", "status": "open",
+             "created_at": "2026-11-21T09:31:00+00:00"},
+        ],
         carts=[
             {"id": "k1", "restaurant_id": "r1", "status": "abandoned", "opened_at": "t", "last_activity_at": "2026-11-21T11:00:00+00:00",
              "items": [{"name": "Butter Naan", "quantity": 2}], "total": 120, "customer_id": None, "customer_phone": "+919000000001"},
@@ -63,6 +71,7 @@ def test_the_board_joins_each_order_with_its_customer_requests_and_call(fake):
 def test_no_full_number_and_no_pay_token_is_ever_returned(fake):
     text = str(owner_board.build(RESTAURANT))
     assert "9876542828" not in text and "SECRET" not in text and "919000000001" not in text
+    assert "919000000003" not in text and "919000000004" not in text
 
 
 def test_dropped_carts_show_what_was_left_and_skip_empty_ones(fake):
@@ -96,3 +105,33 @@ def test_the_endpoint_needs_a_member_and_the_orders_list_hides_numbers(fake, mon
     assert api.get("/owner/restaurants/r1/board", headers=auth).status_code == 200
     orders = api.get("/owner/restaurants/r1/orders", headers=auth).json()["orders"]
     assert "pay_token" not in orders[0] and "customer_phone" not in orders[0]
+
+
+
+def test_callbacks_are_support_tickets_open_and_oldest_first(fake):
+    tickets = owner_board.build(RESTAURANT)["callbacks"]
+    assert [t["id"] for t in tickets] == ["q3", "q1", "q2"]  # open: oldest waiting first; then the resolved one
+    first = tickets[1]
+    assert first["reason"] == "wants a call" and first["order_ref"] is None and first["call_outcome"] == "ordered"
+    assert first["customer"]["phone"] == "+91 ••••• 2828" and first["can_call"]
+
+
+def test_the_owner_gets_one_tickets_full_number_only_by_pressing_call(fake, monkeypatch):
+    class Auth:
+        def get_user(self, token):
+            if token != "owner":
+                raise Exception("invalid JWT")
+            return SimpleNamespace(user=SimpleNamespace(id="u1"))
+
+    monkeypatch.setattr(owner_api.db, "get_client", lambda: SimpleNamespace(auth=Auth(), table=fake.table, rpc=fake.rpc))
+    owner_api._tokens.clear()
+    monkeypatch.setattr(repository, "user_role", lambda uid, rid: "owner" if rid == "r1" else None)
+    monkeypatch.setattr(repository, "get_restaurant", lambda rid: RESTAURANT if rid == "r1" else None)
+    app = FastAPI()
+    app.include_router(owner_api.router)
+    api = TestClient(app)
+    auth = {"Authorization": "Bearer owner"}
+    assert api.get("/owner/restaurants/r1/callbacks/q1/phone").status_code == 401
+    assert api.get("/owner/restaurants/other/callbacks/q1/phone", headers=auth).status_code == 404
+    assert api.get("/owner/restaurants/r1/callbacks/q4/phone", headers=auth).status_code == 404  # not a callback
+    assert api.get("/owner/restaurants/r1/callbacks/q1/phone", headers=auth).json() == {"phone": PHONE}

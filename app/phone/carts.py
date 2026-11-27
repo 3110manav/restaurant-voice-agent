@@ -47,6 +47,28 @@ def load(interaction_id: str) -> dict | None:
     return rows[0] if rows else None
 
 
+def last_dropped(restaurant_id: str, phone: str, interaction_id: str, since: str) -> dict | None:
+    """This caller's latest cart at this restaurant from another call since `since` that has dishes and no order:
+    a call that got cut off. None if there is none or the database can't be read."""
+    try:
+        rows = (
+            repository._c().table("carts").select("*").eq("restaurant_id", restaurant_id).eq("customer_phone", phone)
+            .in_("status", ["open", "abandoned"]).gte("last_activity_at", since)
+            .order("last_activity_at", desc=True).limit(3).execute().data
+        )
+    except Exception:
+        logger.warning("couldn't look for a dropped cart", exc_info=True)
+        return None
+    return next((r for r in rows if r["interaction_id"] != interaction_id and r.get("items") and not r.get("order_id")), None)
+
+
+def mark_continued(interaction_id: str, new_interaction_id: str) -> None:
+    """A dropped cart picked up by the caller's next call: won back, so it no longer counts as dropped."""
+    repository._c().table("carts").update(
+        {"status": "recovered", "closed_at": repository.now_iso(), "closed_reason": f"continued in call {new_interaction_id}"[:120]}
+    ).eq("interaction_id", interaction_id).execute()
+
+
 def mark_recovered(restaurant_id: str, phone: str, order_id: str) -> None:
     """This customer ordered, so an earlier abandoned cart of theirs at this store counts as won back."""
     repository._c().table("carts").update(

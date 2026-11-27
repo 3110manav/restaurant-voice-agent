@@ -142,6 +142,12 @@ class RestaurantMenu:
         q = _norm(name)
         if not q:
             return None
+        if has_devanagari(name):
+            # A dish that sounds exactly like what was said wins over a fuzzy spelling: "मटन सीख कबाब बिरयानी"
+            # spelled roughly matched Mutton Seekh Kebab, but it sounds exactly like Mutton Seekh Kebab Biryani.
+            same = [d for d, s in zip(self.menu, self._sounds) if s == _sound(name)]
+            if len(same) == 1:
+                return same[0]
         dish = self._find_spelled(q)
         if dish is None and has_devanagari(name):
             dish = self._find_by_sound(_sound(name))

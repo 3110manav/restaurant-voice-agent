@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { OrdersTab, RequestsTab } from "@/components/owner/activity-tabs";
 import { AgentSettingsTab } from "@/components/owner/agent-settings";
-import { CallsBoardTab, DroppedCartsTab } from "@/components/owner/calls-board";
+import { CallbacksTab, CallsBoardTab, DroppedCartsTab } from "@/components/owner/calls-board";
 import { ConversationsTab } from "@/components/owner/conversations-tab";
 import { LoginForm } from "@/components/owner/login-form";
 import { MenuEditor } from "@/components/owner/menu-editor";
@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 
 const ALL_TABS = [
   { key: "board", label: "Calls & orders" },
+  { key: "callbacks", label: "Callbacks" },
   { key: "dropped", label: "Dropped carts" },
   { key: "tonight", label: "Tonight", table: true },
   { key: "customers", label: "Customers", table: true },
@@ -135,6 +136,7 @@ function Console({ id }: { id: string }) {
           <p className="text-sm text-muted-foreground">Only owners and managers can edit the menu.</p>
         ))}
       {tab === "board" && <CallsBoardTab restaurantId={restaurant.id} />}
+      {tab === "callbacks" && <CallbacksTab restaurantId={restaurant.id} />}
       {tab === "agent" &&
         (canEdit ? (
           <AgentSettingsTab restaurantId={restaurant.id} />
