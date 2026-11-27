@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app import db
-from app.phone import carts, outbox, repository
+from app.phone import carts, messages, numbers, outbox, repository
 from app.phone.catalog import StoreCatalog
 from app.samvaad import router as samvaad_router
 from app.samvaad import session as samvaad_session
@@ -70,11 +70,11 @@ def tool(api, name, **body):
 def order_to_read_back(api) -> dict:
     tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 2}, {"name": "Butter Naan", "quantity": 4}])
     asked = tool(api, "set_order_details", order_type="delivery", address="12 MG Road")
-    assert asked["say"] == "आपका नाम बता दीजिए? और बिल व्हाट्सएप पर इसी नंबर पर भेज दूँ, या किसी और नंबर पर?"
+    assert asked["say"] == f"आपका नाम बता दीजिए? और बिल व्हाट्सएप पर इसी नंबर, {numbers.spoken(CUSTOMER)}, पर भेज दूँ, या किसी और नंबर पर?"
     held = tool(api, "set_order_details", order_type="delivery", customer_name="Priya")  # "Priya, isi pe"
     # The drink suggestion came with the first dishes, so no dessert as well: one suggestion per call.
     assert "dessert" not in held["result"] and held["result"].startswith("Read back")
-    return tool(api, "read_back_order")
+    return held
 
 
 def details(api, **body) -> dict:
@@ -307,7 +307,7 @@ def test_a_caller_without_a_whatsapp_number_is_asked_for_one(api, fake):
     assert refused["result"].startswith("Order not placed")
     tool(api, "set_order_details", order_type="pickup", whatsapp_number="9876543210")
     said = tool(api, "read_back_order")["say"]
-    assert said.startswith("आपका ऑर्डर") and "3 2 1 0 वाले नंबर पर" in said  # a number they told us is read out
+    assert said.startswith("आपका ऑर्डर") and "9 8 7 6 5, 4 3 2 1 0 नंबर पर" in said  # read out in full
 
 
 def test_an_order_is_never_dropped_for_want_of_a_whatsapp_number(api, fake):
@@ -556,9 +556,8 @@ def test_same_number_in_words_means_the_callers_own(api, fake):
 def test_another_number_for_the_bill_is_read_out_to_catch_a_misheard_digit(api, fake):
     tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 1}])
     tool(api, "set_order_details", order_type="pickup")
-    tool(api, "set_order_details", order_type="pickup", whatsapp_number="98765 43210", customer_name="Ravi")
-    said = tool(api, "read_back_order")["say"]
-    assert "3 2 1 0 वाले नंबर पर" in said
+    said = tool(api, "set_order_details", order_type="pickup", whatsapp_number="98765 43210", customer_name="Ravi")["say"]
+    assert "9 8 7 6 5, 4 3 2 1 0 नंबर पर" in said  # the whole number, digit by digit
     tool(api, "checkout")
     bill = next(m for m in fake.tables["message_outbox"] if m["kind"] == "customer_bill")
     assert bill["recipient"] == "919876543210"
@@ -641,7 +640,7 @@ def test_the_read_back_says_the_start_of_a_long_address_and_no_digits_for_the_ca
     tool(api, "set_order_details", order_type="delivery", address=address)  # the name-and-number question
     said = tool(api, "set_order_details", order_type="delivery", customer_name="Priya")["say"]  # "Priya, isi pe"
     assert "1902 A Wing Modi पर डिलीवरी" in said and "Bhagwati" not in said
-    assert "व्हाट्सएप पर इसी नंबर पर आएगा" in said and "वाले नंबर" not in said
+    assert "व्हाट्सएप पर इसी नंबर पर आएगा" in said and "9 8 7" not in said  # asked once already
 
 
 def test_a_dessert_is_offered_only_when_nothing_else_was(api):
@@ -682,3 +681,87 @@ def test_the_whatsapp_bill_is_in_english_after_a_hindi_call(api, fake):
     bill = next(m for m in fake.tables["message_outbox"] if m["kind"] == "customer_bill")["body"]["text"]
     assert "Order " in bill and "Total: " in bill and "Deliver to: 12 MG Road" in bill
     assert not any("ऀ" <= ch <= "ॿ" for ch in bill)  # no Devanagari at all
+
+
+def test_an_unchanged_order_is_not_read_back_twice(api):
+    first = order_to_read_back(api)
+    again = tool(api, "read_back_order")  # Samvaad's LLM calls it again on its own
+    assert "say" not in again and "do not read it again" in again["result"]
+    assert first["say"] in again["result"]  # there to repeat, only if the guest asked
+    assert tool(api, "checkout")["result"].startswith("Order placed")
+
+
+def test_a_changed_order_is_read_back_again(api):
+    order_to_read_back(api)
+    tool(api, "add_to_cart", item_name="Sweet Lassi")
+    assert "Sweet Lassi" in tool(api, "read_back_order")["say"]
+
+
+def test_alternatives_are_only_the_same_kind_of_dish():
+    assert samvaad_session._same_kind("Veg Kolhapuri", "Paneer Kolhapuri")
+    assert samvaad_session._same_kind("shahi paneer", "Paneer Makhani")
+    assert not samvaad_session._same_kind("bhindi masala", "Veg Pink Pasta")
+    assert not samvaad_session._same_kind("veg sabji", "Veg Club Sandwich")  # "veg" alone makes nothing alike
+
+
+def test_the_owner_message_has_the_order_number_mobile_and_an_english_address():
+    text = messages.owner_order({
+        "id": "o1", "payment_ref": "M5P6F3", "items": [{"name": "Veg Dum Biryani", "quantity": 1, "price": 1155}],
+        "total": 1155, "order_type": "delivery", "address": "1902 ए विंग, बोरीवली", "customer_name": "प्रिया",
+        "customer_phone": "+919876543210",
+    })["text"]
+    assert text.startswith("Order M5P6F3\n") and "New phone" not in text
+    assert "Mobile: +91 98765 43210" in text and "Name: Priya" in text
+    assert not any("\u0900" <= ch <= "\u097f" for ch in text)
+
+
+# ------------------------------------------------------------ a dropped call --
+
+
+def start(api, interaction_id, **body):
+    body = {"interaction_id": interaction_id, "store_slug": "spice-route", "caller": f"+{CUSTOMER}", **body}
+    return api.post("/samvaad/start", json=body, headers=AUTH).json()
+
+
+def test_a_call_that_dropped_gets_its_cart_back_on_the_next_call(api, fake):
+    start(api, "call-1")
+    tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 2}, {"name": "Butter Naan", "quantity": 4}])
+    tool(api, "set_order_details", order_type="delivery", address="12 MG Road")
+    # The line drops. The same number calls again.
+    body = start(api, "call-2")
+    assert body["resumed_order"] == "2 Paneer Butter Masala, 4 Butter Naan"
+    assert body["cart_summary"] == "2 x Paneer Butter Masala, 4 x Butter Naan"
+    old = next(c for c in fake.tables["carts"] if c["interaction_id"] == "call-1")
+    assert old["status"] == "recovered"  # won back, not counted as a dropped cart
+    # The address came back too, so the next step is the name-and-number question, then one read-back.
+    asked = tool(api, "set_order_details", interaction_id="call-2", order_type="delivery")
+    assert "नाम" in asked["say"]
+
+
+def test_a_new_caller_or_an_old_cart_starts_empty(api, fake):
+    assert start(api, "call-1")["resumed_order"] == "none"
+    tool(api, "add_to_cart", item_name="Butter Naan")
+    next(c for c in fake.tables["carts"] if c["interaction_id"] == "call-1")["last_activity_at"] = "2020-01-01T00:00:00+00:00"
+    assert start(api, "call-2")["resumed_order"] == "none"  # more than an hour ago
+    assert start(api, "call-3", caller="+919111111111")["resumed_order"] == "none"  # someone else
+
+
+def test_an_ordered_cart_is_not_brought_back(api):
+    start(api, "call-1")
+    order_to_read_back(api)
+    tool(api, "checkout")
+    assert start(api, "call-2")["resumed_order"] == "none"
+
+
+def test_same_kind_alternatives_put_the_owners_picks_first(api, monkeypatch):
+    tool(api, "view_cart")  # opens the call
+    session = samvaad_session.sessions.get("call-1")
+    paneer = [{"name": "Paneer Tikka Masala", "veg": True}, {"name": "Paneer Butter Masala", "veg": True},
+              {"name": "Kadai Paneer", "veg": True, "featured": ["bestseller"]}, {"name": "Veg Pink Pasta", "veg": True}]
+    monkeypatch.setattr(session.menu, "search", lambda name, k=8: paneer)
+    session._not_on_menu("Couldn't find 'Shahi Paneer' on the menu.", {})
+    assert "इसकी जगह Kadai Paneer, Paneer Tikka Masala ले सकते हैं" in session.order.spoken  # bestseller first, no pasta
+    for dish in paneer:
+        dish.pop("featured", None)  # the owner turned Bestsellers off: nothing is featured, the search's own order
+    session._not_on_menu("Couldn't find 'Shahi Paneer' on the menu.", {})
+    assert "इसकी जगह Paneer Tikka Masala, Paneer Butter Masala ले सकते हैं" in session.order.spoken

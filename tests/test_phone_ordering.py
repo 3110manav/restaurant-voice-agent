@@ -194,7 +194,8 @@ def test_the_order_queues_both_messages_from_saved_figures(fake, store):
     owner, customer = fake.tables["message_outbox"]
     assert owner["recipient"] == OWNER and owner["kind"] == "owner_order"
     assert [b["title"] for b in owner["body"]["buttons"]] == ["Accept", "Out of stock", "Paid"]
-    assert "12 MG Road" in owner["body"]["text"] and CUSTOMER in owner["body"]["text"]
+    assert "12 MG Road" in owner["body"]["text"] and "Mobile: +91 90000 00002" in owner["body"]["text"]
+    assert owner["body"]["text"].startswith("Order ")  # the order number alone, no "New phone order"
     assert customer["recipient"] == CUSTOMER and customer["kind"] == "customer_bill"
     bill = customer["body"]
     assert bill["type"] == "text" and "₹96" in bill["text"]

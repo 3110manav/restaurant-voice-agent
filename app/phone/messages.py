@@ -4,6 +4,7 @@ Every message is in English, the owner's and the customer's alike, whatever lang
 read and forwarded, and a Hindi bill came out half translated ("पता: 1902, having Modi's face").
 """
 from app.currency import format_price
+from app.menu.translit import has_devanagari, to_roman
 
 CAPTION_LIMIT = 1024  # WhatsApp's limit on an image caption
 
@@ -21,22 +22,38 @@ def _item_lines(order: dict) -> str:
     return f"{lines}\nSpecial request: {order['special_requests']}" if order.get("special_requests") else lines
 
 
+def english(text: str | None) -> str:
+    """Text a guest said, in English letters for a WhatsApp message: speech-to-text sometimes writes an address or
+    name in Hindi script ("बोरीवली वेस्ट"). The agent is asked to write them in English letters; this catches the rest."""
+    if not text or not has_devanagari(text):
+        return text or ""
+    words = to_roman(text).split(" ")
+    # Menus and maps end a word in "i", not "ee" (Borivali, not Boreevalee).
+    return " ".join(w[:-2] + "i" if w.endswith("ee") else w for w in words).title()
+
+
+def mobile(phone: str | None) -> str:
+    """+919876543210 as +91 98765 43210, easy to read and tap; anything else as it is."""
+    digits = "".join(ch for ch in phone or "" if ch.isdigit())
+    if len(digits) == 12 and digits.startswith("91"):
+        return f"+91 {digits[2:7]} {digits[7:]}"
+    return phone or "not available"
+
+
 def _fulfilment(order: dict) -> str:
     if order["order_type"] == "pickup":
         return "Pickup from store"
-    return f"Deliver to: {order['address']}"
+    return f"Deliver to: {english(order['address'])}"
 
 
 def owner_order(order: dict) -> dict:
-    customer = order.get("customer_phone") or "number not available"
-    if order.get("customer_name"):
-        customer = f"{order['customer_name']}, {customer}"
+    name = f"Name: {english(order['customer_name'])}\n" if order.get("customer_name") else ""
     text = (
-        f"New phone order {order['payment_ref']}\n\n"
+        f"Order {order['payment_ref']}\n\n"
         f"{_item_lines(order)}\n\n"
         f"Total: {format_price(float(order['total']))}\n"
         f"{_fulfilment(order)}\n"
-        f"Customer: {customer}"
+        f"{name}Mobile: {mobile(order.get('customer_phone'))}"
     )
     return {
         "type": "buttons",

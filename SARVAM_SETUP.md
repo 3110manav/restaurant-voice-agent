@@ -74,6 +74,7 @@ New agent, single state, named **Sarthi Restaurants**. Languages: Hindi and Engl
 | `language` | `Hindi` | browser |
 | `cart_summary` | `empty` | every cart tool (Save reply into variables) |
 | `house_rules` | `none` | start tool: the restaurant's rule book, written by its owner in the dashboard |
+| `resumed_order` | `none` | start tool: the cart of this caller's call that got cut off in the last hour, already back in the cart |
 | `saved_address` | `none` | reserved for returning guests (not filled yet) |
 
 On inbound phone calls, map the caller's number into a variable `caller` (telephony metadata). If your
@@ -113,6 +114,8 @@ total, and never add up money yourself.
 - When they are done, ask whether it is delivery or pickup (and the address for delivery), then call
   set_order_details. Do not ask for their name or WhatsApp number yourself: the tool asks both in one question.
 - Never repeat or confirm the address yourself. The read-back includes it.
+- Write the address and the guest's name in English letters ("Borivali West", not "बोरीवली वेस्ट"), whatever
+  language the guest speaks.
 - If a tool result contains "Say exactly this to the guest:", say that sentence word for word and nothing else.
   It is the read-back, the order confirmation, or a question such as the name and WhatsApp number for the bill.
 - When the guest answers that question, call set_order_details again with customer_name, and with
@@ -131,6 +134,11 @@ total, and never add up money yourself.
 - Don't repeat what the guest just said, and don't read the order or the address back yourself: the tools do that
   once, at the right moment. Confirm new dishes in one short sentence.
 - After the order is placed, say the order-placed sentence and end the call straight away.
+
+A CALL THAT GOT CUT OFF
+If @resumed_order is not "none", this guest's last call dropped and their order is already back in the cart. Greet
+them, say in one sentence that you still have their order (@resumed_order), and ask whether to continue with it. If
+they want to start again, remove each dish with remove_from_cart.
 
 RESTAURANT RULES
 This restaurant's own rules, written by its owner:
@@ -154,7 +162,7 @@ Create each one as an **API tool → Real integration**. Common settings for all
 
 | Tool name | When | URL | Extra body fields the agent fills | Description for the agent |
 |---|---|---|---|---|
-| `start_call` | on_start | `/samvaad/start` | none | Loads the restaurant. Save reply into variables: `store_slug`, `store_name`, `agent_name`, `house_rules` |
+| `start_call` | on_start | `/samvaad/start` | none | Loads the restaurant. Save reply into variables: `store_slug`, `store_name`, `agent_name`, `house_rules`, `resumed_order` |
 | `search_menu` | During conversation | `/samvaad/tools/search_menu` | `query` | Find dishes by name, ingredient, taste or diet |
 | `get_item_details` | During conversation | `/samvaad/tools/get_item_details` | `name` | Price, sizes, spice level and ingredients of one dish |
 | `add_to_cart` | During conversation | `/samvaad/tools/add_to_cart` | `item_name`, `quantity`, `variant`, `note` (or `items`: a list of `{name, quantity, variant, note}`) | Add dishes the guest asked for. `note` is a change to that dish in the guest's words ("without beans") |

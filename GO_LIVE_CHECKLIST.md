@@ -146,6 +146,12 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
       flow (today `setup_store` on the command line)
 - [ ] **Use the restaurant's existing WhatsApp number** for bills and alerts
 - [ ] **Samvaad config** written down in the repo (instructions, tools, block 3 fields, variables, voice, LLM)
+- [x] **Test-call feedback (27 Nov)**: alternatives only of the same kind (no sabji → pasta/sandwich); the bill
+      number asked as "this number, 9 8 7 6 5, 4 3 2 1 0, or another?" and a given number read out in full; the order
+      read back once (a repeated read_back_order is held back); a dropped call's cart comes back on the next call from
+      the same number (within an hour). WhatsApp: "Order M5P6F3" header, English address and name, "Mobile: +91 …";
+      customer bills always in English; the call keeps its language until the guest switches
+- [ ] **Update the order details**: needs a definition (change dishes or address after the order is placed?)
 - [ ] **Petpooja integration** (APIs received 27 Nov): push each phone order into the restaurant's POS so the
       kitchen gets a KOT without retyping; pull menu, prices and stock from Petpooja instead of `setup_store`; get
       order status back (accepted, ready, dispatched) for customer messages. First: read the API docs, list the

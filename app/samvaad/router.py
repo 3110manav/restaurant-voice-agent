@@ -147,7 +147,9 @@ def start(call: ToolCall, authorization: str | None = Header(default=None)) -> d
     # Only the names of any fields we don't know, never their values: they can be a caller's details.
     logger.info("Samvaad start: unrecognised fields %s", sorted(call.model_extra or {}))
     session = _session(call)
-    return {**session.start_variables(), **session.snapshot()}
+    with session.lock:
+        session.resume_dropped()  # a call that got cut off: its cart comes back
+        return {**session.start_variables(), **session.snapshot()}
 
 
 TOOLS = (

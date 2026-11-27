@@ -73,6 +73,8 @@ class PhoneOrder:
         self.turn = 0
         self.read_back: list[dict] | None = None
         self.read_back_turn = -1
+        self.read_back_words: str | None = None  # what the guest heard at the last read-back
+        self.read_back_details: tuple | None = None  # the order type, address, number and requests it described
         self.order_id: str | None = None
         self.callback_reason: str | None = None
         # Who this is, for the owner's dashboard. The caller ID from the phone network is verified; a number the
@@ -198,6 +200,14 @@ class PhoneOrder:
         self.read_back = None  # what was read back no longer describes the order
         return self.prepare_read_back()
 
+    def _details(self) -> tuple:
+        return (self.order_type, self.address, self.whatsapp, self.special_text())
+
+    def already_read_back(self) -> bool:
+        """The guest has heard this exact order (dishes, address, number and requests) and nothing has changed."""
+        return (self.read_back is not None and not self.order_id and self.read_back == self.cart
+                and self.read_back_details == self._details() and self.read_back_words is not None)
+
     def _total(self) -> float:
         return sum(line["price"] * line["quantity"] for line in self.cart)
 
@@ -230,11 +240,13 @@ class PhoneOrder:
                         "May I have your name and your WhatsApp number for the bill?")
             return ("बिल व्हाट्सएप पर भेजना है। आपका व्हाट्सएप नंबर बता दीजिए?",
                     "I'll send the bill on WhatsApp. What's your WhatsApp number?")
+        # The number they're calling from, read out in full so they can check it is their WhatsApp number.
+        number = numbers.spoken(self.whatsapp)
         if name:
-            return ("आपका नाम बता दीजिए? और बिल व्हाट्सएप पर इसी नंबर पर भेज दूँ, या किसी और नंबर पर?",
-                    "May I have your name? And shall I send the bill on WhatsApp to this number, or another one?")
-        return ("बिल व्हाट्सएप पर इसी नंबर पर भेज दूँ, या किसी और नंबर पर?",
-                "Shall I send the bill on WhatsApp to this number, or another one?")
+            return (f"आपका नाम बता दीजिए? और बिल व्हाट्सएप पर इसी नंबर, {number}, पर भेज दूँ, या किसी और नंबर पर?",
+                    f"May I have your name? And shall I send the bill on WhatsApp to this number, {number}, or another one?")
+        return (f"बिल व्हाट्सएप पर इसी नंबर, {number}, पर भेज दूँ, या किसी और नंबर पर?",
+                f"Shall I send the bill on WhatsApp to this number, {number}, or another one?")
 
     def _ask_contact(self) -> str:
         self._say(*self._contact_question())
@@ -306,16 +318,16 @@ class PhoneOrder:
             # The number they're calling from: no digits to read out.
             to_hi, to_en = "इसी नंबर पर", "to this number"
         else:
-            # A number the guest told us: its last four digits, spaced so "3210" is read digit by digit, to catch a
-            # number misheard.
-            ending = " ".join(numbers.last_four(self.whatsapp))
-            to_hi, to_en = f"{ending} वाले नंबर पर", f"to the number ending {ending}"
+            # A number the guest told us: read out in full, digit by digit, to catch a number misheard.
+            number = numbers.spoken(self.whatsapp)
+            to_hi, to_en = f"{number} नंबर पर", f"to {number}"
         name = self.customer_name if self.collect_contact else ""
         hi_name, en_name = (f"{name} जी, ", f"{name}, ") if name else ("", "")
         self._say(
             f"{hi_name}{hindi} {bill_hi} व्हाट्सएप पर {to_hi} आएगा। ऑर्डर पक्का कर दूँ?",
             f"{en_name}{english[0].lower() if en_name else english[0]}{english[1:]} The {bill_en} will come on WhatsApp {to_en}. Shall I place the order?",
         )
+        self.read_back_words, self.read_back_details = self.spoken, self._details()
         return f"Read back to the customer: {self.spoken} Only call checkout after they say yes in their next message."
 
     def checkout(self) -> str:
