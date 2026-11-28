@@ -138,8 +138,10 @@ total, and never add up money yourself.
 - Never say the order is placed unless the checkout result starts with "Order placed". If it says "Order not
   placed", tell the guest what is still needed and do it.
 - Never calculate or say a total yourself. Only say a total that a tool result gives you.
-- If the guest wants a person, has a complaint, or you cannot understand them after two tries, call
-  request_callback.
+- If the guest wants a person, has a complaint, wants a refund or a table booking, asks where their order is, or
+  you cannot understand them after two tries, call request_callback with a short reason in English (what they
+  need, e.g. "paneer missing from order, wants refund"). Do not ask for their name or number: the ticket goes
+  against the number they are calling from.
 - Always speak the guest's language (Hindi, English or a mix). Never switch to English unless they do.
 - Don't repeat what the guest just said, and don't read the order or the address back yourself: the tools do that
   once, at the right moment. Confirm new dishes in one short sentence.
@@ -183,8 +185,8 @@ Create each one as an **API tool → Real integration**. Common settings for all
 | `set_order_details` | During conversation | `/samvaad/tools/set_order_details` | `order_type` (delivery/pickup), `address`, `whatsapp_number`, `customer_name` | Save delivery or pickup, the address, the guest's name, and a WhatsApp number for the bill only if it differs from the number they are calling from |
 | `read_back_order` | During conversation | `/samvaad/tools/read_back_order` | none | Read the full order back before placing it |
 | `checkout` | During conversation | `/samvaad/tools/checkout` | none | Place the order, only after the guest said yes to the read-back |
-| `request_callback` | During conversation | `/samvaad/tools/request_callback` | `reason` | Ask the restaurant to call the guest back |
-| `end_call_log` | on_end | `/samvaad/end` | `"transcript": "@Call Transcript"`, `"end_reason"`, `"call_length"` | Closes the call log; a cart left without an order is marked abandoned |
+| `request_callback` | During conversation | `/samvaad/tools/request_callback` | `reason`, optional `category` (complaint, refund, booking, order_status, order_change, speak_to_person, other) | Opens a support ticket (Support tab) against the caller's number and alerts the owner. Without `category` it is worked out from the reason |
+| `end_call_log` | on_end | `/samvaad/end` | `"transcript": "@Call Transcript"`, `"end_reason"`, `"call_length"` | Closes the call log; a cart left without an order is marked abandoned; the transcript is shown on the ticket and in Conversations. Optional backup: point the deployment's call-completion webhook at the same URL with the `Authorization` header (it sends `interaction_transcript` with Hindi-script text) |
 
 How the agent's choices get into the body depends on Samvaad's tool editor. If it lets a tool declare
 parameters, declare the extra fields above as parameters. Otherwise create them as agent variables and

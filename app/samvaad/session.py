@@ -642,9 +642,9 @@ class SamvaadSession:
             "exactly these words and wait for their yes, then call checkout."
         )
 
-    def callback(self, reason: str, language: str | None = None) -> dict:
+    def callback(self, reason: str, language: str | None = None, category: str | None = None) -> dict:
         self._turn(language)
-        return self._reply(self.order.request_callback(reason))
+        return self._reply(self.order.request_callback(reason, category))
 
     def close(self, transcript=None, extra: dict | None = None) -> None:
         if not self.order.order_id:
@@ -655,14 +655,24 @@ class SamvaadSession:
         fields = {"outcome": outcome, "ended_at": repository.now_iso()}
         if extra and extra.get("end_reason"):
             fields["end_reason"] = str(extra["end_reason"])[:100]
-        if transcript:
-            fields["turns"] = transcript if isinstance(transcript, list) else [{"transcript": str(transcript)}]
-        if extra:
-            fields["metrics"] = [extra]
+        save_call_log(self.call_id, self.restaurant_id, self.interaction_id, self.caller, transcript, extra, fields,
+                      self.language)
+
+
+def save_call_log(call_id: str, restaurant_id: str | None, interaction_id: str, caller: str | None, transcript=None,
+                  extra: dict | None = None, fields: dict | None = None, language: str | None = None) -> None:
+    """A finished call's transcript and length on its phone_calls row, where its ticket and Conversations read it."""
+    fields = dict(fields or {})
+    if transcript:
+        fields["turns"] = transcript if isinstance(transcript, list) else [{"transcript": str(transcript)}]
+    if extra:
+        fields["metrics"] = [extra]
+    if fields:
         try:
-            repository.update_call(self.call_id, **fields)
+            repository.update_call(call_id, **fields)
         except Exception:
-            logger.warning("couldn't close the log of Samvaad call %s", self.interaction_id, exc_info=True)
+            logger.warning("couldn't close the log of Samvaad call %s", interaction_id, exc_info=True)
+
 
 
 class SessionRegistry:

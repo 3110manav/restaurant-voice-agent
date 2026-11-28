@@ -3,29 +3,71 @@
 Restaurant phone orders through one Samvaad agent (Kabir) and our tool API (`app/samvaad/`).
 Setup steps: [SARVAM_SETUP.md](SARVAM_SETUP.md). Earlier pilot plan: [SARVAM_PILOT_CHECKLIST.md](SARVAM_PILOT_CHECKLIST.md).
 
-## Live demo next week (updated 28 Nov 2026)
+## Status on 28 Nov 2026 (branch `feature/28_nov`, for Manav's review)
 
-Blockers, in order. Petpooja (Manav, own branch) and optimisations are tracked separately below.
+### Done on 28 Nov (this PR)
 
-- [ ] **Deploy `feature/28_nov`** to the live server (English names on the board, caller's own number not read out,
-      plus everything from 27 Nov)
-- [ ] **Run migrations** on Supabase: `010_agent_rules.sql`, `011_opening_hours.sql`, `012_support_tickets.sql`;
-      then `python -m app.phone.setup_store hours <slug> "11:00-23:30"` for the demo restaurant
-- [ ] **Samvaad setup**: variables `house_rules` and `resumed_order` (both saved from `start_call`); `transcript` =
-      @Call Transcript on checkout; `add_note` and `add_special_request` tools; instruction sections from
-      [SARVAM_SETUP.md](SARVAM_SETUP.md) (language, "a call that got cut off", name/address in English letters,
-      never read out the caller's own number)
+- [x] **Support tab** (was Callbacks): a full ticket feature. Categories (complaint, refund, table booking, where is
+      my order, change an order, wants a person, order not saved) and urgent vs normal, worked out from Kabir's
+      reason; raised against the number the call came from (Kabir never asks a name). Actions: Call, I'm on it,
+      No answer (counts attempts), notes, Resolve with a resolution, Reopen, change category or urgency; optional
+      WhatsApp to the customer. Each ticket shows its history, order and call transcript. Filters and paging run
+      in the backend (`GET /owner/restaurants/{id}/tickets`). Migration `015_ticket_actions.sql` (run)
+- [x] **Call log tab** (replaces Conversations for phone calls): one India day at a time, the day's totals, outcome
+      filter, 50 calls a page, all in the backend (`GET /owner/restaurants/{id}/calls`); each call with who called
+      (Caller ID / number given / test call), length, order, ticket and transcript; Show number and Call reveal
+      the full number (logged)
+- [x] **Call transcripts**: `@Call Transcript` and call length arrive in `end_call_log` (since 28 Nov). Shown in the
+      Call log, on each ticket, and behind a Transcript button on each order. `/samvaad/end` also reads Sarvam's
+      deployment webhook (`interaction_transcript`, Hindi-script text) if it is connected
+- [x] **Everything on the dashboard in English**: names saved in English letters; older Hindi-script names,
+      addresses and special requests shown in English
+- [x] **Caller's own number not read out**: "इसी नंबर पर भेज दूँ जिससे आप कॉल कर रहे हैं?"
+- [x] **No more 500s on a quiet dashboard**: Supabase drops idle connections ("Server disconnected"); every
+      dashboard read now retries once, and a single failed background refresh no longer shows a red banner
+- [x] **Built for volume**: the board reads only the requests and call fields of the orders it shows; tickets and
+      calls are paged in the database; transcripts load per call, not with the lists
+- [x] Instructions in Samvaad updated (request_callback line, name/address in English, own number)
+
+### Left before the live demo (next week)
+
+- [ ] **Deploy `feature/28_nov`** to the live server once Manav has reviewed it
+- [ ] **Migrations**: `012_support_tickets.sql` and `015_ticket_actions.sql` are run. Confirm `010_agent_rules.sql`,
+      `011_opening_hours.sql` and `014_store_numbers.sql` are run too; then
+      `python -m app.phone.setup_store hours <slug> "11:00-23:30"` for the demo restaurant
+- [ ] **Greeting says the slug**: today's transcripts start "Welcome to borivali-biryani-centre". The server sends
+      `store_name` correctly: in Samvaad, save `store_name` from `start_call` and use `@store_name` in the greeting
+- [ ] **Samvaad setup still to check**: variables `house_rules` and `resumed_order` (saved from `start_call`);
+      `transcript` = @Call Transcript on checkout; `add_note` and `add_special_request` tools; the "a call that got
+      cut off" section
 - [ ] **WhatsApp bill to a new customer**: phone bills go out as free text, so a customer who never messaged the
-      business number gets nothing (Meta error 131047). Demo: message the business number from each demo phone
-      first. Real customers: get a bill template approved and send bills with it
+      business number gets nothing (Meta error 131047); the owner's alerts have the same limit. Demo: message the
+      business number from each demo phone and the owner's phone first. Real customers: an approved bill template
 - [ ] **Demo number**: map the real Sarvam number to the restaurant (`setup_store use`; the store number is still a
-      placeholder) and confirm Sarvam sends the dialled number to `start_call` (number mapper, PR #21)
-- [ ] **Clean test data** (test orders and dropped carts on the board), or demo on a fresh restaurant
+      placeholder) and confirm on a real call that Sarvam sends the dialled number to `start_call`
+- [ ] **Clean test data** (test orders, dropped carts, test calls), or demo on a fresh restaurant
 - [ ] **Security**: rotate `SAMVAAD_TOOL_TOKEN`, protect `/sarvam`
-- [ ] **Full rehearsal on a real phone**: biryani script; owner commands (`accept`, `reject`, `ready`, `dispatch` +
-      order code) reach the customer; a callback ticket appears in the Callbacks tab
+- [ ] **Full rehearsal on a real phone** (no real-phone run yet, only the browser test bed): biryani script; owner
+      commands (`accept`, `reject`, `ready`, `dispatch` + order code) reach the customer; a complaint becomes an
+      urgent ticket with its transcript; the call shows in the Call log with the caller's number
 
-Biggest risks: the WhatsApp bill to a new customer, and no full rehearsal yet.
+Biggest risks: the WhatsApp bill to a new customer, and no real-phone rehearsal yet.
+
+### After the demo (product, not optimisation)
+
+- [ ] **Petpooja** (Manav, own branch): orders into the POS, menu and stock from Petpooja
+- [ ] **Live transfer for urgent calls** to the manager's mobile, callback as the fallback (plan in P0 below);
+      needs Sarvam's answer on transfers (question 10)
+- [ ] **Delivery riders on the same number**: today they reach Kabir (a 28 Nov ticket was a rider); plan in P0
+- [ ] **Restaurant's existing number** through call forwarding (plan in P0); needs Sarvam's answers (questions 1, 2)
+- [ ] **Returning customers**: `start_call` sends only `caller_known`; send `customer_name`, `saved_address`,
+      `last_order` for greeting by name and "same as last time"
+- [ ] **Support tickets next**: a reminder when a ticket waits over 15 min, a "Call now" link in the alert
+- [ ] **Order status messages**: code exists (owner command → customer), not tested end to end
+- [ ] **Change an order after it is placed**: needs a definition
+- [ ] "Shahi Paneer hai?" asked as a question; Jain and diet tags; priced add-ons
+- [ ] **Call recordings**: Sarvam sends no recording link; ask for an API (signed links expire in 14 days)
+- [ ] Restaurant onboarding in the dashboard (today `setup_store` on the command line)
 
 ## Where we are (22 Nov 2026)
 
@@ -147,8 +189,9 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
 - [ ] **Background noise cuts the read-back** (real call 20 Nov, order 6VE4F7): lower barge-in sensitivity or
       require a minimum speech length, turn on noise suppression, and shorten the read-back (skip the WhatsApp
       line when it's the caller's own number)
-- [ ] `end_call_log` sends an empty transcript and call length: set those Body rows to the built-in Call
-      Transcript and Call Length variables (still empty on 20 Nov). Needed for the read-back check and for cost
+- [x] `end_call_log` transcript and call length: arriving since 28 Nov (role + English text per turn, call length in
+      seconds). Each call's transcript now shows in **Conversations** and on its support ticket (from new calls on;
+      older calls can be backfilled)
 - [x] Not-on-the-menu dishes: search hint reworded, instruction lines added (Maggiano's Pizza, Veg Kolhapuri)
 - [ ] Not on the menu, asked as a question ("Shahi Paneer hai?"): `get_item_details` still answers "could mean…"
 - [x] Alternatives for a missing dish: at most 2, veg for a veg dish (22 Nov)
@@ -172,6 +215,7 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
       in `requests` (type "callback"). The owner's **Callbacks** tab lists them (open ones first, oldest first) with
       the masked number, reason and waiting time, a **Call** button that fetches that one number, and **Resolved**.
       The WhatsApp alert still goes out and points to the tab. To do: run migration `012_support_tickets.sql`
+- [x] **Support tab and Call log** (28 Nov): see "Status on 28 Nov" at the top
 - [x] **Owner view**: no table number for phone orders, channel shown, numbers masked (Manav's Calls & orders board)
 - [x] **Dish relevance settings**: Bestseller / New and pairing switches (Manav)
 - [ ] **DB cleanup**: remove test data before go-live (test orders such as 9X3RQ8, "abandoned" rows from API tests)
@@ -187,7 +231,8 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
       number is still read back in full
 - [ ] **Samvaad config** written down in the repo (instructions, tools, block 3 fields, variables, voice, LLM)
 - [x] **Test-call feedback (27 Nov)**: alternatives only of the same kind (no sabji → pasta/sandwich); the bill
-      number asked as "this number, 9 8 7 6 5, 4 3 2 1 0, or another?" and a given number read out in full; the order
+      number asked as "this number or another?" (28 Nov: the caller's own number is no longer read out) and a
+      given number read out in full; the order
       read back once (a repeated read_back_order is held back); a dropped call's cart comes back on the next call from
       the same number (within an hour). WhatsApp: "Order M5P6F3" header, English address and name, "Mobile: +91 …";
       customer bills always in English; the call keeps its language until the guest switches
@@ -196,8 +241,8 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
       kitchen gets a KOT without retyping; pull menu, prices and stock from Petpooja instead of `setup_store`; get
       order status back (accepted, ready, dispatched) for customer messages. First: read the API docs, list the
       endpoints and keys needed, test on a sandbox outlet
-- [ ] **Migrations to run, in order**: `010_agent_rules.sql` (Manav's rule book), `011_opening_hours.sql`,
-      `012_support_tickets.sql`
+- [ ] **Migrations, in order**: `010_agent_rules.sql` (Manav's rule book), `011_opening_hours.sql`,
+      `012_support_tickets.sql` (run), `014_store_numbers.sql`, `015_ticket_actions.sql` (run)
 
 Merged into other items: short speech → above · call transcript → `end_call_log` item · the agent stops when the
 guest speaks → background-noise item · return order → returning customers (if it means a repeat order).
@@ -219,7 +264,7 @@ guest speaks → background-noise item · return order → returning customers (
 6. Bulk pricing for 100+ numbers?
 7. Is usage billed per second or per started minute?
 8. Which settings control barge-in sensitivity, noise suppression and end-of-speech timing?
-9. Why do `@Call Transcript` and `@Call Length` arrive empty in the end tool?
+9. ~~Why do `@Call Transcript` and `@Call Length` arrive empty in the end tool?~~ Arriving since 28 Nov
 10. Can Samvaad transfer a live call to an outside mobile? After a transfer, is it billed at the AI rate or only
     telephony, on both legs? Is a blind transfer (Sarvam drops out of the call) possible?
 

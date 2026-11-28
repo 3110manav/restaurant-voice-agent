@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,19 @@ const POLL_MS = 8000;
 export function usePolling<T>(load: () => Promise<T>) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const failures = useRef(0);
+  const hasData = useRef(false);
   const refresh = useCallback(async () => {
     try {
       setData(await load());
+      hasData.current = true;
+      failures.current = 0;
       setError(null);
     } catch (err) {
-      setError((err as Error).message); // keep showing the last good data
+      // Keep showing the last good data. One failed background refresh (a dropped connection, a redeploy) is
+      // retried on the next tick without a red banner; it shows when nothing loaded yet or it keeps failing.
+      failures.current += 1;
+      if (!hasData.current || failures.current >= 2) setError((err as Error).message);
     }
   }, [load]);
   useEffect(() => {

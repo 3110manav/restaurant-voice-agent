@@ -19,7 +19,7 @@ from langchain_core.tools import tool
 
 from app.currency import format_price
 from app.customers.phone import normalize_phone
-from app.phone import messages, numbers, outbox, repository, upi
+from app.phone import messages, numbers, outbox, repository, tickets, upi
 
 logger = logging.getLogger("sarthi.phone.ordering")
 
@@ -392,7 +392,7 @@ class PhoneOrder:
         else:
             # Never tell a customer an order is placed when it isn't. The store still has to hear about them.
             self.callback_reason = "their order couldn't be saved by the system"
-            self._open_ticket(f"Order couldn't be saved ({format_price(order['total'])}): call them back to take it")
+            self._open_ticket(f"Order couldn't be saved ({format_price(order['total'])}): call them back to take it", "order_failed")
             outbox.send_alert_now(
                 self.store["owner_whatsapp"],
                 f"An order couldn't be saved. Please call {self.whatsapp} right away.",
@@ -416,34 +416,42 @@ class PhoneOrder:
             self._say("ऑर्डर पक्का हो गया, बिल व्हाट्सएप पर भेज दिया है। धन्यवाद!", "Your order is placed, and the bill is on WhatsApp. Thank you!")
         return f"Order placed: {order['payment_ref']}. Total: {format_price(order['total'])}."
 
-    def _open_ticket(self, reason: str) -> None:
-        """A support ticket on the owner's dashboard (Callbacks tab), so a call back isn't lost in WhatsApp."""
+    def _open_ticket(self, reason: str, category: str | None = None) -> dict:
+        """A support ticket on the owner's dashboard (Support tab), so a call back isn't lost in WhatsApp.
+        Returns its category and urgency, for the owner's alert."""
+        fields = tickets.new_ticket_fields(reason, category)
         try:
-            self.ticket_id = repository.open_ticket({
+            self.ticket_id = tickets.insert({
+                **fields,
                 "session_id": self.session_id or (self.call_id or ""),
                 "persona": self.persona,
-                "details": reason,
                 "restaurant_id": self.restaurant_id,
                 "call_id": self.call_id,
                 "customer_id": self.customer_id,
                 "order_id": self.order_id,
-                "customer_phone": normalize_phone(self.whatsapp or self.caller) or self.whatsapp or self.caller,
+                # Against the number the call came from (28 Nov): no name or number needs asking. A number the guest
+                # gave is the fallback, for a call without caller ID (a browser test call).
+                "customer_phone": normalize_phone(self.caller or self.whatsapp) or self.caller or self.whatsapp,
             })
         except Exception:
             logger.exception("couldn't open a support ticket for call %s", self.call_id)
+        return fields
 
-    def request_callback(self, reason: str) -> str:
+    def request_callback(self, reason: str, category: str | None = None) -> str:
         if self.callback_reason:
             self._say("दुकान को बता दिया है, आपको जल्द फ़ोन आएगा।", "I've told the store, and they'll call you soon.")
             return "The store has already been asked to call back."
         self.callback_reason = reason.strip()[:200] or "the customer asked"
-        self._open_ticket(self.callback_reason)
-        body = messages.callback_alert(self.whatsapp or self.caller, self.callback_reason, self.store["name"])
+        ticket = self._open_ticket(self.callback_reason, category)
+        body = messages.callback_alert(self.caller or self.whatsapp, ticket["details"], self.store["name"],
+                                       tickets.CATEGORIES[ticket["category"]], ticket["priority"] == "urgent")
         try:
             repository.queue_message(self.store["owner_whatsapp"], "callback_alert", body, call_id=self.call_id)
             outbox.flush_in_background()
         except Exception:
             logger.exception("couldn't queue the callback alert")
             outbox.send_alert_now(self.store["owner_whatsapp"], body["text"])
-        self._say("ठीक है, दुकान को बता दिया है। आपको जल्द फ़ोन आएगा।", "Okay, I've told the store. They'll call you soon.")
-        return "The store has been asked to call them back."
+        self._say("ठीक है, दुकान को बता दिया है। आपको इसी नंबर पर जल्द फ़ोन आएगा।",
+                  "Okay, I've told the store. They'll call you back on this number soon.")
+        return ("The store has been asked to call them back on the number they are calling from. "
+                "Do not ask for their name or number.")
