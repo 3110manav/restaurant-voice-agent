@@ -187,7 +187,7 @@ class PhoneOrder:
         self.order_type = kind
         name = _clean_name(customer_name)
         if name:
-            self.customer_name = name
+            self.customer_name = messages.english(name)  # the dashboard and bills show it in English letters
         if address.strip():
             self.address = address.strip()
         if chosen:
@@ -240,13 +240,12 @@ class PhoneOrder:
                         "May I have your name and your WhatsApp number for the bill?")
             return ("बिल व्हाट्सएप पर भेजना है। आपका व्हाट्सएप नंबर बता दीजिए?",
                     "I'll send the bill on WhatsApp. What's your WhatsApp number?")
-        # The number they're calling from, read out in full so they can check it is their WhatsApp number.
-        number = numbers.spoken(self.whatsapp)
+        # The number they're calling from: not read out, the guest knows their own number (28 Nov feedback).
         if name:
-            return (f"आपका नाम बता दीजिए? और बिल व्हाट्सएप पर इसी नंबर, {number}, पर भेज दूँ, या किसी और नंबर पर?",
-                    f"May I have your name? And shall I send the bill on WhatsApp to this number, {number}, or another one?")
-        return (f"बिल व्हाट्सएप पर इसी नंबर, {number}, पर भेज दूँ, या किसी और नंबर पर?",
-                f"Shall I send the bill on WhatsApp to this number, {number}, or another one?")
+            return ("आपका नाम बता दीजिए? और बिल व्हाट्सएप पर इसी नंबर पर भेज दूँ जिससे आप कॉल कर रहे हैं, या किसी और नंबर पर?",
+                    "May I have your name? And shall I send the bill on WhatsApp to the number you're calling from, or another one?")
+        return ("बिल व्हाट्सएप पर इसी नंबर पर भेज दूँ जिससे आप कॉल कर रहे हैं, या किसी और नंबर पर?",
+                "Shall I send the bill on WhatsApp to the number you're calling from, or another one?")
 
     def _ask_contact(self) -> str:
         self._say(*self._contact_question())

@@ -3,6 +3,30 @@
 Restaurant phone orders through one Samvaad agent (Kabir) and our tool API (`app/samvaad/`).
 Setup steps: [SARVAM_SETUP.md](SARVAM_SETUP.md). Earlier pilot plan: [SARVAM_PILOT_CHECKLIST.md](SARVAM_PILOT_CHECKLIST.md).
 
+## Live demo next week (updated 28 Nov 2026)
+
+Blockers, in order. Petpooja (Manav, own branch) and optimisations are tracked separately below.
+
+- [ ] **Deploy `feature/28_nov`** to the live server (English names on the board, caller's own number not read out,
+      plus everything from 27 Nov)
+- [ ] **Run migrations** on Supabase: `010_agent_rules.sql`, `011_opening_hours.sql`, `012_support_tickets.sql`;
+      then `python -m app.phone.setup_store hours <slug> "11:00-23:30"` for the demo restaurant
+- [ ] **Samvaad setup**: variables `house_rules` and `resumed_order` (both saved from `start_call`); `transcript` =
+      @Call Transcript on checkout; `add_note` and `add_special_request` tools; instruction sections from
+      [SARVAM_SETUP.md](SARVAM_SETUP.md) (language, "a call that got cut off", name/address in English letters,
+      never read out the caller's own number)
+- [ ] **WhatsApp bill to a new customer**: phone bills go out as free text, so a customer who never messaged the
+      business number gets nothing (Meta error 131047). Demo: message the business number from each demo phone
+      first. Real customers: get a bill template approved and send bills with it
+- [ ] **Demo number**: map the real Sarvam number to the restaurant (`setup_store use`; the store number is still a
+      placeholder) and confirm Sarvam sends the dialled number to `start_call` (number mapper, PR #21)
+- [ ] **Clean test data** (test orders and dropped carts on the board), or demo on a fresh restaurant
+- [ ] **Security**: rotate `SAMVAAD_TOOL_TOKEN`, protect `/sarvam`
+- [ ] **Full rehearsal on a real phone**: biryani script; owner commands (`accept`, `reject`, `ready`, `dispatch` +
+      order code) reach the customer; a callback ticket appears in the Callbacks tab
+
+Biggest risks: the WhatsApp bill to a new customer, and no full rehearsal yet.
+
 ## Where we are (22 Nov 2026)
 
 - [x] Kabir agent with 11 tools, working through an ngrok tunnel
@@ -71,7 +95,7 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
 
 ### P0: before real customers
 
-- [ ] **Stable hosting**: Render paid instance (Singapore or India region) instead of ngrok; update all tool URLs
+- [x] **Stable hosting**: Samvaad tools point at the live server instead of ngrok (27 Nov)
 - [x] **Carts in the database** (Supabase): saved as they change, restored after a restart (Manav, migration 009)
 - [x] **Never drop an order for a missing WhatsApp number**: asked once in one short line; without it the order is
       saved, the owner is alerted ("did NOT get a bill"), only the bill is skipped (22 Nov)
@@ -84,14 +108,24 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
       guest heard (send `@Call Transcript` with checkout, refuse unless it contains the real total)
 - [ ] **WhatsApp business number + approved templates**: today it is Meta's test number (5 recipients), and
       customers who never messaged us are refused (error 131047)
-- [ ] **One number per restaurant**, and confirm the dialled number reaches `start_call`
-      (else: `store_slug` per deployment, or one agent copy per restaurant)
+- [ ] **One number per restaurant**: number mapper merged (PR #21, the dialled number picks the restaurant). Still
+      to confirm on a real call that Sarvam sends the dialled number to `start_call`
 - [ ] **Opening hours**: code ready (22 Nov): no new order while closed, says when it opens. To do: run migration
       `011_opening_hours.sql`, then `python -m app.phone.setup_store hours <slug> "11:00-23:30"`
 - [x] **Notes and special requests** (Manav: `add_note`, `add_special_request`; create both tools in Samvaad).
       Still open: priced add-ons. Original item: **Add-ons and notes** in the cart: "extra cheese", "no onion", half-and-half, combos; shown in the read-back,
       the owner's order and the bill
-- [ ] **Transfer or callback to the restaurant**, tested on a real call
+- [ ] **Transfer or callback to the restaurant**, tested on a real call. Callback tickets are done; live transfer is
+      not. Plan (28 Nov): urgent calls (wrong or missing food now, allergy, guest asks twice) go live to the
+      manager's mobile, never the restaurant's own number (it forwards back to Kabir); nobody answers in ~20 s
+      → callback ticket + owner WhatsApp with a "Call now" button. Not urgent → ticket. "Where is my order" →
+      Kabir answers from the database
+- [ ] **Restaurant's existing number** (28 Nov): call forwarding from their number to one Sarvam number each
+      (₹59/month). Forwarding is billed to the restaurant's SIM (usually free on unlimited plans); `*61*` / `*67*`
+      rings staff first and sends only unanswered or busy calls to Kabir
+- [ ] **Delivery riders on the same number** (28 Nov): owner changes the Swiggy/Zomato outlet contact to a staff
+      mobile; staff numbers listed in the AI agent tab skip Kabir; a caller who says Swiggy/Zomato/pickup/location
+      gets one line and the owner a WhatsApp, no ordering
 - [ ] **Owner buttons tested end to end**: Accept / Out of stock / Paid, and the customer is told
 - [ ] **Samvaad plan with enough concurrent calls**: pay-as-you-go allows 4 at once across all restaurants;
       Pro 10, Growth 30
@@ -99,11 +133,12 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
 
 ### P1: during the pilot
 
-- [ ] Returning customers: saved address and name from the `customers` table (backend, then the Samvaad
-      variables `customer_name`, `saved_address`, `last_order`, which are already in the instructions)
+- [ ] Returning customers: the board shows "Returning", but `start_call` sends only `caller_known`. Send
+      `customer_name`, `saved_address`, `last_order` (already in the instructions) for greeting by name, the saved
+      address and "same as last time"
 - [ ] A guide for each restaurant (`@restaurant_guide` from `/samvaad/start`)
 - [x] Upsell settings for each restaurant: Bestseller / New flags and pairing switches (Manav, 21 Nov)
-- [ ] Order status messages to the customer
+- [ ] Order status messages to the customer: code exists (owner command → customer message), not tested end to end
 - [ ] Dashboard for owners and for us (calls, orders, cost per call)
 - [ ] Alerts when tools or WhatsApp fail
 - [ ] Faster `start` (0.9 s today, before the greeting): keep menus preloaded
@@ -144,7 +179,12 @@ See every call (transcript, outcome, cost) · alerts when WhatsApp or tools fail
 - [ ] **Order link instead of a table**: a direct link to order (web or WhatsApp), not tied to a table number
 - [ ] **Restaurant onboarding setup**: menu, prices, sizes, hours, owner WhatsApp, number and Samvaad mapping in one
       flow (today `setup_store` on the command line)
-- [ ] **Use the restaurant's existing WhatsApp number** for bills and alerts
+- [ ] **Use the restaurant's existing WhatsApp number** for bills and alerts: code ready (`setup_store whatsapp`,
+      `store_channels`); each restaurant needs its own WhatsApp Business setup
+- [x] **Everything on the board in English** (28 Nov): names saved in English letters; older Hindi-script names,
+      addresses and special requests shown in English
+- [x] **Caller's own number not read out** (28 Nov): "इसी नंबर पर भेज दूँ जिससे आप कॉल कर रहे हैं?"; a different
+      number is still read back in full
 - [ ] **Samvaad config** written down in the repo (instructions, tools, block 3 fields, variables, voice, LLM)
 - [x] **Test-call feedback (27 Nov)**: alternatives only of the same kind (no sabji → pasta/sandwich); the bill
       number asked as "this number, 9 8 7 6 5, 4 3 2 1 0, or another?" and a given number read out in full; the order
@@ -172,7 +212,7 @@ guest speaks → background-noise item · return order → returning customers (
 ### Questions for Sarvam
 
 1. On inbound calls, do tools receive the **dialled number**?
-2. On forwarded calls, do they receive the **original (diversion) number**?
+2. On forwarded calls, do they receive the **original (diversion) number**, and the guest's real caller ID?
 3. Can an inbound deployment set **agent variables** (e.g. `store_slug`) per number?
 4. Can an agent use a **custom LLM** endpoint (OpenAI-compatible)? Which LLMs can we pick?
 5. Do unused prepaid minutes carry over? Pilot pricing or startup credits? Growth concurrency at Pro price?
@@ -180,6 +220,8 @@ guest speaks → background-noise item · return order → returning customers (
 7. Is usage billed per second or per started minute?
 8. Which settings control barge-in sensitivity, noise suppression and end-of-speech timing?
 9. Why do `@Call Transcript` and `@Call Length` arrive empty in the end tool?
+10. Can Samvaad transfer a live call to an outside mobile? After a transfer, is it billed at the AI rate or only
+    telephony, on both legs? Is a blind transfer (Sarvam drops out of the call) possible?
 
 ---
 

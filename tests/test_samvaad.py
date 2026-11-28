@@ -70,7 +70,9 @@ def tool(api, name, **body):
 def order_to_read_back(api) -> dict:
     tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 2}, {"name": "Butter Naan", "quantity": 4}])
     asked = tool(api, "set_order_details", order_type="delivery", address="12 MG Road")
-    assert asked["say"] == f"आपका नाम बता दीजिए? और बिल व्हाट्सएप पर इसी नंबर, {numbers.spoken(CUSTOMER)}, पर भेज दूँ, या किसी और नंबर पर?"
+    # The caller's own number is not read out: they know it (28 Nov feedback).
+    assert asked["say"] == "आपका नाम बता दीजिए? और बिल व्हाट्सएप पर इसी नंबर पर भेज दूँ जिससे आप कॉल कर रहे हैं, या किसी और नंबर पर?"
+    assert not any(ch.isdigit() for ch in asked["say"])
     held = tool(api, "set_order_details", order_type="delivery", customer_name="Priya")  # "Priya, isi pe"
     # The drink suggestion came with the first dishes, so no dessert as well: one suggestion per call.
     assert "dessert" not in held["result"] and held["result"].startswith("Read back")
@@ -826,3 +828,16 @@ def test_later_tool_calls_stay_with_the_restaurant_the_call_started_with(api, tw
     body = api.post("/samvaad/tools/view_cart", json={"interaction_id": "t1", "store_slug": "spice-route"}, headers=AUTH)
     assert body.status_code == 200
     assert samvaad_session.sessions.get("t1").store["slug"] == "fusion"
+
+
+def test_a_name_heard_in_hindi_is_saved_in_english_letters(api):
+    tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 1}])
+    tool(api, "set_order_details", order_type="pickup", customer_name="ऋत्विक दोषी")
+    assert samvaad_session.sessions.get("call-1").order.customer_name == "Ritvik Doshi"
+
+
+def test_the_board_shows_old_hindi_names_and_addresses_in_english():
+    from app.owner_board import _address, _who
+    assert _who({"name": "मानव"}, "+919000000002", True)["name"] == "Manav"
+    assert _address({"address": "बोरीवली"}).isascii()
+    assert _address({"address": "1902, A Wing, Borivali"}) == "1902, A Wing, Borivali"

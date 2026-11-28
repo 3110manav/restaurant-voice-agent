@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.customers.phone import normalize_phone
 from app.menu.repository import _c
+from app.phone.messages import english
 
 ORDER_LIMIT = 100
 CART_LIMIT = 50
@@ -41,14 +42,15 @@ def _channel(order: dict) -> str:
 
 def _address(order: dict) -> str | None:
     if order.get("address"):
-        return order["address"]
+        return english(order["address"])
     snapshot = order.get("address_snapshot") or {}
-    return snapshot.get("line") if isinstance(snapshot, dict) else None
+    return english(snapshot.get("line")) or None if isinstance(snapshot, dict) else None
 
 
 def _who(customer: dict | None, raw_phone: str | None, verified: bool, orders: int = 0) -> dict:
     return {
-        "name": (customer or {}).get("name") or None,
+        # In English letters, like everything on the board: older calls saved names as heard ("ऋत्विक दोषी").
+        "name": english((customer or {}).get("name")) or None,
         "phone": mask_phone((customer or {}).get("phone") or raw_phone),
         "verified": bool(verified),
         "orders": orders,  # in the window shown; more than one means a returning customer
@@ -99,6 +101,7 @@ def build(restaurant: dict) -> dict:
             channel=_channel(o),
             fulfilment=o.get("order_type") or o.get("fulfilment"),
             address=_address(o),
+            special_requests=english(o.get("special_requests")) or None,
             customer=_who(customers.get(o.get("customer_id")), o.get("customer_phone") or o.get("caller_phone"),
                           o.get("phone_verified"), seen.get(key, 0) if key else 0),
             requests=by_order.get(o["id"], []),
@@ -115,8 +118,8 @@ def build(restaurant: dict) -> dict:
     dropped = [
         {
             "id": c["id"], "status": c["status"], "opened_at": c["opened_at"], "last_activity_at": c["last_activity_at"],
-            "items": c["items"], "total": c["total"], "fulfilment": c.get("fulfilment"), "address": c.get("address"),
-            "special_requests": c.get("special_requests"), "recovery_attempts": c.get("recovery_attempts", 0),
+            "items": c["items"], "total": c["total"], "fulfilment": c.get("fulfilment"), "address": english(c.get("address")) or None,
+            "special_requests": english(c.get("special_requests")) or None, "recovery_attempts": c.get("recovery_attempts", 0),
             "closed_reason": c.get("closed_reason"),
             "customer": _who(cart_customers.get(c.get("customer_id")), c.get("customer_phone"), c.get("phone_verified")),
         }
