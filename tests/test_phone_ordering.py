@@ -159,7 +159,7 @@ def test_a_callback_request_alerts_the_store_once(fake, store):
     order.request_callback("wants to talk to the owner")
     assert "already" in order.request_callback("again")
     alerts = fake.tables["message_outbox"]
-    assert len(alerts) == 1 and alerts[0]["recipient"] == OWNER and CUSTOMER in alerts[0]["body"]["text"]
+    assert len(alerts) == 1 and alerts[0]["recipient"] == OWNER and "+91 90000 00002" in alerts[0]["body"]["text"]
 
 
 def test_the_read_back_and_confirmation_are_spoken_from_code(fake, store):

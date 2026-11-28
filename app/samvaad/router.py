@@ -63,6 +63,7 @@ class ToolCall(BaseModel):
     address: str | None = None
     whatsapp_number: str | None = None
     reason: str | None = None
+    category: str | None = None  # request_callback: complaint, refund, booking, order_status, … (optional)
     # checkout only: Samvaad's @Call Transcript so far, to check the guest heard the real total before saying yes
     transcript: str | list | dict | None = None
 
@@ -230,7 +231,7 @@ def run_tool(tool: str, call: ToolCall, authorization: str | None = Header(defau
                 return session.read_back(lang)
             if tool == "checkout":
                 return session.place(lang, transcript=call.transcript)
-            return session.callback(_clean(call.reason) or "the guest asked", lang)
+            return session.callback(_clean(call.reason) or "the guest asked", lang, _clean(call.category))
         except Exception:
             logger.exception("Samvaad tool %s failed on call %s", tool, call.interaction_id)
             # Something the agent can say, rather than an error it may read out or retry in a loop.
@@ -249,13 +250,42 @@ async def end(request: Request, authorization: str | None = Header(default=None)
         payload.get("interaction_id") or payload.get("attempt_id") or (payload.get("data") or {}).get("interaction_id")
     )
     logger.info("Samvaad end: fields %s", sorted(payload) if isinstance(payload, dict) else [])
+    # Sarvam's deployment webhook sends `interaction_transcript` (role, en_text, indic_text) and `duration`; the end
+    # tool sends whatever its Body rows say (`transcript`, `call_length`).
+    transcript = payload.get("interaction_transcript") or payload.get("transcript") or payload.get("call_transcript")
+    extra = {k: payload[k] for k in ("call_length", "duration", "end_reason", "outcome", "start_datetime", "end_datetime")
+             if payload.get(k) not in (None, "")}
     session = sessions.pop(str(interaction_id)) if interaction_id else None
     if session is None:
-        return {"closed": False}
-    transcript = payload.get("transcript") or payload.get("call_transcript")
-    extra = {k: payload[k] for k in ("call_length", "duration", "end_reason", "outcome") if k in payload}
+        # The end tool already closed this call, or the API restarted: the webhook's transcript still belongs on it.
+        saved = _log_ended_call(str(interaction_id), transcript, extra) if interaction_id and (transcript or extra) else False
+        return {"closed": False, "transcript_saved": saved}
     session.close(transcript, extra or None)
     return {"closed": True, "outcome": "ordered" if session.order.order_id else "not ordered"}
+
+
+def _log_ended_call(interaction_id: str, transcript, extra: dict) -> bool:
+    from app.phone.call import _menu_and_restaurant
+    from app.samvaad.session import save_call_log
+
+    try:
+        calls = repository._c().table("phone_calls").select("id,store_id,caller").eq(
+            "interaction_id", interaction_id).limit(1).execute().data
+        if not calls:
+            return False
+        call = calls[0]
+        restaurant_id = None
+        stores = repository._c().table("phone_stores").select("*").eq("id", call["store_id"]).limit(1).execute().data
+        if stores:
+            try:
+                restaurant_id = _menu_and_restaurant(stores[0])[1]
+            except Exception:
+                logger.warning("no restaurant for store %s", call["store_id"])
+        save_call_log(call["id"], restaurant_id, interaction_id, call.get("caller"), transcript, extra or None)
+        return True
+    except Exception:
+        logger.warning("couldn't save the end of call %s", interaction_id, exc_info=True)
+        return False
 
 
 # ------------------------------------------------------------- browser side --

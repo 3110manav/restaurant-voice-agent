@@ -8,7 +8,9 @@ not left to the page.
 from datetime import datetime, timedelta, timezone
 
 from app.customers.phone import normalize_phone
+from app.db import retry_read
 from app.menu.repository import _c
+from app.phone.messages import english
 
 ORDER_LIMIT = 100
 CART_LIMIT = 50
@@ -41,14 +43,15 @@ def _channel(order: dict) -> str:
 
 def _address(order: dict) -> str | None:
     if order.get("address"):
-        return order["address"]
+        return english(order["address"])
     snapshot = order.get("address_snapshot") or {}
-    return snapshot.get("line") if isinstance(snapshot, dict) else None
+    return english(snapshot.get("line")) or None if isinstance(snapshot, dict) else None
 
 
 def _who(customer: dict | None, raw_phone: str | None, verified: bool, orders: int = 0) -> dict:
     return {
-        "name": (customer or {}).get("name") or None,
+        # In English letters, like everything on the board: older calls saved names as heard ("ऋत्विक दोषी").
+        "name": english((customer or {}).get("name")) or None,
         "phone": mask_phone((customer or {}).get("phone") or raw_phone),
         "verified": bool(verified),
         "orders": orders,  # in the window shown; more than one means a returning customer
@@ -60,12 +63,15 @@ def owner_order(order: dict) -> dict:
     return {k: v for k, v in order.items() if k not in _PRIVATE_ORDER_FIELDS}
 
 
-def _in(table: str, column: str, values: list) -> list[dict]:
+def _in(table: str, column: str, values: list, columns: str = "*") -> list[dict]:
     values = [v for v in set(values) if v]
-    return _c().table(table).select("*").in_(column, values).execute().data if values else []
+    return _c().table(table).select(columns).in_(column, values).execute().data if values else []
 
 
+@retry_read
 def build(restaurant: dict) -> dict:
+    """The Calls & orders board: the latest ORDER_LIMIT orders and CART_LIMIT dropped carts, whatever the volume.
+    Support tickets have their own paged endpoint (app/support.py); transcripts load per call (app/call_log.py)."""
     client = _c()
     rid = restaurant["id"]
     orders = (
@@ -73,11 +79,9 @@ def build(restaurant: dict) -> dict:
         .order("created_at", desc=True).limit(ORDER_LIMIT).execute().data
     )
     customers = {c["id"]: c for c in _in("customers", "id", [o.get("customer_id") for o in orders])}
-    calls = {c["id"]: c for c in _in("phone_calls", "id", [o.get("call_id") for o in orders])}
-    requests = (
-        client.table("requests").select("*").eq("restaurant_id", rid)
-        .order("created_at", desc=True).limit(200).execute().data
-    )
+    calls = {c["id"]: c for c in _in("phone_calls", "id", [o.get("call_id") for o in orders], "id,outcome,started_at,ended_at")}
+    # only the requests on the orders shown, however many a busy restaurant has in all
+    requests = _in("requests", "order_id", [o["id"] for o in orders], "id,order_id,type,details,status,created_at")
     by_order: dict[str, list[dict]] = {}
     for r in requests:
         if r.get("order_id"):
@@ -99,10 +103,12 @@ def build(restaurant: dict) -> dict:
             channel=_channel(o),
             fulfilment=o.get("order_type") or o.get("fulfilment"),
             address=_address(o),
+            special_requests=english(o.get("special_requests")) or None,
             customer=_who(customers.get(o.get("customer_id")), o.get("customer_phone") or o.get("caller_phone"),
                           o.get("phone_verified"), seen.get(key, 0) if key else 0),
             requests=by_order.get(o["id"], []),
-            call=({"outcome": call.get("outcome"), "started_at": call.get("started_at"), "ended_at": call.get("ended_at")}
+            call=({"id": call["id"], "outcome": call.get("outcome"), "started_at": call.get("started_at"),
+                   "ended_at": call.get("ended_at")}
                   if call else None),
         )
         board.append(row)
@@ -115,16 +121,14 @@ def build(restaurant: dict) -> dict:
     dropped = [
         {
             "id": c["id"], "status": c["status"], "opened_at": c["opened_at"], "last_activity_at": c["last_activity_at"],
-            "items": c["items"], "total": c["total"], "fulfilment": c.get("fulfilment"), "address": c.get("address"),
-            "special_requests": c.get("special_requests"), "recovery_attempts": c.get("recovery_attempts", 0),
+            "items": c["items"], "total": c["total"], "fulfilment": c.get("fulfilment"), "address": english(c.get("address")) or None,
+            "special_requests": english(c.get("special_requests")) or None, "recovery_attempts": c.get("recovery_attempts", 0),
             "closed_reason": c.get("closed_reason"),
             "customer": _who(cart_customers.get(c.get("customer_id")), c.get("customer_phone"), c.get("phone_verified")),
         }
         for c in cart_rows
         if c.get("items") and c.get("closed_reason") != "empty"
     ]
-
-    callbacks = _callbacks(requests, {o["id"]: o for o in orders})
 
     stores = client.table("phone_stores").select("id").eq("restaurant_slug", restaurant["slug"]).execute().data
     since = (datetime.now(timezone.utc) - timedelta(days=FUNNEL_DAYS)).date().isoformat()
@@ -133,48 +137,5 @@ def build(restaurant: dict) -> dict:
         .order("day", desc=True).execute().data
         if stores else []
     )
-    return {"orders": board, "dropped_carts": dropped, "funnel": funnel, "callbacks": callbacks}
+    return {"orders": board, "dropped_carts": dropped, "funnel": funnel}
 
-
-def _callbacks(requests: list[dict], orders: dict[str, dict]) -> list[dict]:
-    """Support tickets: callers who asked for a person, or whose order couldn't be saved. Open ones first, oldest
-    first, since the longest wait matters most. The number is masked; the Call button fetches it (owner_api)."""
-    calls = {c["id"]: c for c in _in("phone_calls", "id", [r.get("call_id") for r in requests if r.get("type") == "callback"])}
-    customers = {c["id"]: c for c in _in("customers", "id", [r.get("customer_id") for r in requests if r.get("type") == "callback"])}
-    tickets = []
-    for r in requests:
-        if r.get("type") != "callback":
-            continue
-        call = calls.get(r.get("call_id")) or {}
-        order = orders.get(r.get("order_id")) or {}
-        phone = r.get("customer_phone") or call.get("caller")
-        tickets.append({
-            "id": r["id"],
-            "status": r.get("status") or "open",
-            "created_at": r["created_at"],
-            "resolved_at": r.get("resolved_at"),
-            "reason": r.get("details") or "",
-            "customer": _who(customers.get(r.get("customer_id")), phone, bool(call.get("caller"))),
-            "can_call": bool(phone),
-            "order_ref": order.get("payment_ref"),
-            "call_outcome": call.get("outcome"),
-        })
-    open_first = sorted((t for t in tickets if t["status"] == "open"), key=lambda t: t["created_at"])
-    done = sorted((t for t in tickets if t["status"] != "open"), key=lambda t: t["created_at"], reverse=True)
-    return open_first + done
-
-
-def callback_phone(restaurant_id: str, request_id: str) -> str | None:
-    """The full number of one support ticket, for the owner to call back. The only place a full number is sent
-    to the dashboard, one ticket at a time, when the owner presses Call."""
-    rows = (
-        _c().table("requests").select("*").eq("id", request_id).eq("restaurant_id", restaurant_id)
-        .eq("type", "callback").limit(1).execute().data
-    )
-    if not rows:
-        return None
-    phone = rows[0].get("customer_phone")
-    if not phone and rows[0].get("call_id"):
-        call = _c().table("phone_calls").select("caller").eq("id", rows[0]["call_id"]).limit(1).execute().data
-        phone = call[0].get("caller") if call else None
-    return normalize_phone(phone) or phone

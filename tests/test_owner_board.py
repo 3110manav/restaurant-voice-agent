@@ -108,12 +108,27 @@ def test_the_endpoint_needs_a_member_and_the_orders_list_hides_numbers(fake, mon
 
 
 
-def test_callbacks_are_support_tickets_open_and_oldest_first(fake):
-    tickets = owner_board.build(RESTAURANT)["callbacks"]
-    assert [t["id"] for t in tickets] == ["q3", "q1", "q2"]  # open: oldest waiting first; then the resolved one
-    first = tickets[1]
-    assert first["reason"] == "wants a call" and first["order_ref"] is None and first["call_outcome"] == "ordered"
+def test_support_tickets_are_filtered_and_paged_by_the_database(fake, monkeypatch):
+    from app import support
+    waiting = support.list_tickets(RESTAURANT, "waiting")
+    assert [t["id"] for t in waiting["tickets"]] == ["q3", "q1"]  # oldest waiting first; table requests never
+    first = waiting["tickets"][1]
+    assert first["reason"] == "wants a call" and first["call_outcome"] == "ordered" and first["call_id"] == "call1"
     assert first["customer"]["phone"] == "+91 ••••• 2828" and first["can_call"]
+    assert waiting["counts"]["waiting"] == 2 and not waiting["has_more"]
+    assert [t["id"] for t in support.list_tickets(RESTAURANT, "resolved")["tickets"]] == ["q2"]
+    assert len(support.list_tickets(RESTAURANT, "all")["tickets"]) == 3
+    fake.tables["requests"][2]["priority"] = "urgent"  # q3... and q1 made urgent: urgent comes first
+    fake.tables["requests"][0]["priority"] = "urgent"
+    fake.tables["requests"][0]["category"] = "complaint"
+    assert [t["id"] for t in support.list_tickets(RESTAURANT, "waiting", "complaint")["tickets"]] == ["q1"]
+    monkeypatch.setattr(support, "PAGE_SIZE", 1)
+    one = support.list_tickets(RESTAURANT, "all")
+    assert len(one["tickets"]) == 1 and one["has_more"]
+    assert support.list_tickets(RESTAURANT, "all", page=3)["has_more"] is False
+    full = support.ticket_detail(RESTAURANT, "q1")
+    assert full["order"]["total"] == 560 and full["transcript"] == [] and full["activity"] == []
+    assert support.ticket_detail(RESTAURANT, "q4") is None  # a table request is not a ticket
 
 
 def test_the_owner_gets_one_tickets_full_number_only_by_pressing_call(fake, monkeypatch):
@@ -135,3 +150,19 @@ def test_the_owner_gets_one_tickets_full_number_only_by_pressing_call(fake, monk
     assert api.get("/owner/restaurants/other/callbacks/q1/phone", headers=auth).status_code == 404
     assert api.get("/owner/restaurants/r1/callbacks/q4/phone", headers=auth).status_code == 404  # not a callback
     assert api.get("/owner/restaurants/r1/callbacks/q1/phone", headers=auth).json() == {"phone": PHONE}
+
+
+def test_a_dropped_database_connection_is_retried_once_not_a_500():
+    import httpx
+
+    from app.db import retry_read
+    tries = []
+
+    @retry_read
+    def read():
+        tries.append(1)
+        if len(tries) == 1:
+            raise httpx.RemoteProtocolError("Server disconnected")  # Supabase closed an idle connection
+        return "rows"
+
+    assert read() == "rows" and len(tries) == 2
