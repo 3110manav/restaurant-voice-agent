@@ -20,9 +20,10 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
-from app import agent_config, db, owner_board, transcripts
+from app import agent_config, call_log, db, owner_board, support, transcripts
 from app.menu import repository, service
 from app.menu.snapshot import menu_cache
+from app.phone import tickets
 from app.table import repository as table_repository, service as table_service
 
 logger = logging.getLogger("sarthi.owner_api")
@@ -300,11 +301,27 @@ def list_requests(restaurant_id: str, user_id: str = Depends(current_user_id)) -
     return {"requests": repository.list_requests(restaurant_id)}
 
 
+@router.get("/restaurants/{restaurant_id}/tickets")
+def list_tickets(restaurant_id: str, status: str = "waiting", category: str | None = None, page: int = 1,
+                 user_id: str = Depends(current_user_id)) -> dict:
+    """The Support tab: one page of tickets, filtered in the database, and the counts at the top."""
+    return support.list_tickets(_restaurant_for(user_id, restaurant_id), status, category, page)
+
+
+@router.get("/restaurants/{restaurant_id}/tickets/{ticket_id}")
+def ticket_detail(restaurant_id: str, ticket_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    """One ticket with its history, its order and the call transcript."""
+    row = support.ticket_detail(_restaurant_for(user_id, restaurant_id), ticket_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return row
+
+
 @router.get("/restaurants/{restaurant_id}/callbacks/{request_id}/phone")
 def callback_phone(restaurant_id: str, request_id: str, user_id: str = Depends(current_user_id)) -> dict:
     """The full number of one support ticket, when the owner presses Call. Everywhere else numbers stay masked."""
     _restaurant_for(user_id, restaurant_id)
-    phone = owner_board.callback_phone(restaurant_id, request_id)
+    phone = support.callback_phone(restaurant_id, request_id)
     if not phone:
         raise HTTPException(status_code=404, detail="No number for this ticket")
     logger.info("user %s revealed the number of support ticket %s", user_id, request_id)
@@ -318,6 +335,28 @@ def resolve_request(restaurant_id: str, request_id: str, user_id: str = Depends(
     if updated is None:
         raise HTTPException(status_code=404, detail="Request not found")
     return updated
+
+
+class TicketActionIn(BaseModel):
+    action: str
+    note: str | None = None
+    category: str | None = None
+    notify_customer: bool = False
+
+
+@router.post("/restaurants/{restaurant_id}/tickets/{ticket_id}/action")
+def ticket_action(restaurant_id: str, ticket_id: str, body: TicketActionIn, user_id: str = Depends(current_user_id)) -> dict:
+    """One thing staff did on a support ticket: start, no_answer, note, resolve, reopen, urgent/normal, category."""
+    restaurant = _restaurant_for(user_id, restaurant_id)
+    try:
+        row = tickets.act(
+            restaurant_id, ticket_id, body.action, note=body.note or "", category=body.category,
+            notify_customer=body.notify_customer, store_name=restaurant.get("name") or "", by="Staff",
+        )
+    except tickets.TicketError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    logger.info("user %s: ticket %s %s", user_id, ticket_id, body.action)
+    return {"ticket": {k: row.get(k) for k in ("id", "status", "priority", "category", "attempts", "resolution")}}
 
 
 # ------------------------------------------------------------- table QR pilot --
@@ -387,6 +426,37 @@ def customer_visits(restaurant_id: str, customer_id: str, user_id: str = Depends
         for row in table_repository.list_sessions_for_phone(restaurant_id, customer["phone"])
     ]
     return {"customer": customer, "visits": visits}
+
+
+@router.get("/restaurants/{restaurant_id}/calls")
+def calls_of_day(restaurant_id: str, day: str | None = None, outcome: str = "all", page: int = 1,
+                 user_id: str = Depends(current_user_id)) -> dict:
+    """The Call log: one India day's calls (default today), newest first, with the day's totals."""
+    restaurant = _restaurant_for(user_id, restaurant_id, editor=True)
+    if day and call_log.parse_day(day) is None:
+        raise HTTPException(status_code=422, detail="day must look like 2026-11-28")
+    return call_log.list_day(restaurant, call_log.parse_day(day), outcome, page)
+
+
+@router.get("/restaurants/{restaurant_id}/calls/{call_id}")
+def call_detail(restaurant_id: str, call_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    """One call: who, how long, its order and ticket, and the transcript."""
+    restaurant = _restaurant_for(user_id, restaurant_id, editor=True)
+    row = call_log.detail(restaurant, call_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="No such call")
+    return row
+
+
+@router.get("/restaurants/{restaurant_id}/calls/{call_id}/phone")
+def call_phone(restaurant_id: str, call_id: str, user_id: str = Depends(current_user_id)) -> dict:
+    """The full number of one call, when the owner presses Show number or Call. Everywhere else it stays masked."""
+    restaurant = _restaurant_for(user_id, restaurant_id, editor=True)
+    phone = call_log.caller_phone(restaurant, call_id)
+    if not phone:
+        raise HTTPException(status_code=404, detail="No number for this call")
+    logger.info("user %s revealed the number of call %s", user_id, call_id)
+    return {"phone": phone}
 
 
 @router.get("/restaurants/{restaurant_id}/conversations")

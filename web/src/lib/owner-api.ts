@@ -121,6 +121,12 @@ export interface BoardCustomer {
   orders: number;
 }
 
+/** One line of a phone call: the guest, Kabir, or (from an older end tool) the whole call as one block. */
+export interface TranscriptLine {
+  role: "agent" | "user" | "call";
+  text: string;
+}
+
 export interface BoardOrder {
   id: string;
   created_at: string;
@@ -136,7 +142,8 @@ export interface BoardOrder {
   special_requests?: string | null;
   requests: { id: string; type: string; details: string; status: string; created_at: string }[];
   customer: BoardCustomer;
-  call: { outcome: string | null; started_at: string | null; ended_at: string | null } | null;
+  /** The call the order came from; its transcript loads on demand (fetchCallDetail). */
+  call: { id: string; outcome: string | null; started_at: string | null; ended_at: string | null } | null;
 }
 
 export interface DroppedCart {
@@ -165,25 +172,92 @@ export interface FunnelDay {
   dropped_value: number;
 }
 
-/** A support ticket: a caller who asked for a person, or whose order couldn't be saved. */
+export type TicketCategory =
+  | "complaint"
+  | "refund"
+  | "booking"
+  | "order_status"
+  | "order_change"
+  | "speak_to_person"
+  | "order_failed"
+  | "other";
+
+export const TICKET_CATEGORIES: Record<TicketCategory, string> = {
+  complaint: "Complaint",
+  refund: "Refund",
+  booking: "Table booking",
+  order_status: "Where is my order",
+  order_change: "Change an order",
+  speak_to_person: "Wants a person",
+  order_failed: "Order not saved",
+  other: "Other",
+};
+
+export interface TicketEvent {
+  at: string;
+  kind: "opened" | "started" | "no_answer" | "note" | "resolved" | "reopened" | "priority" | "category";
+  text: string;
+  by: string | null;
+}
+
+/** A support ticket in the Support list: a caller who needs a person (complaint, refund, booking…). */
 export interface CallbackTicket {
   id: string;
-  status: "open" | "resolved";
+  status: "open" | "in_progress" | "resolved";
   created_at: string;
   resolved_at: string | null;
   reason: string;
+  category: TicketCategory;
+  category_label: string;
+  priority: "urgent" | "normal";
+  /** Calls that went unanswered. */
+  attempts: number;
+  resolution: string | null;
   /** Masked; the full number comes only from fetchCallbackPhone, when the owner presses Call. */
   customer: BoardCustomer;
   can_call: boolean;
   order_ref: string | null;
+  call_id: string | null;
   call_outcome: string | null;
 }
+
+/** One ticket opened in full: its history, its order and what was said on the call. */
+export interface TicketDetail extends CallbackTicket {
+  activity: TicketEvent[];
+  order: { items: CartLine[]; total: number | null; status: string | null } | null;
+  transcript: TranscriptLine[];
+}
+
+export type TicketStatusFilter = "waiting" | "resolved" | "all";
+
+export interface TicketsPage {
+  counts: { waiting: number; urgent: number; overdue: number; resolved_today: number; overdue_minutes: number };
+  tickets: CallbackTicket[];
+  page: number;
+  has_more: boolean;
+}
+
+export const fetchTickets = (restaurantId: string, status: TicketStatusFilter, category: TicketCategory | null, page: number) => {
+  const query = new URLSearchParams({ status, page: String(page) });
+  if (category) query.set("category", category);
+  return ownerFetch<TicketsPage>(`restaurants/${restaurantId}/tickets?${query}`);
+};
+
+export const fetchTicket = (restaurantId: string, ticketId: string) =>
+  ownerFetch<TicketDetail>(`restaurants/${restaurantId}/tickets/${ticketId}`);
+
+export type TicketAction = "start" | "no_answer" | "note" | "resolve" | "reopen" | "urgent" | "normal" | "category";
+
+export const actOnTicket = (
+  restaurantId: string,
+  ticketId: string,
+  body: { action: TicketAction; note?: string; category?: TicketCategory; notify_customer?: boolean }
+) => ownerFetch<{ ticket: Partial<CallbackTicket> }>(`restaurants/${restaurantId}/tickets/${ticketId}/action`, { method: "POST", body });
 
 export interface CallsBoard {
   orders: BoardOrder[];
   dropped_carts: DroppedCart[];
   funnel: FunnelDay[];
-  callbacks?: CallbackTicket[];
 }
 
 export const fetchCallbackPhone = (restaurantId: string, ticketId: string) =>
@@ -321,6 +395,7 @@ export type AgentSettings = {
   calls: {
     answering: boolean;
     calls_number: string | null;
+    calls_numbers: string[];
     agent_name: string | null;
     alert_whatsapp: string | null;
     upi_id: string | null;
@@ -334,3 +409,77 @@ export const fetchAgentSettings = (restaurantId: string) =>
 
 export const saveAgentSettings = (restaurantId: string, patch: { rules?: string; alert_whatsapp?: string; upi_id?: string; upi_payee_name?: string }) =>
   ownerFetch<AgentSettings>(`restaurants/${restaurantId}/agent`, { method: "PUT", body: patch });
+
+// ------------------------------------------------------------------- call log --
+
+export type CallOutcome = "ordered" | "callback" | "abandoned" | "in_progress";
+
+/** Who called. `phone` is masked; the full number comes only from fetchCallPhone. */
+export interface CallCaller {
+  name: string | null;
+  phone: string | null;
+  /** caller_id: from the phone network · given: the guest said it (no caller ID) · none: no number at all */
+  source: "caller_id" | "given" | "none";
+  /** No caller ID: a call from Samvaad's browser test bed. */
+  test_call: boolean;
+}
+
+export interface CallLogRow {
+  id: string;
+  started_at: string;
+  ended_at: string | null;
+  seconds: number | null;
+  outcome: CallOutcome;
+  outcome_label: string;
+  caller: CallCaller;
+  order: { ref: string | null; total: number | null; dishes: number } | null;
+  ticket: { category: string; status: string; urgent: boolean } | null;
+  /** How many times the guest spoke. */
+  turns: number;
+  /** The guest's first words. */
+  preview: string;
+}
+
+export interface CallLogDay {
+  day: string;
+  today: string;
+  page: number;
+  /** More calls on this day after this page (50 a page). */
+  has_more: boolean;
+  totals: {
+    calls: number;
+    ordered: number;
+    callback: number;
+    no_order: number;
+    test_calls: number;
+    order_value: number;
+    average_seconds: number | null;
+    total_minutes: number;
+  };
+  calls: CallLogRow[];
+}
+
+export interface CallDetail extends Omit<CallLogRow, "order" | "ticket"> {
+  order:
+    | (NonNullable<CallLogRow["order"]> & {
+        items: CartLine[];
+        status: string | null;
+        fulfilment: string | null;
+        address: string | null;
+      })
+    | null;
+  ticket: (NonNullable<CallLogRow["ticket"]> & { reason: string }) | null;
+  end_reason: string | null;
+  transcript: TranscriptLine[];
+}
+
+export const fetchCallLog = (restaurantId: string, day: string, outcome: CallOutcome | "all", page = 1) =>
+  ownerFetch<CallLogDay>(
+    `restaurants/${restaurantId}/calls?${new URLSearchParams({ day, outcome, page: String(page) })}`
+  );
+
+export const fetchCallDetail = (restaurantId: string, callId: string) =>
+  ownerFetch<CallDetail>(`restaurants/${restaurantId}/calls/${callId}`);
+
+export const fetchCallPhone = (restaurantId: string, callId: string) =>
+  ownerFetch<{ phone: string }>(`restaurants/${restaurantId}/calls/${callId}/phone`).then((r) => r.phone);

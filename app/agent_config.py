@@ -62,14 +62,16 @@ def _sender(restaurant: dict) -> dict:
 
 def view(restaurant: dict) -> dict:
     store = phone_repository.store_for_restaurant(restaurant["slug"])
+    numbers_in = phone_repository.numbers_of_store(store["id"]) if store else []
     return {
         "rules": restaurant.get("agent_rules") or "",
         "rules_updated_at": restaurant.get("agent_rules_updated_at"),
         "rules_limit": RULES_LIMIT,
         "calls": (
             {
-                "answering": bool(store.get("phone_number")),
-                "calls_number": store.get("phone_number"),
+                "answering": bool(numbers_in),
+                "calls_number": numbers_in[0] if numbers_in else None,
+                "calls_numbers": numbers_in,  # every number that reaches this restaurant (the number mapper)
                 "agent_name": store.get("agent_name"),
                 "alert_whatsapp": _pretty(store.get("owner_whatsapp")),
                 "upi_id": store.get("upi_id"),

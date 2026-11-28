@@ -70,7 +70,9 @@ def tool(api, name, **body):
 def order_to_read_back(api) -> dict:
     tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 2}, {"name": "Butter Naan", "quantity": 4}])
     asked = tool(api, "set_order_details", order_type="delivery", address="12 MG Road")
-    assert asked["say"] == f"आपका नाम बता दीजिए? और बिल व्हाट्सएप पर इसी नंबर, {numbers.spoken(CUSTOMER)}, पर भेज दूँ, या किसी और नंबर पर?"
+    # The caller's own number is not read out: they know it (28 Nov feedback).
+    assert asked["say"] == "आपका नाम बता दीजिए? और बिल व्हाट्सएप पर इसी नंबर पर भेज दूँ जिससे आप कॉल कर रहे हैं, या किसी और नंबर पर?"
+    assert not any(ch.isdigit() for ch in asked["say"])
     held = tool(api, "set_order_details", order_type="delivery", customer_name="Priya")  # "Priya, isi pe"
     # The drink suggestion came with the first dishes, so no dessert as well: one suggestion per call.
     assert "dessert" not in held["result"] and held["result"].startswith("Read back")
@@ -122,7 +124,9 @@ def test_the_default_store_answers_when_nothing_names_one(api, monkeypatch):
 
 def test_an_unknown_store_is_refused(api):
     body = {"interaction_id": "c4", "store_slug": "nowhere"}
-    assert api.post("/samvaad/start", json=body, headers=AUTH).status_code == 404
+    started = api.post("/samvaad/start", json=body, headers=AUTH).json()
+    assert started["line_ready"] is False and "not connected" in started["result"]  # said politely, no order taken
+    assert api.post("/samvaad/tools/view_cart", json=body, headers=AUTH).status_code == 404
 
 
 def test_the_tool_editors_send_button_works_without_an_interaction_id(api):
@@ -231,10 +235,11 @@ def test_a_callback_alerts_the_owner(api, fake):
     tool(api, "request_callback", reason="wants to book a party")
     alert = fake.tables["message_outbox"][0]
     assert alert["kind"] == "callback_alert" and alert["recipient"] == OWNER
-    assert "Callbacks" in alert["body"]["text"]
+    assert alert["body"]["text"].startswith("Table booking\n") and "under Support" in alert["body"]["text"]
     # ...and a support ticket on the owner's dashboard, with the number to call back.
     ticket = fake.tables["requests"][0]
     assert ticket["type"] == "callback" and ticket["status"] == "open" and ticket["details"] == "wants to book a party"
+    assert ticket["category"] == "booking" and ticket["priority"] == "normal" and ticket["activity"][0]["kind"] == "opened"
     assert ticket["restaurant_id"] == "rest-1" and ticket["customer_phone"] == f"+{CUSTOMER}" and ticket["call_id"]
     tool(api, "request_callback", reason="again")
     assert len(fake.tables["requests"]) == 1  # asked twice in one call: still one ticket
@@ -765,3 +770,166 @@ def test_same_kind_alternatives_put_the_owners_picks_first(api, monkeypatch):
         dish.pop("featured", None)  # the owner turned Bestsellers off: nothing is featured, the search's own order
     session._not_on_menu("Couldn't find 'Shahi Paneer' on the menu.", {})
     assert "इसकी जगह Paneer Tikka Masala, Paneer Butter Masala ले सकते हैं" in session.order.spoken
+
+
+# ------------------------------------------------------------ the number mapper --
+# One agent, many restaurants: the number the guest dialled says which restaurant the call is for.
+
+
+@pytest.fixture
+def two_restaurants(store, fake):
+    repository.save_store({
+        "id": "store-2", "slug": "fusion", "name": "The Fusion Kitchen", "business_type": "restaurant",
+        "agent_name": "Aria", "phone_number": None, "owner_whatsapp": OWNER, "restaurant_slug": "fusion",
+    })
+    repository.assign_number("fusion", "+917965861786", "main line")
+    return fake
+
+
+def dial(api, **body):
+    return api.post("/samvaad/start", json={"interaction_id": body.pop("interaction_id", "m1"), **body}, headers=AUTH).json()
+
+
+def test_each_dialled_number_reaches_its_own_restaurant(api, two_restaurants):
+    assert dial(api, interaction_id="a", called_number="+918000000000")["store_name"] == "Spice Route"
+    fusion = dial(api, interaction_id="b", called_number="07965861786")  # the way a landline may arrive
+    assert fusion["store_name"] == "The Fusion Kitchen" and fusion["agent_name"] == "Aria" and fusion["line_ready"] is True
+    assert two_restaurants.tables["phone_calls"][-1]["called_number"] == "+917965861786"
+
+
+def test_the_dialled_number_beats_a_slug_left_in_the_agents_variables(api, two_restaurants):
+    body = dial(api, called_number="+91 79658 61786", store_slug="spice-route")
+    assert body["store_slug"] == "fusion"
+
+
+def test_a_test_chat_without_a_dialled_number_uses_the_slug(api, two_restaurants):
+    assert dial(api, store_slug="fusion")["store_name"] == "The Fusion Kitchen"
+
+
+def test_a_number_nobody_owns_never_borrows_another_restaurant(api, two_restaurants, monkeypatch):
+    monkeypatch.setenv("SAMVAAD_DEFAULT_STORE", "spice-route")
+    body = dial(api, called_number="+919999999999")
+    assert body["line_ready"] is False and body["store_slug"] == "" and "say" in body
+    assert "phone_calls" not in two_restaurants.tables or not any(
+        c.get("called_number") == "+919999999999" for c in two_restaurants.tables["phone_calls"])
+
+
+def test_a_restaurant_can_have_several_numbers_and_a_number_can_move(api, two_restaurants):
+    repository.assign_number("fusion", "+912228000000", "old number, forwarded")
+    assert dial(api, interaction_id="x", called_number="02228000000")["store_slug"] == "fusion"
+    assert repository.numbers_of_store("store-2") == ["+917965861786", "+912228000000"]
+    repository.assign_number("spice-route", "+917965861786")  # moved: it reaches one restaurant only
+    assert dial(api, interaction_id="y", called_number="7965861786")["store_slug"] == "spice-route"
+    repository.unassign_number("+912228000000")
+    assert dial(api, interaction_id="z", called_number="02228000000")["line_ready"] is False
+
+
+def test_later_tool_calls_stay_with_the_restaurant_the_call_started_with(api, two_restaurants):
+    dial(api, interaction_id="t1", called_number="7965861786")
+    body = api.post("/samvaad/tools/view_cart", json={"interaction_id": "t1", "store_slug": "spice-route"}, headers=AUTH)
+    assert body.status_code == 200
+    assert samvaad_session.sessions.get("t1").store["slug"] == "fusion"
+
+
+def test_a_name_heard_in_hindi_is_saved_in_english_letters(api):
+    tool(api, "add_to_cart", items=[{"name": "paneer makhani", "quantity": 1}])
+    tool(api, "set_order_details", order_type="pickup", customer_name="ऋत्विक दोषी")
+    assert samvaad_session.sessions.get("call-1").order.customer_name == "Ritvik Doshi"
+
+
+def test_the_board_shows_old_hindi_names_and_addresses_in_english():
+    from app.owner_board import _address, _who
+    assert _who({"name": "मानव"}, "+919000000002", True)["name"] == "Manav"
+    assert _address({"address": "बोरीवली"}).isascii()
+    assert _address({"address": "1902, A Wing, Borivali"}) == "1902, A Wing, Borivali"
+
+
+def test_a_ticket_is_raised_against_the_number_the_call_came_from(api, fake):
+    tool(api, "set_order_details", order_type="pickup", whatsapp_number="9811122233")  # a different bill number
+    reply = tool(api, "request_callback", reason="khana galat aaya, paneer missing hai")
+    ticket = fake.tables["requests"][0]
+    assert ticket["customer_phone"] == f"+{CUSTOMER}"  # the caller, not the number given for the bill
+    assert ticket["category"] == "complaint" and ticket["priority"] == "urgent"
+    assert "Do not ask for their name" in reply["result"]
+    assert fake.tables["message_outbox"][0]["body"]["text"].startswith("URGENT · Complaint")
+
+
+def test_ticket_categories_and_urgency():
+    from app.phone.tickets import classify
+    assert classify("refund chahiye, paise wapas") == ("refund", "normal")
+    assert classify("table book karni hai kal 8 baje") == ("booking", "normal")
+    assert classify("order kab aayega, 1 ghante se wait") == ("order_status", "normal")
+    assert classify("wants to talk to the manager") == ("speak_to_person", "normal")
+    assert classify("allergy hai, galat dish aayi") == ("complaint", "urgent")
+    assert classify("anything", "refund") == ("refund", "normal")  # a category Kabir sent is kept
+
+
+def test_staff_work_a_ticket_from_open_to_resolved(api, fake):
+    from app.phone import tickets
+    tool(api, "request_callback", reason="wants to talk to the owner")
+    tid = fake.tables["requests"][0]["id"]
+    tickets.act("rest-1", tid, "no_answer", notify_customer=True, store_name="Spice Route", by="Staff")
+    tickets.act("rest-1", tid, "note", note="will call after 5", by="Staff")
+    tickets.act("rest-1", tid, "resolve", note="spoke to them, refund given", notify_customer=True,
+                store_name="Spice Route", by="Staff")
+    row = fake.tables["requests"][0]
+    assert row["status"] == "resolved" and row["attempts"] == 1 and row["resolution"] == "spoke to them, refund given"
+    assert [e["kind"] for e in row["activity"]] == ["opened", "no_answer", "note", "resolved"]
+    sent = [m for m in fake.tables["message_outbox"] if m["kind"] == "ticket_update"]
+    assert len(sent) == 2 and sent[0]["recipient"] == f"+{CUSTOMER}"
+    tickets.act("rest-1", tid, "reopen", by="Staff")
+    assert fake.tables["requests"][0]["status"] == "open"
+    with pytest.raises(tickets.TicketError):
+        tickets.act("rest-1", tid, "note", note="")
+
+
+def test_sarvams_webhook_transcript_reaches_the_call_and_conversations(api, fake):
+    tool(api, "view_cart")  # opens the call
+    turns = [{"role": "agent", "en_text": "Namaste, Spice Route", "indic_text": "नमस्ते, स्पाइस रूट"},
+             {"role": "user", "en_text": "I want a refund", "indic_text": None},
+             {"role": "agent", "en_text": "I'll ask the store to call you", "indic_text": None}]
+    api.post("/samvaad/end", json={"interaction_id": "call-1"}, headers=AUTH)  # the end tool first, no transcript
+    body = api.post("/samvaad/end", json={"interaction_id": "call-1", "interaction_transcript": turns, "duration": 42.5},
+                    headers=AUTH).json()
+    assert body["transcript_saved"] is True
+    call = fake.tables["phone_calls"][0]
+    assert call["turns"] == turns and call["metrics"] == [{"duration": 42.5}]
+    from app.transcripts import call_transcript
+    assert call_transcript(call["turns"])[0] == {"role": "agent", "text": "नमस्ते, स्पाइस रूट"}
+
+
+def test_the_call_log_shows_each_call_of_the_day_with_its_transcript(api, fake, monkeypatch):
+    from app import call_log
+    fake.tables.setdefault("restaurants", []).append({"id": "rest-1", "slug": "spice-route", "name": "Spice Route"})
+    restaurant = fake.tables["restaurants"][-1]
+    tool(api, "view_cart")  # a phone call (caller ID) that orders
+    order_to_read_back(api)
+    tool(api, "checkout")
+    turns = [{"role": "agent", "en_text": "Namaste"}, {"role": "user", "en_text": "do paneer makhani"},
+             {"role": "agent", "en_text": "Aur kuch?"}, {"role": "user", "en_text": "bas"}]
+    api.post("/samvaad/end", json={"interaction_id": "call-1", "transcript": turns, "call_length": 61}, headers=AUTH)
+    # a browser test call: no caller ID, asks for a person
+    body = {"interaction_id": "call-2", "store_slug": "spice-route", "caller": "", "reason": "wants the manager"}
+    api.post("/samvaad/tools/request_callback", json=body, headers=AUTH)
+    api.post("/samvaad/end", json={"interaction_id": "call-2"}, headers=AUTH)
+    now = call_log.today().isoformat()
+    for call in fake.tables["phone_calls"]:
+        call["started_at"] = f"{now}T10:00:00+05:30"
+    day = call_log.list_day(restaurant, call_log.today())
+    assert day["totals"]["calls"] == 2 and day["totals"]["ordered"] == 1 and day["totals"]["callback"] == 1
+    assert day["totals"]["test_calls"] == 1
+    ordered = next(c for c in day["calls"] if c["outcome"] == "ordered")
+    assert ordered["seconds"] == 61 and ordered["turns"] == 2 and ordered["preview"] == "do paneer makhani"
+    assert ordered["caller"]["source"] == "caller_id" and "•" in ordered["caller"]["phone"]  # masked in the list
+    assert ordered["order"]["ref"] and ordered["order"]["dishes"] == 6
+    test = next(c for c in day["calls"] if c["outcome"] == "callback")
+    assert test["caller"]["test_call"] and test["ticket"]["category"] == "Wants a person"
+    only = call_log.list_day(restaurant, call_log.today(), "callback")
+    assert [c["id"] for c in only["calls"]] == [test["id"]]
+    full = call_log.detail(restaurant, ordered["id"])
+    assert full["transcript"][1] == {"role": "user", "text": "do paneer makhani"} and full["order"]["items"]
+    assert call_log.caller_phone(restaurant, ordered["id"]) == f"+{CUSTOMER}"  # only on Show number / Call
+    other = {"id": "rest-2", "slug": "someone-else"}
+    assert call_log.detail(other, ordered["id"]) is None  # never another restaurant's call
+    yesterday = call_log.today().fromordinal(call_log.today().toordinal() - 1)
+    assert call_log.list_day(restaurant, yesterday)["totals"]["calls"] == 0

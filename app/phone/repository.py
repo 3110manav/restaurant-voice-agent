@@ -27,8 +27,55 @@ def _first(result) -> dict | None:
 # ------------------------------------------------------------------- stores --
 
 
+def _numbers_table_missing(exc: Exception) -> bool:
+    """Migration 011 not run yet: routing falls back to phone_stores.phone_number (one number per store)."""
+    return "store_numbers" in str(exc) or "PGRST205" in str(exc) or "42P01" in str(exc)
+
+
 def store_for_number(number: str) -> dict | None:
+    """The store a dialled number belongs to: the number mapper (store_numbers), else a store's own phone_number."""
+    try:
+        link = _first(_c().table("store_numbers").select("store_id").eq("number", number).limit(1).execute())
+    except NotConfiguredError:
+        raise
+    except Exception as exc:
+        if not _numbers_table_missing(exc):
+            raise
+        link = None
+    if link:
+        return get_store(link["store_id"])
     return _first(_c().table("phone_stores").select("*").eq("phone_number", number).limit(1).execute())
+
+
+def numbers_of_store(store_id: str) -> list[str]:
+    store = get_store(store_id) or {}
+    try:
+        rows = _c().table("store_numbers").select("number").eq("store_id", store_id).order("created_at").execute().data
+    except Exception as exc:
+        if not _numbers_table_missing(exc):
+            raise
+        rows = []
+    found = [r["number"] for r in rows]
+    if store.get("phone_number") and store["phone_number"] not in found:
+        found.insert(0, store["phone_number"])
+    return found
+
+
+def number_map() -> list[dict]:
+    """Every dialled number and the store it reaches, for the setup command's listing."""
+    stores = {s["id"]: s["slug"] for s in _c().table("phone_stores").select("id, slug").execute().data}
+    try:
+        rows = _c().table("store_numbers").select("number, store_id, label").order("created_at").execute().data
+    except Exception as exc:
+        if not _numbers_table_missing(exc):
+            raise
+        rows = []
+    mapped = [{"number": r["number"], "store": stores.get(r["store_id"]), "label": r.get("label")} for r in rows]
+    seen = {m["number"] for m in mapped}
+    for row in _c().table("phone_stores").select("slug, phone_number").execute().data:
+        if row.get("phone_number") and row["phone_number"] not in seen:
+            mapped.append({"number": row["phone_number"], "store": row["slug"], "label": "main line"})
+    return mapped
 
 
 def get_store(store_id: str) -> dict | None:
@@ -81,10 +128,35 @@ def save_store(fields: dict) -> dict:
     return _c().table("phone_stores").upsert(fields, on_conflict="slug").execute().data[0]
 
 
-def assign_number(slug: str, number: str) -> None:
-    """Point a dialled number at one store. A number can only answer as one store at a time."""
+def assign_number(slug: str, number: str, label: str | None = None) -> None:
+    """Point a dialled number at one store. A store can have several numbers; a number reaches one store only,
+    so pointing it here takes it away from whichever store had it."""
+    store = get_store_by_slug(slug)
+    if store is None:
+        raise LookupError(f"No store '{slug}'")
+    # The store's own phone_number is its main line (shown to the owner); it moves with the number too.
+    _c().table("phone_stores").update({"phone_number": None}).eq("phone_number", number).neq("id", store["id"]).execute()
+    if not store.get("phone_number"):
+        _c().table("phone_stores").update({"phone_number": number}).eq("id", store["id"]).execute()
+    try:
+        _c().table("store_numbers").upsert(
+            {"number": number, "store_id": store["id"], "label": label}, on_conflict="number"
+        ).execute()
+    except Exception as exc:
+        if not _numbers_table_missing(exc):
+            raise
+        # Before migration 014 a store has one number: this one.
+        _c().table("phone_stores").update({"phone_number": number}).eq("id", store["id"]).execute()
+
+
+def unassign_number(number: str) -> None:
+    """The number reaches no store any more: a call to it hears that the line isn't set up."""
     _c().table("phone_stores").update({"phone_number": None}).eq("phone_number", number).execute()
-    _c().table("phone_stores").update({"phone_number": number}).eq("slug", slug).execute()
+    try:
+        _c().table("store_numbers").delete().eq("number", number).execute()
+    except Exception as exc:
+        if not _numbers_table_missing(exc):
+            raise
 
 
 # -------------------------------------------------------------------- calls --

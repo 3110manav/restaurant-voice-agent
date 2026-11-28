@@ -15,7 +15,7 @@ class _Query:
         self.db, self.table = db, table
         self.filters = []
         self.action, self.payload = "select", None
-        self.ordering, self.max_rows = None, None
+        self.orderings, self.max_rows, self.offset = [], None, 0
 
     def select(self, _columns="*"):
         return self
@@ -30,6 +30,14 @@ class _Query:
 
     def update(self, fields):
         self.action, self.payload = "update", fields
+        return self
+
+    def delete(self):
+        self.action = "delete"
+        return self
+
+    def neq(self, column, value):
+        self.filters.append(lambda row: row.get(column) != value)
         return self
 
     def eq(self, column, value):
@@ -58,7 +66,11 @@ class _Query:
         return self
 
     def order(self, column, desc=False):
-        self.ordering = (column, desc)
+        self.orderings.append((column, desc))  # several calls sort by several columns, like PostgREST
+        return self
+
+    def range(self, start, end):
+        self.offset, self.max_rows = start, end - start + 1
         return self
 
     def limit(self, count):
@@ -71,10 +83,15 @@ class _Query:
     def execute(self):
         if self.db.failing:
             raise RuntimeError("database is down")
+        if self.action == "insert" and isinstance(self.payload, list):  # a bulk insert, as Supabase allows
+            rows = [{**self.db.defaults(self.table), "created_at": f"{next(self.db._clock):012d}", **copy.deepcopy(r)}
+                    for r in self.payload]
+            self.db.tables.setdefault(self.table, []).extend(rows)
+            return _Result(copy.deepcopy(rows))
         if self.action == "insert":
             if self.table == "phone_calls" and any(r["room"] == self.payload["room"] for r in self.db.tables.get("phone_calls", [])):
                 raise RuntimeError("duplicate key value violates unique constraint phone_calls_room_key")
-            row = {**self.db.defaults(self.table), **copy.deepcopy(self.payload)}
+            row = {**self.db.defaults(self.table), "created_at": f"{next(self.db._clock):012d}", **copy.deepcopy(self.payload)}
             self.db.tables.setdefault(self.table, []).append(row)
             return _Result([copy.deepcopy(row)])
         if self.action == "upsert":
@@ -84,14 +101,19 @@ class _Query:
                     return _Result([copy.deepcopy(row)])
             self.action = "insert"
             return self.execute()
+        if self.action == "delete":
+            matched = self._matching()
+            self.db.tables[self.table] = [row for row in self.db.tables[self.table] if row not in matched]
+            return _Result(copy.deepcopy(matched))
         if self.action == "update":
             matched = self._matching()
             for row in matched:
                 row.update(copy.deepcopy(self.payload))
             return _Result(copy.deepcopy(matched))
         rows = self._matching()
-        if self.ordering:
-            rows = sorted(rows, key=lambda row: str(row.get(self.ordering[0])), reverse=self.ordering[1])
+        for column, desc in reversed(self.orderings):  # stable sorts, last key first
+            rows = sorted(rows, key=lambda row: str(row.get(column)), reverse=desc)
+        rows = rows[self.offset:]
         return _Result(copy.deepcopy(rows[: self.max_rows] if self.max_rows else rows))
 
 

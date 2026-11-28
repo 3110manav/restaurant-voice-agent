@@ -77,12 +77,13 @@ def customer_bill(order: dict, store: dict, upi_uri: str | None, pay_link: str |
     return {"type": "text", "text": f"{text}\n\nPay {total} by UPI to {upi_id} ({payee})\nPut order {order['payment_ref']} in the note."}
 
 
-def callback_alert(caller: str | None, reason: str, store_name: str) -> dict:
-    who = caller or "a caller whose number wasn't available"
+def callback_alert(caller: str | None, reason: str, store_name: str, category: str = "", urgent: bool = False) -> dict:
+    who = mobile(caller) if caller else "a caller whose number wasn't available"
+    head = f"{'URGENT · ' if urgent else ''}{category or 'Call back'}"
     return {
         "type": "text",
-        "text": f"Please call back: {who}\nReason: {reason}\nCalled {store_name} just now.\n"
-                "It's on your dashboard under Callbacks: mark it resolved once you've called.",
+        "text": f"{head}\nPlease call back: {who}\nReason: {english(reason)}\nCalled {store_name} just now.\n"
+                "It's on your dashboard under Support: mark it resolved once you've called.",
     }
 
 

@@ -100,7 +100,7 @@ def test_the_first_alert_number_switches_phone_ordering_on(api, fake):
     saved = api.put("/owner/restaurants/r1/agent", json={"alert_whatsapp": "9876543210"}).json()
     store = fake.tables["phone_stores"][0]
     assert store["restaurant_slug"] == "tfk" and store["owner_whatsapp"] == "919876543210" and store["business_type"] == "restaurant"
-    assert saved["calls"]["calls_number"] is None  # answers no number until Sarthi points one at it
+    assert saved["calls"]["calls_number"] is None and saved["calls"]["calls_numbers"] == []  # until Sarthi links one
 
 
 def test_upi_needs_somewhere_for_alerts_first(api, fake):
@@ -160,3 +160,9 @@ def test_the_sender_reaches_whatsapps_api(monkeypatch):
 def test_a_message_with_no_order_or_call_uses_the_shared_number(fake):
     assert repository.store_id_of(None, None) is None
     assert outbox.sender_for({"id": "m1", "order_id": None, "call_id": None}) is None
+
+
+def test_the_owner_sees_every_number_that_reaches_them(api, fake):
+    repository.assign_number("tfk", "+912228000000", "old number, forwarded")
+    calls = api.get("/owner/restaurants/r1/agent").json()["calls"]
+    assert calls["calls_numbers"] == ["+918000000000", "+912228000000"] and calls["calls_number"] == "+918000000000"

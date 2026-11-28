@@ -13,6 +13,7 @@ import re
 import threading
 
 from app import db
+from app.db import retry_read
 
 logger = logging.getLogger("sarthi.transcripts")
 _warned = False
@@ -76,6 +77,7 @@ def _insert(row: dict) -> None:
             logger.warning("couldn't save conversation turns (has migration 005 been run?): %s", str(exc)[:200])
 
 
+@retry_read
 def list_conversations(restaurant_id: str, limit: int = 50) -> list[dict]:
     """The latest conversations, newest first: when, how many turns, which channels, and how it began."""
     client = db.get_client()
@@ -102,6 +104,7 @@ def list_conversations(restaurant_id: str, limit: int = 50) -> list[dict]:
     return list(grouped.values())[:limit]
 
 
+@retry_read
 def conversation_turns(restaurant_id: str, session_id: str) -> list[dict]:
     """Every turn of one conversation, in order."""
     client = db.get_client()
@@ -111,3 +114,27 @@ def conversation_turns(restaurant_id: str, session_id: str) -> list[dict]:
         client.table("conversation_turns").select("*").eq("restaurant_id", restaurant_id)
         .eq("session_id", session_id).order("created_at").limit(1000).execute().data
     )
+
+
+
+# ------------------------------------------------------------------ phone calls on Samvaad --
+# A Samvaad call's transcript arrives whole when the call ends (the end tool's @Call Transcript, or the deployment
+# webhook) and is kept on its phone_calls row; the Call log (app/call_log.py) and tickets read it from there.
+
+
+def call_transcript(turns) -> list[dict]:
+    """A call's words as [{"role": "agent"|"user"|"call", "text"}], from whatever shape was saved: Sarvam's turns
+    (role, en_text, indic_text), or one block of text from the end tool."""
+    lines = []
+    for turn in turns if isinstance(turns, list) else []:
+        if not isinstance(turn, dict):
+            continue
+        if "role" in turn:
+            text = turn.get("indic_text") or turn.get("en_text") or turn.get("text") or turn.get("content") or ""
+            role = "agent" if str(turn["role"]).lower() in ("agent", "assistant", "bot") else "user"
+            if str(text).strip():
+                lines.append({"role": role, "text": str(text).strip()})
+        elif turn.get("transcript"):
+            lines.append({"role": "call", "text": str(turn["transcript"]).strip()})
+    return lines
+
